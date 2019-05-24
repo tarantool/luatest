@@ -1,0 +1,4 @@
+#!/usr/bin/env tarantool
+
+local runner = require('luatest').runner
+os.exit(runner:run() and 0 or 1)
