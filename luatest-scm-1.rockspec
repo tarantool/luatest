@@ -1,5 +1,5 @@
 package = 'luatest'
-version = 'scm-0.1.0'
+version = 'scm-1'
 source = {
     url = 'git://github.com/tarantool/luatest.git',
     branch = 'master',
