@@ -1,0 +1,16 @@
+language: minimal
+dist: xenial
+
+before_install:
+  - curl http://download.tarantool.org/tarantool/1.10/gpgkey | sudo apt-key add -
+  - echo "deb http://download.tarantool.org/tarantool/1.10/ubuntu/ xenial main" | sudo tee /etc/apt/sources.list.d/tarantool_1_10.list
+  - sudo apt-get -y update
+  - sudo apt-get install -y tarantool luarocks
+  - sudo luarocks install luacheck
+
+script:
+  - luacheck ./
+  - bin/luatest
+
+notifications:
+  email: false
