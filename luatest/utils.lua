@@ -12,4 +12,17 @@ function utils.patch(object, name, fn)
     object[name] = fn(super)
 end
 
+-- Merges multiple maps into first one. Later arguments has lower precedence, so
+-- existing keys are not overwritten.
+function utils.reverse_merge(target, ...)
+    for _, source in ipairs({...}) do
+        for k, v in pairs(source) do
+            if target[k] == nil then
+                target[k] = v
+            end
+        end
+    end
+    return target
+end
+
 return utils

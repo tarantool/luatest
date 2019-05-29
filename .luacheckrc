@@ -8,6 +8,7 @@ std = {
         '_G',
         'arg',
         'assert',
+        'box',
         'debug',
         'dofile',
         'error',
