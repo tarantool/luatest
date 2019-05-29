@@ -4,26 +4,16 @@ local hooks = require('luatest.hooks')
 local capturing = require('luatest.capturing')
 local Capture = require('luatest.capture')
 local loader = require('luatest.loader')
+local utils = require('luatest.utils')
 
 local runner = {
     SOURCE_DIR = 'test',
     HELPER_MODULE = 'test.helper',
 }
 
-local function reverse_merge(target, ...)
-    for _, source in ipairs({...}) do
-        for k, v in pairs(source) do
-            if target[k] == nil then
-                target[k] = v
-            end
-        end
-    end
-    return target
-end
-
 function runner:run(args, options)
     args = args or rawget(_G, 'arg')
-    options = reverse_merge(self.parse_args(args), options or {}, {
+    options = utils.reverse_merge(self.parse_args(args), options or {}, {
         path = self.SOURCE_DIR,
         luaunit = luaunit,
         capture = Capture:new(),

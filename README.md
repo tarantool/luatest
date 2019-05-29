@@ -2,14 +2,14 @@
 
 Tool for testing tarantool applications.
 
-This rock is based on [https://github.com/bluebird75/luaunit](luanit) and additionaly provides:
+This rock is based on [luanit](https://github.com/bluebird75/luaunit) and additionaly provides:
 
 - executable to run tests in directory or specific files,
 - before/after suite hooks,
 - before/after test group hooks,
 - output capturing.
 
-Please refer to [https://luaunit.readthedocs.io/en/latest/](luanit docs) for original features and examples.
+Please refer to [luanit docs](https://luaunit.readthedocs.io/en/latest/) for original features and examples.
 
 ## Requirements
 
@@ -68,6 +68,56 @@ it can be found in `.rocks/bin/luatest`.
 By default runner captures all stdout/stderr output and shows it only for failed tests.
 Capturing can be disabled with `-c` flag.
 
+## Test helpers
+
+There are helpers to run tarantool applications and perform basic interaction with it.
+If application follows configuration conventions it's possible to use
+options to confegure server instance and helpers at the same time. For example
+`http_port` is used to perform http request in tests and passed in `TARANTOOL_HTTP_PORT`
+to server process.
+
+```lua
+local server = luatest.Server:new({
+    command = '/path/to/executable.lua',
+    -- arguments for process
+    args = {'--no-bugs', '--fast'},
+    -- additional envars to pass to process
+    env = {SOME_FIELD = 'value'},
+    -- passed as TARANTOOL_WORKDIR
+    workdir = '/path/to/test/workdir',
+    -- passed as TARANTOOL_HTTP_PORT, used in http_request
+    http_port = 8080,
+    -- passed as TARANTOOL_HTTP_PORT, used in connect_console
+    console_port = 3030,
+    -- passed to net_box.connect in connect_console
+    console_credentials = {user = 'username', password = 'secret'},
+})
+server:start()
+
+-- http requests
+server:http_request('get', '/path')
+server:http_request('post', '/path', {body = 'text'})
+server:http_request('post', '/path', {json = {field = value}})
+
+-- using console
+server:connect_console()
+server.console:eval('return do_something(...)', {arg1, arg2})
+
+server:stop()
+```
+
+`luatest.Process:start(path, args, env)` provides low-level interface to run any other application.
+
+There are several small helpers for common actions:
+
+```lua
+luatest.helpers.uuid('ab', 2, 1) == 'abababab-0002-0000-0000-000000000001'
+
+luatest.helpers.retrying({timeout = 1, delay = 0.1}, failing_function, arg1, arg2)
+-- wait until server is up
+luatest.helpers.retrying({}, function() server:http_request('get', '/status') end)
+```
+
 ## Known issues
 
 - When `before_all/after_all` hook fails with error, all other tests even from other classes
@@ -76,9 +126,9 @@ are not executed.
 
 ## Development
 
-- Install luacheck with `luarocks install luacheck`.
-- Run it with `luacheck ./` before commiting changes.
-- Run tests with `bin/luatest`.
+- Install dependencies with `make bootstrap`.
+- Run it with `make lint` before commiting changes.
+- Run tests with `make test` or `bin/luatest`.
 
 ## Contributing
 
