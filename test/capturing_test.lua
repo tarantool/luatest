@@ -104,6 +104,14 @@ t.test_class_hook = function()
         end
         group.after_all = group.before_all
         group.test = function() end
+
+        local group2 = lu2.group('test2')
+        group2.before_all = function()
+            io.stdout:write('-test-')
+            io.stderr:write('-test-')
+        end
+        group2.after_all = group2.before_all
+        group2.test = function() end
     end)
 end
 

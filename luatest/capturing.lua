@@ -31,9 +31,9 @@ return function(lu, capture)
     end end)
 
     utils.patch(lu.LuaUnit, 'startClass', function(super) return function(self, ...)
-        super(self, ...)
         capture:enable()
         capture:flush()
+        super(self, ...)
     end end)
 
     utils.patch(lu.LuaUnit, 'endClass', function(super) return function(self, ...)
