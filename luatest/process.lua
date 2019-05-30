@@ -1,6 +1,7 @@
 local checks = require('checks')
 local fun = require('fun')
 local ffi = require('ffi')
+local fio = require('fio')
 
 ffi.cdef([[
     pid_t fork(void);
@@ -17,10 +18,11 @@ local function to_const_char(input)
 end
 
 -- Starts process and returns immediately, not waiting until process is finished.
-function Process:start(path, args, env)
-    checks('table', 'string', '?table', '?table')
+function Process:start(path, args, env, options)
+    checks('table', 'string', '?table', '?table', {chdir = '?string'})
     args = args or {}
     env = env or {}
+    options = options or {}
 
     table.insert(args, 1, path)
 
@@ -32,6 +34,9 @@ function Process:start(path, args, env)
         error('fork failed: ' .. pid)
     elseif pid > 0 then
         return self:new({pid = pid})
+    end
+    if options.chdir then
+        fio.chdir(options.chdir)
     end
     ffi.C.execve(path, argv, envp)
     error('execve failed')

@@ -7,7 +7,19 @@ local net_box = require('net.box')
 local Process = require('luatest.process')
 local utils = require('luatest.utils')
 
-local Server = {}
+local Server = {
+    constructor_checks = {
+        command = 'string',
+        workdir = 'string',
+        chdir = '?string',
+        env = '?table',
+        args = '?table',
+
+        http_port = '?number',
+        console_port = '?number',
+        console_credentials = '?table',
+    },
+}
 
 function Server:inherit(object)
     setmetatable(object, self)
@@ -16,17 +28,7 @@ function Server:inherit(object)
 end
 
 function Server:new(object)
-    checks('table', {
-        command = 'string',
-        workdir = 'string',
-        env = '?table',
-        args = '?table',
-
-        http_port = '?number',
-        console_port = '?number',
-        console_credentials = '?table',
-    })
-
+    checks('table', self.constructor_checks)
     self:inherit(object)
     object:initialize()
     return object
@@ -61,7 +63,7 @@ function Server:start()
     log_cmd = log_cmd .. self.command
     log.debug(log_cmd)
 
-    self.process = Process:start(self.command, self.args, env)
+    self.process = Process:start(self.command, self.args, env, {chdir = self.chdir})
     log.debug('Started server PID: ' .. self.process.pid)
 end
 
