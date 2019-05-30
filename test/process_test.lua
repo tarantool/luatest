@@ -1,6 +1,7 @@
 local lt = require('luatest')
 local t = lt.group('process')
 local fiber = require('fiber')
+local fio = require('fio')
 
 local Process = lt.Process
 
@@ -11,6 +12,7 @@ t.teardown = function()
     if process and kill_after_test then
         process:kill()
     end
+    process = nil
 end
 
 t.test_start = function()
@@ -29,4 +31,21 @@ t.test_kill_non_posix = function()
     process:kill('STOP')
     fiber.sleep(0.1)
     process:kill('CONT')
+end
+
+t.test_chdir = function()
+    local file = 'luatest-tmp-file'
+    local file_copy = file .. '-copy'
+    if fio.stat('./tmp/' .. file_copy) ~= nil then
+        assert(fio.unlink('./tmp/' .. file_copy))
+    end
+    os.execute('touch ./tmp/' .. file)
+
+    Process:start('/bin/cp', {file, file_copy})
+    fiber.sleep(0.1)
+    lt.assertEquals(fio.stat('./tmp/' .. file_copy), nil)
+
+    Process:start('/bin/cp', {file, file_copy}, {}, {chdir = './tmp'})
+    fiber.sleep(0.1)
+    lt.assertNotEquals(fio.stat('./tmp/' .. file_copy), nil)
 end
