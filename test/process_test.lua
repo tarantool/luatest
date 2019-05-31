@@ -1,31 +1,31 @@
-local lt = require('luatest')
-local t = lt.group('process')
+local t = require('luatest')
+local g = t.group('process')
 local fiber = require('fiber')
 local fio = require('fio')
 
-local Process = lt.Process
+local Process = t.Process
 
 local process, kill_after_test
 
-t.setup = function() kill_after_test = true end
-t.teardown = function()
+g.setup = function() kill_after_test = true end
+g.teardown = function()
     if process and kill_after_test then
         process:kill()
     end
     process = nil
 end
 
-t.test_start = function()
+g.test_start = function()
     process = Process:start('/bin/sleep', {'5'})
     fiber.sleep(0.1)
-    lt.assertEquals(os.execute('ps -p ' .. process.pid .. ' > /dev/null'), 0)
+    t.assertEquals(os.execute('ps -p ' .. process.pid .. ' > /dev/null'), 0)
     process:kill()
     fiber.sleep(0.1)
-    lt.assertNotEquals(os.execute('ps -p ' .. process.pid .. ' > /dev/null'), 0)
+    t.assertNotEquals(os.execute('ps -p ' .. process.pid .. ' > /dev/null'), 0)
     kill_after_test = false
 end
 
-t.test_kill_non_posix = function()
+g.test_kill_non_posix = function()
     process = Process:start('/bin/sleep', {'5'})
     fiber.sleep(0.1)
     process:kill('STOP')
@@ -33,7 +33,7 @@ t.test_kill_non_posix = function()
     process:kill('CONT')
 end
 
-t.test_chdir = function()
+g.test_chdir = function()
     local file = 'luatest-tmp-file'
     local file_copy = file .. '-copy'
     if fio.stat('./tmp/' .. file_copy) ~= nil then
@@ -43,9 +43,9 @@ t.test_chdir = function()
 
     Process:start('/bin/cp', {file, file_copy})
     fiber.sleep(0.1)
-    lt.assertEquals(fio.stat('./tmp/' .. file_copy), nil)
+    t.assertEquals(fio.stat('./tmp/' .. file_copy), nil)
 
     Process:start('/bin/cp', {file, file_copy}, {}, {chdir = './tmp'})
     fiber.sleep(0.1)
-    lt.assertNotEquals(fio.stat('./tmp/' .. file_copy), nil)
+    t.assertNotEquals(fio.stat('./tmp/' .. file_copy), nil)
 end

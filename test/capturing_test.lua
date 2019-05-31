@@ -1,12 +1,12 @@
-local lt = require('luatest')
-local t = lt.group('capturing')
+local t = require('luatest')
+local g = t.group('capturing')
 
 local helper = require('test.helper')
 local Capture = require('luatest.capture')
 local capture = Capture:new()
 
-t.setup = function() capture:enable() end
-t.teardown = function()
+g.setup = function() capture:enable() end
+g.teardown = function()
     capture:flush()
     capture:disable()
 end
@@ -14,25 +14,25 @@ end
 local function assert_captured(fn)
     helper.run_suite(fn)
     local captured = capture:flush()
-    lt.assertNotStrContains(captured.stdout, '-test-')
-    lt.assertNotStrContains(captured.stderr, '-test-')
+    t.assertNotStrContains(captured.stdout, '-test-')
+    t.assertNotStrContains(captured.stderr, '-test-')
 end
 
 local function assert_shown(fn)
     helper.run_suite(fn)
     local captured = capture:flush()
-    lt.assertStrContains(captured.stdout, 'Captured stdout:\ntest-out')
-    lt.assertStrContains(captured.stdout, 'Captured stderr:\ntest-err')
-    lt.assertEquals(captured.stderr, '')
+    t.assertStrContains(captured.stdout, 'Captured stdout:\ntest-out')
+    t.assertStrContains(captured.stdout, 'Captured stderr:\ntest-err')
+    t.assertEquals(captured.stderr, '')
 end
 
 local function assert_error(fn)
-    lt.assertEquals(helper.run_suite(fn), 1)
+    t.assertEquals(helper.run_suite(fn), 1)
     local captured = capture:flush()
-    lt.assertStrContains(captured.stderr, 'custom-error')
+    t.assertStrContains(captured.stderr, 'custom-error')
 end
 
-t.test_example = function()
+g.test_example = function()
     assert_captured(function(lu2)
         lu2.group('test').test = function()
             io.stdout:write('-test-')
@@ -41,7 +41,7 @@ t.test_example = function()
     end)
 end
 
-t.test_example_failed = function()
+g.test_example_failed = function()
     assert_shown(function(lu2)
         lu2.group('test').test = function()
             io.stdout:write('test-out')
@@ -51,7 +51,7 @@ t.test_example_failed = function()
     end)
 end
 
-t.test_example_hook = function()
+g.test_example_hook = function()
     assert_captured(function(lu2)
         local group = lu2.group('test')
         group.setup = function()
@@ -63,7 +63,7 @@ t.test_example_hook = function()
     end)
 end
 
-t.test_example_hook_failed = function()
+g.test_example_hook_failed = function()
     assert_shown(function(lu2)
         local group = lu2.group('test')
         group.setup = function()
@@ -95,7 +95,7 @@ t.test_example_hook_failed = function()
 end
 
 
-t.test_class_hook = function()
+g.test_class_hook = function()
     assert_captured(function(lu2)
         local group = lu2.group('test')
         group.before_all = function()
@@ -115,7 +115,7 @@ t.test_class_hook = function()
     end)
 end
 
-t.test_class_hook_failed = function()
+g.test_class_hook_failed = function()
     assert_error(function(lu2)
         local group = lu2.group('test')
         group.before_all = function()
@@ -137,7 +137,7 @@ t.test_class_hook_failed = function()
     end)
 end
 
-t.test_suite_hook = function()
+g.test_suite_hook = function()
     assert_captured(function(lu2)
         local group = lu2.group('test')
         local hook = function()
@@ -150,7 +150,7 @@ t.test_suite_hook = function()
     end)
 end
 
-t.test_suite_hook_failed = function()
+g.test_suite_hook_failed = function()
     assert_error(function(lu2)
         lu2.group('test').test = function() end
         lu2.before_suite(function()

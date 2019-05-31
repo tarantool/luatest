@@ -21,33 +21,33 @@ Define tests.
 
 ```lua
 -- test/feature_test.lua
-local luatest = require('luatest')
-local t = luatest.group('feature')
+local t = require('luatest')
+local g = t.group('feature')
 
 -- Define suite hooks. can be called multiple times to define hooks from different files
-luatest.before_suite(function() ... end)
-luatest.before_suite(function() ... end)
+t.before_suite(function() ... end)
+t.before_suite(function() ... end)
 
 -- Hooks to run once for tests group
 -- This hooks run always when test class is changed.
 -- So it may run multiple times when --shuffle otion is used.
-t.before_all = function() ... end
-t.after_all = function() ... end
+g.before_all = function() ... end
+g.after_all = function() ... end
 
 -- Hooks to run for each test in group
-t.setup = function() ... end
-t.teardown = function() ... end
+g.setup = function() ... end
+g.teardown = function() ... end
 
 -- Tests. All properties with name staring with `test` are treated as test cases.
-t.test_example_1 = function() ... end
-t.test_example_n = function() ... end
+g.test_example_1 = function() ... end
+g.test_example_n = function() ... end
 
 -- test/other_test.lua
-local luatest = require('luatest')
-local t = luatest.group('other')
+local t = require('luatest')
+local g = t.group('other')
 -- ...
-t.test_example_2 = function() ... end
-t.test_example_m = function() ... end
+g.test_example_2 = function() ... end
+g.test_example_m = function() ... end
 ```
 
 Run them.

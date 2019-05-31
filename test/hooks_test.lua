@@ -1,9 +1,9 @@
-local lt = require('luatest')
-local t = lt.group('hooks')
+local t = require('luatest')
+local g = t.group('hooks')
 
 local helper = require('test.helper')
 
-t.test_hooks = function()
+g.test_hooks = function()
     local hooks = {}
     local expected = {}
 
@@ -40,11 +40,11 @@ t.test_hooks = function()
         table.insert(expected, 'after_suite_2')
     end)
 
-    lt.assertEquals(result, 0)
-    lt.assertEquals(hooks, expected)
+    t.assertEquals(result, 0)
+    t.assertEquals(hooks, expected)
 end
 
-t.test_before_suite_failed = function()
+g.test_before_suite_failed = function()
     local hooks = {}
 
     local result = helper.run_suite(function(lu2)
@@ -59,11 +59,11 @@ t.test_before_suite_failed = function()
         t2.test = function() table.insert(hooks, 'test') end
     end)
 
-    lt.assertEquals(result, 1)
-    lt.assertEquals(hooks, {'before_suite_1', 'after_suite'})
+    t.assertEquals(result, 1)
+    t.assertEquals(hooks, {'before_suite_1', 'after_suite'})
 end
 
-t.test_after_suite_failed = function()
+g.test_after_suite_failed = function()
     local hooks = {}
 
     local result = helper.run_suite(function(lu2)
@@ -78,11 +78,11 @@ t.test_after_suite_failed = function()
         t2.test = function() table.insert(hooks, 'test') end
     end)
 
-    lt.assertEquals(result, 1)
-    lt.assertEquals(hooks, {'before_suite', 'before_all', 'test', 'after_all', 'after_suite_1'})
+    t.assertEquals(result, 1)
+    t.assertEquals(hooks, {'before_suite', 'before_all', 'test', 'after_all', 'after_suite_1'})
 end
 
-t.test_before_class_failed = function()
+g.test_before_class_failed = function()
     local hooks = {}
 
     local result = helper.run_suite(function(lu2)
@@ -105,8 +105,8 @@ t.test_before_class_failed = function()
         t_2.test = function() table.insert(hooks, 'test_2') end
     end)
 
-    lt.assertEquals(result, 1)
-    lt.assertEquals(hooks, {
+    t.assertEquals(result, 1)
+    t.assertEquals(hooks, {
         'before_suite',
         'before_all_0',
         'test_0',
@@ -115,7 +115,7 @@ t.test_before_class_failed = function()
     })
 end
 
-t.test_after_class_failed = function()
+g.test_after_class_failed = function()
     local hooks = {}
 
     local result = helper.run_suite(function(lu2)
@@ -134,8 +134,8 @@ t.test_after_class_failed = function()
         t_2.test = function() table.insert(hooks, 'test_2') end
     end)
 
-    lt.assertEquals(result, 1)
-    lt.assertEquals(hooks, {
+    t.assertEquals(result, 1)
+    t.assertEquals(hooks, {
         'before_suite',
         'before_all_1',
         'test_1_1',
