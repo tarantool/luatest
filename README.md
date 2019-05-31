@@ -56,7 +56,7 @@ Run them.
 luatest                               # all in ./test direcroy
 luatest test/feature_test.lua         # by file
 luatest test/integration              # all within directory
-luatest test/ -f                      # luaunit options can be passed after test path
+luatest test/ -f                      # luaunit options are supported
 luatest feature other.test_example_2  # by group or test name
 ```
 
