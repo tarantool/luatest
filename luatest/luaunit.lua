@@ -82,12 +82,13 @@ M.SKIP_PREFIX    = 'LuaUnit test SKIP:    ' -- prefix string for skipped tests
 
 
 
-M.USAGE=[[Usage: lua <your_test_suite.lua> [options] [testname1 [testname2] ... ]
+M.USAGE=[[Usage: luatest [options] [files or dirs...] [testname1 [testname2] ... ]
 Options:
   -h, --help:             Print this help
   --version:              Print version information
   -v, --verbose:          Increase verbosity
   -q, --quiet:            Set verbosity to minimum
+  -c                      Disable capture
   -e, --error:            Stop on first error
   -f, --failure:          Stop on first failure or error
   -s, --shuffle:          Shuffle tests before running them
