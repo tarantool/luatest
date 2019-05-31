@@ -32,7 +32,13 @@ function runner:run(args, options)
     local ok, result = capture:wrap(options.enable_capture, function()
         self:require_helper()
         local load_tests = options.load_tests or loader.require_tests
-        load_tests(options.path)
+        if #options.paths > 0 then
+            for _, path in pairs(options.paths) do
+                load_tests(path)
+            end
+        else
+            load_tests(self.SOURCE_DIR)
+        end
         lu.run_before_suite()
     end)
     if ok then
@@ -49,19 +55,18 @@ local OPTIONS = {
 -- Parses runner specific cli args. All matching args are removed from the list.
 -- All remaining arguments are parsed by luaunit.
 function runner.parse_args(args)
-    local result = {}
-    -- If first argument contains '/' it's used as test source path.
-    local path = args[1]
-    if path and path:find('/') then
-        result.path = path
-        table.remove(args, 1)
-    end
+    local result = {paths = {}}
 
     local i = 1
     while i <= #args do
         local arg = args[i]
         if OPTIONS[arg] then
             OPTIONS[arg](result)
+            table.remove(args, i)
+        -- If argument contains / then it's treated as file path.
+        -- This assumption to support luaunit's test names along with file paths.
+        elseif arg:find('/') then
+            table.insert(result.paths, arg)
             table.remove(args, i)
         else
             i = i + 1

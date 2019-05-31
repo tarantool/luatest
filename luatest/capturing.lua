@@ -58,4 +58,12 @@ return function(lu, capture)
             print_capture('stderr', node.capture.stderr)
         end
     end end)
+
+    utils.patch(TextOutput, 'startSuite', function(super) return function(self, index, node)
+        return capture:wrap(false, function() return super(self, index, node) end)
+    end end)
+
+    utils.patch(TextOutput, 'startTest', function(super) return function(self, index, node)
+        return capture:wrap(false, function() return super(self, index, node) end)
+    end end)
 end
