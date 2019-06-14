@@ -65,6 +65,27 @@ g.test_wrap_with_error = function()
     t.assertEquals(capture:flush(), {stdout = '', stderr = ''})
 end
 
+g.test_wrap_with_error_table = function()
+    local test_capture = Capture:new()
+    assert(not test_capture.enabled)
+    local result = {test_capture:wrap(true, function()
+        assert(test_capture.enabled)
+        io.stdout:write('test-out')
+        io.stderr:write('test-err')
+        error({type = 'err-class', message = 'hey'})
+        return 'result'
+    end)}
+    t.assertEquals(result, {false})
+    assert(not test_capture.enabled)
+    local captured = capture:flush()
+    t.assertEquals(captured.stdout, '')
+    t.assertNotStrContains(captured.stderr, 'test-err')
+    t.assertStrContains(captured.stderr, "type: err-class\nmessage: hey")
+    t.assertStrContains(captured.stderr, 'stack traceback:')
+    t.assertEquals(test_capture:flush(), {stdout = 'test-out', stderr = 'test-err'})
+    t.assertEquals(capture:flush(), {stdout = '', stderr = ''})
+end
+
 g.test_wrap_nested = function()
     local test_capture = Capture:new()
     assert(not test_capture.enabled)
