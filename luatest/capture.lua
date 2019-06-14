@@ -2,6 +2,7 @@
 -- descriptors with pipes inputs.
 
 local ffi = require('ffi')
+local yaml = require('yaml')
 
 ffi.cdef([[
     int pipe(int fildes[2]);
@@ -133,7 +134,10 @@ function Capture:wrap(enabled, fn)
         return result
     end, function(err)
         self:disable()
-        io.stderr:write(tostring(err) .. '\n')
+        if type(err) ~= 'string' then
+            err = yaml.encode(err)
+        end
+        io.stderr:write(err)
         io.stderr:write(tostring(debug.traceback()) .. '\n')
     end)}
     self:set_enabled(old)
