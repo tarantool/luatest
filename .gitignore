@@ -2,5 +2,5 @@
 .luarocks
 .rocks
 
-/tmp
+/tmp/*
 !/tmp/.keep
