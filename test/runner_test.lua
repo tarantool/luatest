@@ -26,3 +26,19 @@ g.test_run_error = function()
 
     t.assertEquals(result, 1)
 end
+
+local function run_file(file)
+    return os.execute('bin/luatest test/fixtures/' .. file)
+end
+
+g.test_executable_pass = function()
+    t.assertEquals(run_file('pass.lua'), 0)
+end
+
+g.test_executable_fail = function()
+    t.assertEquals(run_file('fail.lua'), 256) -- luajit multiplies result by 256
+end
+
+g.test_executable_error = function()
+    t.assertEquals(run_file('error.lua'), 256) -- luajit multiplies result by 256
+end
