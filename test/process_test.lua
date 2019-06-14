@@ -17,11 +17,13 @@ end
 
 g.test_start = function()
     process = Process:start('/bin/sleep', {'5'})
-    fiber.sleep(0.1)
-    t.assertEquals(os.execute('ps -p ' .. process.pid .. ' > /dev/null'), 0)
+    t.helpers.retrying({timeout = 0.5}, function()
+        t.assertEquals(os.execute('ps -p ' .. process.pid .. ' > /dev/null'), 0)
+    end)
     process:kill()
-    fiber.sleep(0.1)
-    t.assertNotEquals(os.execute('ps -p ' .. process.pid .. ' > /dev/null'), 0)
+    t.helpers.retrying({timeout = 0.5}, function()
+        t.assertNotEquals(os.execute('ps -p ' .. process.pid .. ' > /dev/null'), 0)
+    end)
     kill_after_test = false
 end
 
@@ -41,11 +43,14 @@ g.test_chdir = function()
     end
     os.execute('touch ./tmp/' .. file)
 
-    Process:start('/bin/cp', {file, file_copy})
-    fiber.sleep(0.1)
-    t.assertEquals(fio.stat('./tmp/' .. file_copy), nil)
+    local proc = Process:start('/bin/cp', {file, file_copy})
+    t.helpers.retrying({timeout = 0.5}, function()
+        t.assertNotEquals(os.execute('ps -p ' .. proc.pid .. ' > /dev/null'), 0)
+        t.assertEquals(fio.stat('./tmp/' .. file_copy), nil)
+    end)
 
     Process:start('/bin/cp', {file, file_copy}, {}, {chdir = './tmp'})
-    fiber.sleep(0.1)
-    t.assertNotEquals(fio.stat('./tmp/' .. file_copy), nil)
+    t.helpers.retrying({timeout = 0.5}, function()
+        t.assertNotEquals(fio.stat('./tmp/' .. file_copy), nil)
+    end)
 end

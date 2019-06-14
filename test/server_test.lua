@@ -1,4 +1,3 @@
-local fiber = require('fiber')
 local fio = require('fio')
 local json = require('json')
 
@@ -39,10 +38,14 @@ g.test_start_stop = function()
     fio.mktree(workdir)
     local s = Server:new({command = command, workdir = workdir})
     s:start()
-    fiber.sleep(0.1)
-    t.assertEquals(os.execute('ps -p ' .. s.process.pid .. ' > /dev/null'), 0)
+    local pid = s.process.pid
+    t.helpers.retrying({timeout = 0.5}, function()
+        t.assertEquals(os.execute('ps -p ' .. pid .. ' > /dev/null'), 0)
+    end)
     s:stop()
-    fiber.sleep(0.1)
+    t.helpers.retrying({timeout = 0.5}, function()
+        t.assertEquals(os.execute('ps -p ' .. pid .. ' > /dev/null'), 256) -- luajit multiplies code by 256
+    end)
 end
 
 g.test_http_request = function()
