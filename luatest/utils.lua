@@ -25,4 +25,11 @@ function utils.reverse_merge(target, ...)
     return target
 end
 
+function utils.print_captured(name, text, stream)
+    stream = stream or io.stdout
+    if text and text:len() > 0 then
+        stream:write('Captured ' .. name .. ':\n' .. text .. '\n\n')
+    end
+end
+
 return utils

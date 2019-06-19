@@ -30,6 +30,8 @@ local function assert_error(fn)
     t.assertEquals(helper.run_suite(fn), 1)
     local captured = capture:flush()
     t.assertStrContains(captured.stderr, 'custom-error')
+    t.assertStrContains(captured.stderr, 'Captured stdout:\ntest-out')
+    t.assertStrContains(captured.stderr, 'Captured stderr:\ntest-err')
 end
 
 g.test_example = function()

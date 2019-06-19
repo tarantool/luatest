@@ -42,20 +42,12 @@ return function(lu, capture)
         capture:disable()
     end end)
 
-    local function print_capture(name, text)
-        if text and text:len() > 0 then
-            print('Captured ' .. name .. ':')
-            print(text)
-            print()
-        end
-    end
-
     local TextOutput = lu.LuaUnit.outputType
     utils.patch(TextOutput, 'displayOneFailedTest', function(super) return function(self, index, node)
         super(self, index, node)
         if node.capture then
-            print_capture('stdout', node.capture.stdout)
-            print_capture('stderr', node.capture.stderr)
+            utils.print_captured('stdout', node.capture.stdout)
+            utils.print_captured('stderr', node.capture.stderr)
         end
     end end)
 
