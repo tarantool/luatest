@@ -4,6 +4,8 @@
 local ffi = require('ffi')
 local yaml = require('yaml')
 
+local utils = require('luatest.utils')
+
 ffi.cdef([[
     int pipe(int fildes[2]);
 
@@ -133,12 +135,17 @@ function Capture:wrap(enabled, fn)
         local result = fn()
         return result
     end, function(err)
+        local captured = self:flush()
         self:disable()
         if type(err) ~= 'string' then
             err = yaml.encode(err)
+        else
+            err = err .. '\n'
         end
         io.stderr:write(err)
         io.stderr:write(tostring(debug.traceback()) .. '\n')
+        utils.print_captured('stdout', captured.stdout, io.stderr)
+        utils.print_captured('stderr', captured.stderr, io.stderr)
     end)}
     self:set_enabled(old)
     return unpack(result)
