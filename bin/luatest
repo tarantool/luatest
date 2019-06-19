@@ -1,4 +1,25 @@
 #!/usr/bin/env tarantool
 
-local runner = require('luatest').runner
-os.exit(runner:run())
+local fun = require('fun')
+
+-- Tarantool does not invoke Lua's GC-callbacks on exit.
+-- So this method clears every loaded package and invokes GC explicitly.
+-- It does not clear previously loaded packages to not break any GC-callback
+-- which relies on built-in package.
+local function gc_sandboxed(fn)
+    local original = fun.iter(package.loaded):map(function(x) return x, true end):tomap()
+    local result = fn()
+    -- Collect list of new packages to not modify map while iterating over it.
+    local new_packages = fun.iter(package.loaded):
+      map(function(x) return x end):
+      filter(function(x) return not original[x] end):
+      totable()
+    for _, name in pairs(new_packages) do
+      package.loaded[name] = nil
+    end
+    collectgarbage()
+    return result
+end
+
+local result = gc_sandboxed(function() return require('luatest').runner:run() end)
+os.exit(result)
