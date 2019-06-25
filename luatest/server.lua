@@ -16,8 +16,8 @@ local Server = {
         args = '?table',
 
         http_port = '?number',
-        console_port = '?number',
-        console_credentials = '?table',
+        net_box_port = '?number',
+        net_box_credentials = '?table',
     },
 }
 
@@ -38,8 +38,8 @@ function Server:initialize()
     if self.http_port then
         self.http_client = http_client.new()
     end
-    if self.console_port then
-        self.console_uri = 'localhost:' .. self.console_port
+    if self.net_box_port then
+        self.net_box_uri = 'localhost:' .. self.net_box_port
     end
     self.env = utils.reverse_merge({}, self.env or {}, self:build_env())
     self.args = self.args or {}
@@ -49,7 +49,7 @@ function Server:build_env()
     return {
         TARANTOOL_WORKDIR = self.workdir,
         TARANTOOL_HTTP_PORT = self.http_port,
-        TARANTOOL_LISTEN = self.console_port,
+        TARANTOOL_LISTEN = self.net_box_port,
     }
 end
 
@@ -68,9 +68,9 @@ function Server:start()
 end
 
 function Server:stop()
-    if self.console then
-        self.console:close()
-        self.console = nil
+    if self.net_box then
+        self.net_box:close()
+        self.net_box = nil
     end
     if self.process then
         self.process:kill()
@@ -79,18 +79,18 @@ function Server:stop()
     end
 end
 
-function Server:connect_console()
-    if self.console then
-        return self.console
+function Server:connect_net_box()
+    if self.net_box then
+        return self.net_box
     end
-    if not self.console_uri then
-        error('console_port not configured')
+    if not self.net_box_uri then
+        error('net_box_port not configured')
     end
-    local console = net_box.connect(self.console_uri, self.console_credentials)
-    if console.error then
-        error(console.error)
+    local connection = net_box.connect(self.net_box_uri, self.net_box_credentials)
+    if connection.error then
+        error(connection.error)
     end
-    self.console = console
+    self.net_box = connection
 end
 
 function Server:http_request(method, path, options)
