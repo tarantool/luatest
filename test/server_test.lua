@@ -15,7 +15,7 @@ local server = Server:new({
     workdir = fio.pathjoin(datadir, 'common'),
     env = {custom_env = 'test_value'},
     http_port = 8182,
-    console_port = 3133,
+    net_box_port = 3133,
 })
 
 g.before_all = function()
@@ -73,9 +73,9 @@ g.test_http_request_failed = function()
     t.assertEquals(err.response.status, 404)
 end
 
-g.test_console = function()
-    server:connect_console()
-    t.assertEquals(server.console:eval('return os.getenv("custom_env")'), 'test_value')
+g.test_net_box = function()
+    server:connect_net_box()
+    t.assertEquals(server.net_box:eval('return os.getenv("custom_env")'), 'test_value')
 end
 
 g.test_inherit = function()

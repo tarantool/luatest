@@ -2,6 +2,7 @@
 
 - GC'ed processes are killed automatically.
 - Print captured output when suite/group hook fails.
+- Rename Server:console to Server:net_box.
 
 # 0.1.1
 

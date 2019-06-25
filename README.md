@@ -87,10 +87,10 @@ local server = luatest.Server:new({
     workdir = '/path/to/test/workdir',
     -- passed as TARANTOOL_HTTP_PORT, used in http_request
     http_port = 8080,
-    -- passed as TARANTOOL_HTTP_PORT, used in connect_console
-    console_port = 3030,
-    -- passed to net_box.connect in connect_console
-    console_credentials = {user = 'username', password = 'secret'},
+    -- passed as TARANTOOL_LISTEN, used in connect_net_box
+    net_box_port = 3030,
+    -- passed to net_box.connect in connect_net_box
+    net_box_credentials = {user = 'username', password = 'secret'},
 })
 server:start()
 
@@ -99,9 +99,9 @@ server:http_request('get', '/path')
 server:http_request('post', '/path', {body = 'text'})
 server:http_request('post', '/path', {json = {field = value}})
 
--- using console
-server:connect_console()
-server.console:eval('return do_something(...)', {arg1, arg2})
+-- using net_box
+server:connect_net_box()
+server.net_box:eval('return do_something(...)', {arg1, arg2})
 
 server:stop()
 ```
