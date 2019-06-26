@@ -2,6 +2,7 @@
 -- descriptors with pipes inputs.
 
 local ffi = require('ffi')
+local fio = require('fio')
 
 local utils = require('luatest.utils')
 
@@ -12,8 +13,6 @@ ffi.cdef([[
     int dup2(int oldfd, int newfd);
 
     int fileno(struct FILE *stream);
-
-    ssize_t read(int fd, void *buf, size_t count);
 
     int coio_wait(int fd, int event, double timeout);
 ]])
@@ -36,20 +35,27 @@ local function dup_io(file)
 end
 
 local COIO_READ = 0x1
-local READ_BUFFER_SIZE = 4096
+local fio_file_mt
+
+-- The simplest way of non-blocking read is `fio.file:read()`.
+-- However we have only file descriptor number and there is no way to create
+-- fio file from it, so we need to fetch metatable and then create object manually.
+local function fd_to_fio(fd)
+    if not fio_file_mt then
+        local dev_null, err = fio.open('/dev/null')
+        assert(dev_null, tostring(err))
+        fio_file_mt = getmetatable(dev_null)
+        dev_null:close()
+    end
+    return setmetatable({fh = fd}, fio_file_mt)
+end
 
 local function read_fd(fd)
-    local chunks = {}
-    local buffer = nil
-    while ffi.C.coio_wait(fd, COIO_READ, 0) ~= 0 do
-        buffer = buffer or ffi.new('char[?]', READ_BUFFER_SIZE)
-        local count = ffi.C.read(fd, buffer, READ_BUFFER_SIZE)
-        if count < 0 then
-            error('read pipe failed')
-        end
-        table.insert(chunks, ffi.string(buffer, count))
+    if ffi.C.coio_wait(fd, COIO_READ, 0) == 0 then
+        return ''
+    else
+        return fd_to_fio(fd):read()
     end
-    return table.concat(chunks)
 end
 
 local Capture = {
