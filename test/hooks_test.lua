@@ -40,8 +40,8 @@ g.test_hooks = function()
         table.insert(expected, 'after_suite_2')
     end)
 
-    t.assertEquals(result, 0)
-    t.assertEquals(hooks, expected)
+    t.assert_equals(result, 0)
+    t.assert_equals(hooks, expected)
 end
 
 g.test_before_suite_failed = function()
@@ -59,8 +59,8 @@ g.test_before_suite_failed = function()
         t2.test = function() table.insert(hooks, 'test') end
     end)
 
-    t.assertEquals(result, 1)
-    t.assertEquals(hooks, {'before_suite_1', 'after_suite'})
+    t.assert_equals(result, 1)
+    t.assert_equals(hooks, {'before_suite_1', 'after_suite'})
 end
 
 g.test_after_suite_failed = function()
@@ -78,8 +78,8 @@ g.test_after_suite_failed = function()
         t2.test = function() table.insert(hooks, 'test') end
     end)
 
-    t.assertEquals(result, 1)
-    t.assertEquals(hooks, {'before_suite', 'before_all', 'test', 'after_all', 'after_suite_1'})
+    t.assert_equals(result, 1)
+    t.assert_equals(hooks, {'before_suite', 'before_all', 'test', 'after_all', 'after_suite_1'})
 end
 
 g.test_before_class_failed = function()
@@ -105,8 +105,8 @@ g.test_before_class_failed = function()
         t_2.test = function() table.insert(hooks, 'test_2') end
     end)
 
-    t.assertEquals(result, 1)
-    t.assertEquals(hooks, {
+    t.assert_equals(result, 1)
+    t.assert_equals(hooks, {
         'before_suite',
         'before_all_0',
         'test_0',
@@ -134,8 +134,8 @@ g.test_after_class_failed = function()
         t_2.test = function() table.insert(hooks, 'test_2') end
     end)
 
-    t.assertEquals(result, 1)
-    t.assertEquals(hooks, {
+    t.assert_equals(result, 1)
+    t.assert_equals(hooks, {
         'before_suite',
         'before_all_1',
         'test_1_1',

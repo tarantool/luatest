@@ -22,11 +22,11 @@ end
 g.test_start = function()
     process = Process:start('/bin/sleep', {'5'})
     t.helpers.retrying({timeout = 0.5}, function()
-        t.assertEquals(test_pid(process.pid), 0)
+        t.assert_equals(test_pid(process.pid), 0)
     end)
     process:kill()
     t.helpers.retrying({timeout = 0.5}, function()
-        t.assertNotEquals(test_pid(process.pid), 0)
+        t.assert_not_equals(test_pid(process.pid), 0)
     end)
     kill_after_test = false
 end
@@ -36,14 +36,14 @@ g.test_start_with_ignore_gc = function()
     local pid1 = process1.pid
     local process2 = Process:start('/bin/sleep', {'5'}, {}, {ignore_gc = true})
     local pid2 = process2.pid
-    t.assertEquals(test_pid(pid1), 0)
-    t.assertEquals(test_pid(pid2), 0)
+    t.assert_equals(test_pid(pid1), 0)
+    t.assert_equals(test_pid(pid2), 0)
     process1 = nil -- luacheck: no unused
     process2 = nil -- luacheck: no unused
     _G.collectgarbage()
     t.helpers.retrying({timeout = 0.5}, function()
-        t.assertNotEquals(test_pid(pid1), 0)
-        t.assertEquals(test_pid(pid2), 0)
+        t.assert_not_equals(test_pid(pid1), 0)
+        t.assert_equals(test_pid(pid2), 0)
     end)
     Process.kill_pid(pid2)
 end
@@ -66,12 +66,12 @@ g.test_chdir = function()
 
     local proc = Process:start('/bin/cp', {file, file_copy})
     t.helpers.retrying({timeout = 0.5}, function()
-        t.assertNotEquals(test_pid(proc.pid), 0)
-        t.assertEquals(fio.stat('./tmp/' .. file_copy), nil)
+        t.assert_not_equals(test_pid(proc.pid), 0)
+        t.assert_equals(fio.stat('./tmp/' .. file_copy), nil)
     end)
 
     Process:start('/bin/cp', {file, file_copy}, {}, {chdir = './tmp'})
     t.helpers.retrying({timeout = 0.5}, function()
-        t.assertNotEquals(fio.stat('./tmp/' .. file_copy), nil)
+        t.assert_not_equals(fio.stat('./tmp/' .. file_copy), nil)
     end)
 end

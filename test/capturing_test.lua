@@ -14,24 +14,24 @@ end
 local function assert_captured(fn)
     helper.run_suite(fn)
     local captured = capture:flush()
-    t.assertNotStrContains(captured.stdout, '-test-')
-    t.assertNotStrContains(captured.stderr, '-test-')
+    t.assert_not_str_contains(captured.stdout, '-test-')
+    t.assert_not_str_contains(captured.stderr, '-test-')
 end
 
 local function assert_shown(fn)
     helper.run_suite(fn)
     local captured = capture:flush()
-    t.assertStrContains(captured.stdout, 'Captured stdout:\ntest-out')
-    t.assertStrContains(captured.stdout, 'Captured stderr:\ntest-err')
-    t.assertEquals(captured.stderr, '')
+    t.assert_str_contains(captured.stdout, 'Captured stdout:\ntest-out')
+    t.assert_str_contains(captured.stdout, 'Captured stderr:\ntest-err')
+    t.assert_equals(captured.stderr, '')
 end
 
 local function assert_error(fn)
-    t.assertEquals(helper.run_suite(fn), 1)
+    t.assert_equals(helper.run_suite(fn), 1)
     local captured = capture:flush()
-    t.assertStrContains(captured.stderr, 'custom-error')
-    t.assertStrContains(captured.stderr, 'Captured stdout:\ntest-out')
-    t.assertStrContains(captured.stderr, 'Captured stderr:\ntest-err')
+    t.assert_str_contains(captured.stderr, 'custom-error')
+    t.assert_str_contains(captured.stderr, 'Captured stdout:\ntest-out')
+    t.assert_str_contains(captured.stderr, 'Captured stderr:\ntest-err')
 end
 
 g.test_example = function()
