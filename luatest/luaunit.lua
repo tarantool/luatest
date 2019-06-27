@@ -1778,6 +1778,7 @@ local list_of_funcs = {
     -- { official function name , alias }
 
     -- general assertions
+    { 'almostEquals'            , 'almost_equals' },
     { 'assertEquals'            , 'assert_equals' },
     { 'assertItemsEquals'       , 'assert_items_equals' },
     { 'assertNotEquals'         , 'assert_not_equals' },
@@ -1799,6 +1800,11 @@ local list_of_funcs = {
     { 'assertNotIs'             , 'assert_not_is' },
     { 'wrapFunctions'           , 'WrapFunctions' },
     { 'wrapFunctions'           , 'wrap_functions' },
+
+    { 'failIf'                  , 'fail_if' },
+    { 'runOnlyIf'               , 'run_only_if' },
+    { 'skipIf'                  , 'skip_if' },
+    { 'successIf'               , 'success_if' },
 
     -- type assertions: assertIsXXX -> assert_is_xxx
     { 'assertIsNumber'          , 'assert_is_number' },
@@ -1864,10 +1870,10 @@ local list_of_funcs = {
     { 'assertNotIsFalse'        , 'assert_not_is_false' },
     { 'assertNotIsNaN'          , 'assert_not_is_nan' },
     { 'assertNotIsInf'          , 'assert_not_is_inf' },
-    { 'assertNotIsPlusInf'      , 'assert_not_plus_inf' },
-    { 'assertNotIsMinusInf'     , 'assert_not_minus_inf' },
-    { 'assertNotIsPlusZero'     , 'assert_not_plus_zero' },
-    { 'assertNotIsMinusZero'    , 'assert_not_minus_zero' },
+    { 'assertNotIsPlusInf'      , 'assert_not_is_plus_inf' },
+    { 'assertNotIsMinusInf'     , 'assert_not_is_minus_inf' },
+    { 'assertNotIsPlusZero'     , 'assert_not_is_plus_zero' },
+    { 'assertNotIsMinusZero'    , 'assert_not_is_minus_zero' },
     { 'assertNotIsFunction'     , 'assert_not_is_function' },
     { 'assertNotIsThread'       , 'assert_not_is_thread' },
     { 'assertNotIsUserdata'     , 'assert_not_is_userdata' },
