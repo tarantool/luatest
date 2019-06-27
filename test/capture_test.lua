@@ -11,11 +11,11 @@ g.teardown = function()
 end
 
 g.test_flush = function()
-    t.assertEquals(capture:flush(), {stdout = '', stderr = ''})
+    t.assert_equals(capture:flush(), {stdout = '', stderr = ''})
     io.stdout:write('test-out')
     io.stderr:write('test-err')
-    t.assertEquals(capture:flush(), {stdout = 'test-out', stderr = 'test-err'})
-    t.assertEquals(capture:flush(), {stdout = '', stderr = ''})
+    t.assert_equals(capture:flush(), {stdout = 'test-out', stderr = 'test-err'})
+    t.assert_equals(capture:flush(), {stdout = '', stderr = ''})
 end
 
 g.test_flush_large_strings = function()
@@ -25,7 +25,7 @@ g.test_flush_large_strings = function()
     local err = ('a'):rep(buffer_size + 1)
     io.stdout:write(out)
     io.stderr:write(err)
-    t.assertEquals(capture:flush(), {stdout = out, stderr = err})
+    t.assert_equals(capture:flush(), {stdout = out, stderr = err})
 end
 
 g.test_wrap = function()
@@ -37,11 +37,11 @@ g.test_wrap = function()
         io.stderr:write('test-err')
         return 'result'
     end)}
-    t.assertEquals(result, {true, 'result'})
+    t.assert_equals(result, {true, 'result'})
     assert(not test_capture.enabled)
-    t.assertEquals(capture:flush(), {stdout = '', stderr = ''})
-    t.assertEquals(test_capture:flush(), {stdout = 'test-out', stderr = 'test-err'})
-    t.assertEquals(capture:flush(), {stdout = '', stderr = ''})
+    t.assert_equals(capture:flush(), {stdout = '', stderr = ''})
+    t.assert_equals(test_capture:flush(), {stdout = 'test-out', stderr = 'test-err'})
+    t.assert_equals(capture:flush(), {stdout = '', stderr = ''})
 end
 
 g.test_wrap_with_error = function()
@@ -54,16 +54,16 @@ g.test_wrap_with_error = function()
         invalid() -- luacheck: ignore
         return 'result'
     end)}
-    t.assertEquals(result, {false})
+    t.assert_equals(result, {false})
     assert(not test_capture.enabled)
     local captured = capture:flush()
-    t.assertEquals(captured.stdout, '')
-    t.assertStrContains(captured.stderr, "attempt to call global 'invalid'")
-    t.assertStrContains(captured.stderr, 'stack traceback:')
-    t.assertStrContains(captured.stderr, 'Captured stdout:\ntest-out')
-    t.assertStrContains(captured.stderr, 'Captured stderr:\ntest-err')
-    t.assertEquals(test_capture:flush(), {stdout = '', stderr = ''})
-    t.assertEquals(capture:flush(), {stdout = '', stderr = ''})
+    t.assert_equals(captured.stdout, '')
+    t.assert_str_contains(captured.stderr, "attempt to call global 'invalid'")
+    t.assert_str_contains(captured.stderr, 'stack traceback:')
+    t.assert_str_contains(captured.stderr, 'Captured stdout:\ntest-out')
+    t.assert_str_contains(captured.stderr, 'Captured stderr:\ntest-err')
+    t.assert_equals(test_capture:flush(), {stdout = '', stderr = ''})
+    t.assert_equals(capture:flush(), {stdout = '', stderr = ''})
 end
 
 g.test_wrap_with_error_table = function()
@@ -76,16 +76,16 @@ g.test_wrap_with_error_table = function()
         error({type = 'err-class', message = 'hey'})
         return 'result'
     end)}
-    t.assertEquals(result, {false})
+    t.assert_equals(result, {false})
     assert(not test_capture.enabled)
     local captured = capture:flush()
-    t.assertEquals(captured.stdout, '')
-    t.assertStrContains(captured.stderr, "type: err-class\nmessage: hey")
-    t.assertStrContains(captured.stderr, 'stack traceback:')
-    t.assertStrContains(captured.stderr, 'Captured stdout:\ntest-out')
-    t.assertStrContains(captured.stderr, 'Captured stderr:\ntest-err')
-    t.assertEquals(test_capture:flush(), {stdout = '', stderr = ''})
-    t.assertEquals(capture:flush(), {stdout = '', stderr = ''})
+    t.assert_equals(captured.stdout, '')
+    t.assert_str_contains(captured.stderr, "type: err-class\nmessage: hey")
+    t.assert_str_contains(captured.stderr, 'stack traceback:')
+    t.assert_str_contains(captured.stderr, 'Captured stdout:\ntest-out')
+    t.assert_str_contains(captured.stderr, 'Captured stderr:\ntest-err')
+    t.assert_equals(test_capture:flush(), {stdout = '', stderr = ''})
+    t.assert_equals(capture:flush(), {stdout = '', stderr = ''})
 end
 
 g.test_wrap_nested = function()
@@ -103,6 +103,6 @@ g.test_wrap_nested = function()
         assert(test_capture.enabled)
     end)
     assert(not test_capture.enabled)
-    t.assertEquals(capture:flush(), {stdout = 'test-out-2', stderr = 'test-err-2'})
-    t.assertEquals(test_capture:flush(), {stdout = 'test-out', stderr = 'test-err'})
+    t.assert_equals(capture:flush(), {stdout = 'test-out-2', stderr = 'test-err-2'})
+    t.assert_equals(test_capture:flush(), {stdout = 'test-out', stderr = 'test-err'})
 end

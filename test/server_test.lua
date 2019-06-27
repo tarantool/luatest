@@ -40,11 +40,11 @@ g.test_start_stop = function()
     s:start()
     local pid = s.process.pid
     t.helpers.retrying({timeout = 0.5}, function()
-        t.assertEquals(os.execute('ps -p ' .. pid .. ' > /dev/null'), 0)
+        t.assert_equals(os.execute('ps -p ' .. pid .. ' > /dev/null'), 0)
     end)
     s:stop()
     t.helpers.retrying({timeout = 0.5}, function()
-        t.assertEquals(os.execute('ps -p ' .. pid .. ' > /dev/null'), 256) -- luajit multiplies code by 256
+        t.assert_equals(os.execute('ps -p ' .. pid .. ' > /dev/null'), 256) -- luajit multiplies code by 256
     end)
 end
 
@@ -56,30 +56,30 @@ g.test_http_request = function()
         http_port = '8182',
         value = 'test_value',
     }
-    t.assertEquals(response.body, json.encode(expected))
-    t.assertEquals(response.json, expected)
+    t.assert_equals(response.body, json.encode(expected))
+    t.assert_equals(response.json, expected)
 end
 
 g.test_http_request_post_json = function()
     local value = {field = 'data'}
     local response = server:http_request('post', '/echo', {json = value})
-    t.assertEquals(response.json, value)
+    t.assert_equals(response.json, value)
 end
 
 g.test_http_request_failed = function()
     local ok, err = pcall(function() server:http_request('get', '/invalid') end)
-    t.assertEquals(ok, false)
-    t.assertEquals(err.type, 'HTTPReqest')
-    t.assertEquals(err.response.status, 404)
+    t.assert_equals(ok, false)
+    t.assert_equals(err.type, 'HTTPReqest')
+    t.assert_equals(err.response.status, 404)
 end
 
 g.test_net_box = function()
     server:connect_net_box()
-    t.assertEquals(server.net_box:eval('return os.getenv("custom_env")'), 'test_value')
+    t.assert_equals(server.net_box:eval('return os.getenv("custom_env")'), 'test_value')
 end
 
 g.test_inherit = function()
     local child = Server:inherit({})
     local instance = child:new({command = 'test-cmd', workdir = 'test-dir'})
-    t.assertEquals(instance.start, Server.start)
+    t.assert_equals(instance.start, Server.start)
 end
