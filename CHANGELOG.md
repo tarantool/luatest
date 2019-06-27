@@ -3,6 +3,7 @@
 - GC'ed processes are killed automatically.
 - Print captured output when suite/group hook fails.
 - Rename Server:console to Server:net_box.
+- Use real time instead of CPU time for duration.
 
 # 0.1.1
 
