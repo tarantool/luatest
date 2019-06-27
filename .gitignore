@@ -1,6 +1,7 @@
 /lua_modules
 .luarocks
 .rocks
+/doc
 
 /tmp/*
 !/tmp/.keep

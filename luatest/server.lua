@@ -1,3 +1,7 @@
+--- Class to run tarantool instance.
+--
+-- @classmod luatest.server
+
 local checks = require('checks')
 local http_client = require('http.client')
 local json = require('json')
@@ -27,6 +31,17 @@ function Server:inherit(object)
     return object
 end
 
+--- Build server object.
+-- @param object
+-- @string object.command Command to start server process.
+-- @string object.workdir Value to be passed in `TARANTOOL_WORKDIR`.
+-- @string[opt] object.chdir Path to cwd before running a process.
+-- @tab[opt] object.env Table to pass as env variables to process.
+-- @tab[opt] object.args Args to run command with.
+-- @int[opt] object.http_port Value to be passed in `TARANTOOL_HTTP_PORT` and used to perform HTTP requests.
+-- @int[opt] object.net_box_port Value to be passed in `TARANTOOL_LISTEN` and used for net_box connection.
+-- @tab[opt] object.net_box_credentials Override default net_box credentials.
+-- @return input object.
 function Server:new(object)
     checks('table', self.constructor_checks)
     self:inherit(object)
@@ -45,6 +60,9 @@ function Server:initialize()
     self.args = self.args or {}
 end
 
+--- Generates environment to run process with.
+-- The result is merged into os.environ().
+-- @return map
 function Server:build_env()
     return {
         TARANTOOL_WORKDIR = self.workdir,
@@ -53,6 +71,7 @@ function Server:build_env()
     }
 end
 
+--- Start server process.
 function Server:start()
     local env = table.copy(os.environ())
     local log_cmd = ''
@@ -67,6 +86,7 @@ function Server:start()
     log.debug('Started server PID: ' .. self.process.pid)
 end
 
+--- Stop server process.
 function Server:stop()
     if self.net_box then
         self.net_box:close()
@@ -79,6 +99,8 @@ function Server:stop()
     end
 end
 
+--- Establish `net.box` connection.
+-- It's available in `net_box` field.
 function Server:connect_net_box()
     if self.net_box then
         return self.net_box
@@ -93,6 +115,17 @@ function Server:connect_net_box()
     self.net_box = connection
 end
 
+--- Perform HTTP request.
+-- @string method
+-- @string path
+-- @tab[opt] options
+-- @string[opt] options.body request body
+-- @param[opt] options.json data to encode as JSON into request body
+-- @tab[opt] options.http other options for HTTP-client
+-- @bool[opt] options.raw not to raise error and return response when status is not 200
+-- @return response object from HTTP client.
+--   If response body is valid JSON it's parsed into `json` field.
+-- @raise HTTPReqest error when response status is not 200.
 function Server:http_request(method, path, options)
     if not self.http_client then
         error('http_port not configured')
