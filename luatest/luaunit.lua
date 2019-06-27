@@ -8,6 +8,7 @@ Based on initial work of Ryu, Gwang (http://www.gpgstudy.com/gpgiki/LuaUnit)
 License: BSD License, see LICENSE.txt
 ]]--
 
+clock = require("clock")
 require("math")
 local M={}
 
@@ -2701,7 +2702,7 @@ end
             currentClassName = "",
             currentNode = nil,
             suiteStarted = true,
-            startTime = os.clock(),
+            startTime = clock.time(),
             startDate = os.date(os.getenv('LUAUNIT_DATEFMT')),
             startIsodate = os.date('%Y-%m-%dT%H:%M:%S'),
             patternIncludeFilter = self.patternIncludeFilter,
@@ -2736,7 +2737,7 @@ end
             testName,
             self.result.currentClassName
         )
-        self.result.currentNode.startTime = os.clock()
+        self.result.currentNode.startTime = clock.time()
         table.insert( self.result.allTests, self.result.currentNode )
         self.output:startTest( testName )
     end
@@ -2784,7 +2785,7 @@ end
         local node = self.result.currentNode
         -- print( 'endTest() '..prettystr(node))
         -- print( 'endTest() '..prettystr(node:isNotSuccess()))
-        node.duration = os.clock() - node.startTime
+        node.duration = clock.time() - node.startTime
         node.startTime = nil
         self.output:endTest( node )
 
@@ -2822,7 +2823,7 @@ end
         if self.result.suiteStarted == false then
             error('LuaUnit:endSuite() -- suite was already ended' )
         end
-        self.result.duration = os.clock()-self.result.startTime
+        self.result.duration = clock.time()-self.result.startTime
         self.result.suiteStarted = false
 
         -- Expose test counts for outputter's endSuite(). This could be managed
