@@ -119,6 +119,9 @@ end
 
 -- Read from capture pipes and return results.
 function Capture:flush()
+    if not self.pipes then
+        return {stdout = '', stderr = ''}
+    end
     io.flush()
     return {
         stdout = read_pipe(self.pipes.stdout),

@@ -44,6 +44,21 @@ g.test_wrap = function()
     t.assert_equals(capture:flush(), {stdout = '', stderr = ''})
 end
 
+g.test_wrap_disabled = function()
+    local test_capture = Capture:new()
+    assert(not test_capture.enabled)
+    local result = {test_capture:wrap(false, function()
+        assert(not test_capture.enabled)
+        io.stdout:write('test-out')
+        io.stderr:write('test-err')
+        return 'result'
+    end)}
+    t.assert_equals(result, {true, 'result'})
+    assert(not test_capture.enabled)
+    t.assert_equals(capture:flush(), {stdout = 'test-out', stderr = 'test-err'})
+    t.assert_equals(test_capture:flush(), {stdout = '', stderr = ''})
+end
+
 g.test_wrap_with_error = function()
     local test_capture = Capture:new()
     assert(not test_capture.enabled)
@@ -62,6 +77,28 @@ g.test_wrap_with_error = function()
     t.assert_str_contains(captured.stderr, 'stack traceback:')
     t.assert_str_contains(captured.stderr, 'Captured stdout:\ntest-out')
     t.assert_str_contains(captured.stderr, 'Captured stderr:\ntest-err')
+    t.assert_equals(test_capture:flush(), {stdout = '', stderr = ''})
+    t.assert_equals(capture:flush(), {stdout = '', stderr = ''})
+end
+
+g.test_wrap_disabled_with_error = function()
+    local test_capture = Capture:new()
+    assert(not test_capture.enabled)
+    local result = {test_capture:wrap(false, function()
+        assert(not test_capture.enabled)
+        io.stdout:write('test-out')
+        io.stderr:write('test-err')
+        invalid() -- luacheck: ignore
+        return 'result'
+    end)}
+    t.assert_equals(result, {false})
+    assert(not test_capture.enabled)
+    local captured = capture:flush()
+    t.assert_equals(captured.stdout, 'test-out')
+    t.assert_str_contains(captured.stderr, 'test-err')
+    t.assert_str_contains(captured.stderr, "attempt to call global 'invalid'")
+    t.assert_str_contains(captured.stderr, 'stack traceback:')
+    t.assert_not_str_contains(captured.stderr, 'Captured')
     t.assert_equals(test_capture:flush(), {stdout = '', stderr = ''})
     t.assert_equals(capture:flush(), {stdout = '', stderr = ''})
 end
