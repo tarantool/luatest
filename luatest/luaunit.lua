@@ -1265,7 +1265,7 @@ end
 
 function M.failIf( cond, msg )
     -- Fails a test with "msg" if condition is true
-    if cond then
+    if cond and cond ~= nil then
         failure( msg, nil, 2 )
     end
 end
@@ -1277,14 +1277,14 @@ end
 
 function M.skipIf( cond, msg )
     -- skip a running test if condition is met
-    if cond then
+    if cond and cond ~= nil then
         error(M.SKIP_PREFIX .. msg, 2)
     end
 end
 
 function M.runOnlyIf( cond, msg )
     -- continue a running test if condition is met, else skip it
-    if not cond then
+    if not (cond and cond ~= nil) then
         error(M.SKIP_PREFIX .. prettystr(msg), 2)
     end
 end
@@ -1296,7 +1296,7 @@ end
 
 function M.successIf( cond )
     -- stops a test with a success if condition is met
-    if cond then
+    if cond and cond ~= nil then
         error(M.SUCCESS_PREFIX, 2)
     end
 end
@@ -1527,13 +1527,13 @@ end
 ------------------------------------------------------------------
 
 function M.assertEvalToTrue(value, extra_msg_or_nil)
-    if not value then
+    if not value or value == nil then
         failure("expected: a value evaluating to true, actual: " ..prettystr(value), extra_msg_or_nil, 2)
     end
 end
 
 function M.assertEvalToFalse(value, extra_msg_or_nil)
-    if value then
+    if value and value ~= nil then
         failure("expected: false or nil, actual: " ..prettystr(value), extra_msg_or_nil, 2)
     end
 end
