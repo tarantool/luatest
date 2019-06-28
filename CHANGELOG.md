@@ -5,6 +5,7 @@
 - Rename Server:console to Server:net_box.
 - Use real time instead of CPU time for duration.
 - LDoc comments.
+- Make assertions box.NULL aware.
 
 # 0.1.1
 
