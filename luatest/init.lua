@@ -14,6 +14,20 @@ luautest.helpers = require('luatest.helpers')
 -- @see luatest.server
 luautest.Server = require('luatest.server')
 
+--- Check that value is truthy.
+--
+-- @function assert
+-- @param value
+-- @string[opt] message
+luautest.assert = luautest.assert_eval_to_true
+
+--- Check that value is falsy.
+--
+-- @function assert_not
+-- @param value
+-- @string[opt] message
+luautest.assert_not = luautest.assert_eval_to_false
+
 return luautest
 
 -- LDocs for luaunit functions.
@@ -77,13 +91,13 @@ return luautest
 -- @func fn
 -- @param ... arguments for function
 
---- Check that value is falsy.
+--- Alias for @{assert_not}.
 --
 -- @function assert_eval_to_false
 -- @param value
 -- @string[opt] message
 
---- Check that value is truthy.
+--- Alias for @{assert}.
 --
 -- @function assert_eval_to_true
 -- @param value

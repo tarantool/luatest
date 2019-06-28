@@ -32,7 +32,7 @@ local function get_test_modules_list(path)
         files = fun.iter(list):filter(function(x) return x:endswith('_test.lua') end)
     end
     return files:
-        map(function(x) return x:gsub('.lua', '') end):
+        map(function(x) return x:gsub('%.lua$', '') end):
         map(function(x) return x:gsub('/', '.') end):
         totable()
 end
