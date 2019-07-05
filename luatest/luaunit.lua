@@ -74,9 +74,6 @@ M.DISABLE_DEEP_ANALYSIS = false
 -- set EXPORT_ASSERT_TO_GLOBALS to have all asserts visible as global values
 -- EXPORT_ASSERT_TO_GLOBALS = true
 
--- we need to keep a copy of the script args before it is overriden
-local cmdline_argv = rawget(_G, "arg")
-
 M.FAILURE_PREFIX = 'LuaUnit test FAILURE: ' -- prefix string for failed tests
 M.SUCCESS_PREFIX = 'LuaUnit test SUCCESS: ' -- prefix string for successful tests finished early
 M.SKIP_PREFIX    = 'LuaUnit test SKIP:    ' -- prefix string for skipped tests
@@ -3157,10 +3154,6 @@ end
             -- we support both M.LuaUnit.run() and M.LuaUnit:run()
             -- strip out the first argument
             table.remove(args,1)
-        end
-
-        if #args == 0 then
-            args = cmdline_argv
         end
 
         local options = pcall_or_abort( M.LuaUnit.parseCmdLine, args )
