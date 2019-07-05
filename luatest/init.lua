@@ -1,34 +1,58 @@
 --- Tool for testing tarantool applications.
 --
 -- @module luatest
-local luautest = require('luatest.luaunit')
+local luatest = require('luatest.luaunit')
 
-luautest.runner = require('luatest.runner')
-luautest.Process = require('luatest.process')
+luatest.runner = require('luatest.runner')
+luatest.Process = require('luatest.process')
 
 --- Helpers.
 -- @see luatest.helpers
-luautest.helpers = require('luatest.helpers')
+luatest.helpers = require('luatest.helpers')
 
 --- Class to manage tarantool instances.
 -- @see luatest.server
-luautest.Server = require('luatest.server')
+luatest.Server = require('luatest.server')
 
 --- Check that value is truthy.
 --
 -- @function assert
 -- @param value
 -- @string[opt] message
-luautest.assert = luautest.assert_eval_to_true
+luatest.assert = luatest.assert_eval_to_true
 
 --- Check that value is falsy.
 --
 -- @function assert_not
 -- @param value
 -- @string[opt] message
-luautest.assert_not = luautest.assert_eval_to_false
+luatest.assert_not = luatest.assert_eval_to_false
 
-return luautest
+--- Checks that map contains the other one.
+-- @tab actual
+-- @tab expected
+-- @string[opt] message
+function luatest.assert_covers(actual, expected, message)
+    local sliced = {}
+    for k, _ in pairs(expected) do
+        sliced[k] = actual[k]
+    end
+    luatest.assert_equals(sliced, expected, message)
+end
+
+--- Checks that map does not contain the other one.
+-- @tab actual
+-- @tab expected
+-- @string[opt] message
+function luatest.assert_not_covers(actual, expected, message)
+    local sliced = {}
+    for k, _ in pairs(expected) do
+        sliced[k] = actual[k]
+    end
+    luatest.assert_not_equals(sliced, expected, message)
+end
+
+return luatest
 
 -- LDocs for luaunit functions.
 -- We encourage using snake_case naming and simple assertions (no assertNumber, etc.)
