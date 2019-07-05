@@ -6,6 +6,7 @@
 - Use real time instead of CPU time for duration.
 - LDoc comments.
 - Make assertions box.NULL aware.
+- Luarocks 3 tests engine.
 
 # 0.1.1
 

@@ -9,6 +9,7 @@ std = {
         'arg',
         'assert',
         'box',
+        'collectgarbage',
         'debug',
         'dofile',
         'error',
