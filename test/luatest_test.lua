@@ -37,3 +37,29 @@ g.test_assert_aliases = function ()
     t.assert_is(t.assert, t.assert_eval_to_true)
     t.assert_is(t.assert_not, t.assert_eval_to_false)
 end
+
+g.test_assert_covers = function()
+    local subject = t.assert_covers
+    subject({a = 1, b = 2, c = 3}, {})
+    subject({a = 1, b = 2, c = 3}, {a = 1})
+    subject({a = 1, b = 2, c = 3}, {a = 1, c = 3})
+    subject({a = 1, b = 2, c = 3}, {a = 1, b = 2, c = 3})
+
+    t.assert_error(subject, {a = 1, b = 2, c = 3}, {a = 2})
+    t.assert_error(subject, {a = 1, b = 2, c = 3}, {a = 1, b = 1})
+    t.assert_error(subject, {a = 1, b = 2, c = 3}, {a = 1, b = 2, c = 3, d = 4})
+    t.assert_error(subject, {a = 1, b = 2, c = 3}, {d = 1})
+end
+
+g.test_assert_not_covers = function()
+    local subject = t.assert_not_covers
+    subject({a = 1, b = 2, c = 3}, {a = 2})
+    subject({a = 1, b = 2, c = 3}, {a = 1, b = 1})
+    subject({a = 1, b = 2, c = 3}, {a = 1, b = 2, c = 3, d = 4})
+    subject({a = 1, b = 2, c = 3}, {d = 1})
+
+    t.assert_error(subject, {a = 1, b = 2, c = 3}, {})
+    t.assert_error(subject, {a = 1, b = 2, c = 3}, {a = 1})
+    t.assert_error(subject, {a = 1, b = 2, c = 3}, {a = 1, c = 3})
+    t.assert_error(subject, {a = 1, b = 2, c = 3}, {a = 1, b = 2, c = 3})
+end
