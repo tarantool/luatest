@@ -1,4 +1,5 @@
 local checks = require('checks')
+local errno = require('errno')
 local fun = require('fun')
 local ffi = require('ffi')
 local fio = require('fio')
@@ -46,7 +47,8 @@ function Process:start(path, args, env, options)
         fio.chdir(options.chdir)
     end
     ffi.C.execve(path, argv, envp)
-    error('execve failed')
+    io.stderr:write('execve failed: ' .. errno.strerror() .. '\n')
+    os.exit(1)
 end
 
 function Process:new(object)
