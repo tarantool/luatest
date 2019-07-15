@@ -135,8 +135,7 @@ function Capture:wrap(enabled, fn)
     local old = self.enabled
     local result = {xpcall(function()
         self:set_enabled(enabled)
-        local result = fn()
-        return result
+        return fn()
     end, function(err)
         local captured = self:flush()
         self:disable()

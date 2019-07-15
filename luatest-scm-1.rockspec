@@ -32,7 +32,7 @@ build = {
             ['luatest.utils'] = 'luatest/utils.lua',
         },
         bin = {
-          ['luatest'] = 'bin/luatest',
+            ['luatest'] = 'bin/luatest',
         },
     }
 }

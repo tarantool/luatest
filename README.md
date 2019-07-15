@@ -30,7 +30,7 @@ t.before_suite(function() ... end)
 
 -- Hooks to run once for tests group
 -- This hooks run always when test class is changed.
--- So it may run multiple times when --shuffle otion is used.
+-- So it may run multiple times when --shuffle option is used.
 g.before_all = function() ... end
 g.after_all = function() ... end
 
