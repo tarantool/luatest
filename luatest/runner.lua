@@ -50,15 +50,10 @@ function runner:run(args, options)
 
     local ok, result = xpcall(function()
         lu.load_tests(options)
-        lu.run_before_suite()
         return lu.LuaUnit.run(unpack(args))
     end, function(err)
         lu.print_error(err)
         return err
-    end)
-    xpcall(lu.run_after_suite, function(err)
-        ok = false
-        lu.print_error(err)
     end)
     return ok and result or 1
 end

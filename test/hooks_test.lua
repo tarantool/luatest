@@ -143,3 +143,17 @@ g.test_after_class_failed = function()
         'after_suite',
     })
 end
+
+g.test_suite_and_group_hooks_dont_run_when_no_tests_running = function()
+    local hooks = {}
+
+    local result = helper.run_suite(function(lu2)
+        lu2.before_suite(function() table.insert(hooks, 'before_suite') end)
+        lu2.after_suite(function() table.insert(hooks, 'after_suite') end)
+        local t2 = lu2.group('test')
+        t2.before_all = function() table.insert(hooks, 'before_all') end
+        t2.after_all = function() table.insert(hooks, 'after_all') end
+    end)
+    t.assert_equals(result, 0)
+    t.assert_equals(hooks, {})
+end

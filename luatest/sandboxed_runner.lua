@@ -1,6 +1,6 @@
 local fun = require('fun')
 
--- This is lightweight module to run luatest suit.
+-- This is lightweight module to run luatest suite.
 -- It has only basic dependencies (and no top-level luatest dependencies)
 -- to clear as much as modules as possible after running tests.
 local export = {}

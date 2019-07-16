@@ -1,5 +1,7 @@
 # Unreleased
 
+- Don't run suite hooks when suite is not going to be run.
+
 # 0.2.0
 
 - GC'ed processes are killed automatically.
