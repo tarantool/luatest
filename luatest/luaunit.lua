@@ -3038,22 +3038,7 @@ end
         return included, excluded
     end
 
-    function M.LuaUnit:runSuiteByInstances( listOfNameAndInst )
-        --[[ Run an explicit list of tests. Each item of the list must be one of:
-        * { function name, function instance }
-        * { class name, class instance }
-        * { class.method name, class instance }
-        ]]
-
-        local expandedList = self.expandClasses( listOfNameAndInst )
-        if self.shuffle then
-            randomizeTable( expandedList )
-        end
-        local filteredList, filteredOutList = self.applyPatternFilter(
-            self.patternIncludeFilter, expandedList )
-
-        self:startSuite( #filteredList, #filteredOutList )
-
+    function M.LuaUnit:runTestsList( filteredList )
         for i,v in ipairs( filteredList ) do
             local name, instance = v[1], v[2]
             if M.LuaUnit.asFunction(instance) then
@@ -3075,7 +3060,24 @@ end
         if self.lastClassName ~= nil then
             self:endClass()
         end
+    end
 
+    function M.LuaUnit:runSuiteByInstances( listOfNameAndInst )
+        --[[ Run an explicit list of tests. Each item of the list must be one of:
+        * { function name, function instance }
+        * { class name, class instance }
+        * { class.method name, class instance }
+        ]]
+
+        local expandedList = self.expandClasses( listOfNameAndInst )
+        if self.shuffle then
+            randomizeTable( expandedList )
+        end
+        local filteredList, filteredOutList = self.applyPatternFilter(
+            self.patternIncludeFilter, expandedList )
+
+        self:startSuite( #filteredList, #filteredOutList )
+        self:runTestsList(filteredList)
         self:endSuite()
 
         if self.result.aborted then

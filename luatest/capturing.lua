@@ -49,23 +49,16 @@ return function(lu, capture)
     end
 
     -- This methods are run outside of the suite, so output needs to be captured.
-    wrap_methods(capture, true, lu, 'load_tests', 'run_before_suite', 'run_after_suite')
+    wrap_methods(capture, true, lu, 'load_tests')
 
-    -- Print tests header and start capturing.
+    -- Patch output here because it's created in `super`
     utils.patch(lu.LuaUnit, 'startSuite', function(super) return function(self, ...)
         super(self, ...)
-        -- patch output here because it's created in `super`
         patch_output(capture, self.output, lu.genericOutput)
-        capture:enable()
-        capture:flush()
     end end)
 
-    -- Stop capturing and print tests footer.
-    utils.patch(lu.LuaUnit, 'endSuite', function(super) return function(...)
-        capture:flush()
-        capture:disable()
-        super(...)
-    end end)
+    -- Main capturing wrapper.
+    wrap_methods(capture, true, lu.LuaUnit, 'runTestsList')
 
     -- Disable capture in case of failure because `endSuite` is not called.
     for _, name in pairs({'startClass', 'endClass'}) do

@@ -37,4 +37,18 @@ return function(lu)
         run_class_callback(self, self.lastClassName, 'after_all')
         super(self)
     end end)
+
+    utils.patch(lu.LuaUnit, 'runTestsList', function(super) return function(self, tests)
+        if #tests == 0 then
+            return
+        end
+        return utils.reraise_and_ensure(function()
+            lu.run_before_suite()
+            super(self, tests)
+        end, function(err)
+            return err
+        end, function()
+            lu.run_after_suite()
+        end)
+    end end)
 end
