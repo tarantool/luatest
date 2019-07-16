@@ -8,3 +8,4 @@ topics = {
     'CHANGELOG.md',
 }
 format = 'markdown'
+sort = true
