@@ -52,10 +52,18 @@ function runner:run(args, options)
         lu.load_tests(options)
         return lu.LuaUnit.run(unpack(args))
     end, function(err)
-        lu.print_error(err)
+        if err.type ~= 'LUAUNIT_EXIT' then
+            lu.print_error(err)
+        end
         return err
     end)
-    return ok and result or 1
+    if ok then
+        return result
+    elseif result.type == 'LUAUNIT_EXIT' then
+        return result.code
+    else
+        return -1
+    end
 end
 
 local OPTIONS = {
