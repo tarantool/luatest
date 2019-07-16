@@ -56,7 +56,7 @@ function Server:initialize()
     if self.net_box_port then
         self.net_box_uri = 'localhost:' .. self.net_box_port
     end
-    self.env = utils.reverse_merge({}, self.env or {}, self:build_env())
+    self.env = utils.merge(self:build_env(), self.env or {})
     self.args = self.args or {}
 end
 

@@ -1,3 +1,4 @@
+local fun = require('fun')
 local yaml = require('yaml')
 
 local utils = {}
@@ -14,17 +15,9 @@ function utils.patch(object, name, fn)
     object[name] = fn(super)
 end
 
--- Merges multiple maps into first one. Later arguments has lower precedence, so
--- existing keys are not overwritten.
-function utils.reverse_merge(target, ...)
-    for _, source in ipairs({...}) do
-        for k, v in pairs(source) do
-            if target[k] == nil then
-                target[k] = v
-            end
-        end
-    end
-    return target
+-- Merges multiple maps.
+function utils.merge(...)
+    return fun.chain(...):tomap()
 end
 
 -- Pretty traceback for error.
@@ -33,6 +26,19 @@ function utils.traceback(err, skip)
         err = yaml.encode(err)
     end
     return debug.traceback(err, 2 + (skip or 0)) .. '\n'
+end
+
+-- Reraises error but calls `ensure` in both cases of success and failure.
+function utils.reraise_and_ensure(fn, rescue, ensure)
+    local result = {xpcall(fn, rescue)}
+    if ensure then
+        ensure()
+    end
+    if result[1] then
+        return unpack(result, 2)
+    else
+        return error(result[2])
+    end
 end
 
 return utils

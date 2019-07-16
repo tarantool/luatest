@@ -67,16 +67,17 @@ return function(lu, capture)
         super(...)
     end end)
 
+    -- Disable capture in case of failure because `endSuite` is not called.
     for _, name in pairs({'startClass', 'endClass'}) do
         utils.patch(lu.LuaUnit, name, function(super) return function(...)
             local args = {...}
-            local result = {pcall(function() capture:wrap(true, function() return super(unpack(args)) end) end)}
-            if result[1] then
-                return unpack(result, 2)
-            else
+            utils.reraise_and_ensure(function()
+                -- Wrap error with capture to save original traceback.
+                return capture:wrap(true, function() return super(unpack(args)) end)
+            end, function(err)
                 capture:disable()
-                error(result[2])
-            end
+                return err
+            end)
         end end)
     end
 

@@ -134,10 +134,11 @@ end
 -- In the case of failure it wraps error into map-table with captured output added.
 function Capture:wrap(enabled, fn)
     local old = self.enabled
-    local result = {xpcall(function()
+    return utils.reraise_and_ensure(function()
         self:set_enabled(enabled)
         return fn()
     end, function(err)
+        -- Don't re-wrap error.
         if err.type ~= self.CAPTURED_ERROR_TYPE then
             err = {
                 type = self.CAPTURED_ERROR_TYPE,
@@ -147,13 +148,9 @@ function Capture:wrap(enabled, fn)
             }
         end
         return err
-    end)}
-    self:set_enabled(old)
-    if result[1] then
-        return unpack(result, 2)
-    else
-        return error(result[2])
-    end
+    end, function()
+        self:set_enabled(old)
+    end)
 end
 
 return Capture
