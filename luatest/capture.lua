@@ -2,7 +2,6 @@
 -- descriptors with pipes inputs.
 
 local ffi = require('ffi')
-local yaml = require('yaml')
 
 local utils = require('luatest.utils')
 
@@ -65,7 +64,9 @@ local function read_pipe(pipe)
     end
 end
 
-local Capture = {}
+local Capture = {
+    CAPTURED_ERROR_TYPE = 'ERROR_WITH_CAPTURE',
+}
 
 function Capture:new()
     local object = {}
@@ -130,27 +131,29 @@ function Capture:flush()
 end
 
 -- Run function with enabled/disabled capture and restore previous state.
--- In the case of error it prints error to original stdout.
+-- In the case of failure it wraps error into map-table with captured output added.
 function Capture:wrap(enabled, fn)
     local old = self.enabled
     local result = {xpcall(function()
         self:set_enabled(enabled)
         return fn()
     end, function(err)
-        local captured = self:flush()
-        self:disable()
-        if type(err) ~= 'string' then
-            err = yaml.encode(err)
-        else
-            err = err .. '\n'
+        if err.type ~= self.CAPTURED_ERROR_TYPE then
+            err = {
+                type = self.CAPTURED_ERROR_TYPE,
+                original = err,
+                traceback = utils.traceback(err),
+                captured = self:flush(),
+            }
         end
-        io.stderr:write(err)
-        io.stderr:write(tostring(debug.traceback()) .. '\n')
-        utils.print_captured('stdout', captured.stdout, io.stderr)
-        utils.print_captured('stderr', captured.stderr, io.stderr)
+        return err
     end)}
     self:set_enabled(old)
-    return unpack(result)
+    if result[1] then
+        return unpack(result, 2)
+    else
+        return error(result[2])
+    end
 end
 
 return Capture

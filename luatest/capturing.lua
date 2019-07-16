@@ -1,61 +1,105 @@
 local utils = require('luatest.utils')
 
+local function format_captured(name, text)
+    if text and text:len() > 0 then
+        return 'Captured ' .. name .. ':\n' .. text .. '\n\n'
+    else
+        return ''
+    end
+end
+
+-- Shortcut to create proxy methods wrapped with `capture.wrap`.
+local function wrap_methods(capture, enabled, object, ...)
+    for _, name in pairs({...}) do
+        utils.patch(object, name, function(super) return function(...)
+            local args = {...}
+            return capture:wrap(enabled, function() return super(unpack(args)) end)
+        end end)
+    end
+end
+
+-- Disable capturing when printing output.
+local function patch_output(capture, output, genericOutput)
+    for name, val in pairs(genericOutput) do
+        if type(val) == 'function' then
+            wrap_methods(capture, false, output, name)
+        end
+    end
+end
+
 -- Patch luaunit to capture output in tests and show it only for failed ones.
 return function(lu, capture)
+    -- Add captured output if any when printing error.
+    function lu.print_error(err)
+        local message
+        local captured = {}
+        if err.type == capture.CAPTURED_ERROR_TYPE then
+            message = err.traceback
+            captured = err.captured
+        else
+            message = utils.traceback(err)
+            if capture.enabled then
+                captured = capture:flush()
+            end
+        end
+        message = message ..
+            format_captured('stdout', captured.stdout) ..
+            format_captured('stderr', captured.stderr)
+        capture:wrap(false, function() io.stderr:write(message) end)
+    end
+
+    -- This methods are run outside of the suite, so output needs to be captured.
+    wrap_methods(capture, true, lu, 'load_tests', 'run_before_suite', 'run_after_suite')
+
+    -- Print tests header and start capturing.
     utils.patch(lu.LuaUnit, 'startSuite', function(super) return function(self, ...)
         super(self, ...)
+        -- patch output here because it's created in `super`
+        patch_output(capture, self.output, lu.genericOutput)
         capture:enable()
         capture:flush()
     end end)
 
-    utils.patch(lu.LuaUnit, 'endSuite', function(super) return function(self, ...)
+    -- Stop capturing and print tests footer.
+    utils.patch(lu.LuaUnit, 'endSuite', function(super) return function(...)
         capture:flush()
         capture:disable()
-        super(self, ...)
+        super(...)
     end end)
 
-    utils.patch(lu.LuaUnit, 'startTest', function(super) return function(self, ...)
-        capture:enable()
-        capture:flush()
-        super(self, ...)
-    end end)
+    for _, name in pairs({'startClass', 'endClass'}) do
+        utils.patch(lu.LuaUnit, name, function(super) return function(...)
+            local args = {...}
+            local result = {pcall(function() capture:wrap(true, function() return super(unpack(args)) end) end)}
+            if result[1] then
+                return unpack(result, 2)
+            else
+                capture:disable()
+                error(result[2])
+            end
+        end end)
+    end
 
+    -- Disable capturing to print possible notices.
+    wrap_methods(capture, false, lu.LuaUnit, 'endTest')
+
+    -- Save captured output into the current test.
     utils.patch(lu.LuaUnit, 'endTest', function(super) return function(self, ...)
         local node = self.result.currentNode
         if capture.enabled then
             node.capture = capture:flush()
         end
-        capture:disable()
         super(self, ...)
-        capture:enable()
-    end end)
-
-    utils.patch(lu.LuaUnit, 'startClass', function(super) return function(self, ...)
-        capture:enable()
-        capture:flush()
-        super(self, ...)
-    end end)
-
-    utils.patch(lu.LuaUnit, 'endClass', function(super) return function(self, ...)
-        super(self, ...)
-        capture:flush()
-        capture:disable()
     end end)
 
     local TextOutput = lu.LuaUnit.outputType
+
+    -- Print captured output for failed test.
     utils.patch(TextOutput, 'displayOneFailedTest', function(super) return function(self, index, node)
         super(self, index, node)
         if node.capture then
-            utils.print_captured('stdout', node.capture.stdout)
-            utils.print_captured('stderr', node.capture.stderr)
+            io.stdout:write(format_captured('stdout', node.capture.stdout))
+            io.stdout:write(format_captured('stderr', node.capture.stderr))
         end
-    end end)
-
-    utils.patch(TextOutput, 'startSuite', function(super) return function(self, index, node)
-        return capture:wrap(false, function() return super(self, index, node) end)
-    end end)
-
-    utils.patch(TextOutput, 'startTest', function(super) return function(self, index, node)
-        return capture:wrap(false, function() return super(self, index, node) end)
     end end)
 end

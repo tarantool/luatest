@@ -11,11 +11,17 @@ g.teardown = function()
     capture:disable()
 end
 
+local function assert_capture_restored()
+    io.stdout:write('capture-restored')
+    t.assert_equals(capture:flush(), {stdout = 'capture-restored', stderr = ''})
+end
+
 local function assert_captured(fn)
     helper.run_suite(fn)
     local captured = capture:flush()
     t.assert_not_str_contains(captured.stdout, '-test-')
     t.assert_not_str_contains(captured.stderr, '-test-')
+    assert_capture_restored()
 end
 
 local function assert_shown(fn)
@@ -24,6 +30,7 @@ local function assert_shown(fn)
     t.assert_str_contains(captured.stdout, 'Captured stdout:\ntest-out')
     t.assert_str_contains(captured.stdout, 'Captured stderr:\ntest-err')
     t.assert_equals(captured.stderr, '')
+    assert_capture_restored()
 end
 
 local function assert_error(fn)
@@ -32,6 +39,7 @@ local function assert_error(fn)
     t.assert_str_contains(captured.stderr, 'custom-error')
     t.assert_str_contains(captured.stderr, 'Captured stdout:\ntest-out')
     t.assert_str_contains(captured.stderr, 'Captured stderr:\ntest-err')
+    assert_capture_restored()
 end
 
 g.test_example = function()
@@ -96,6 +104,20 @@ g.test_example_hook_failed = function()
     end)
 end
 
+g.test_load_tests = function()
+    assert_captured(function()
+        io.stdout:write('-test-')
+        io.stderr:write('-test-')
+    end)
+end
+
+g.test_load_tests_failed = function()
+    assert_error(function()
+        io.stdout:write('test-out')
+        io.stderr:write('test-err')
+        error('custom-error')
+    end)
+end
 
 g.test_class_hook = function()
     assert_captured(function(lu2)
