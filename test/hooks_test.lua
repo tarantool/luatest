@@ -59,7 +59,7 @@ g.test_before_suite_failed = function()
         t2.test = function() table.insert(hooks, 'test') end
     end)
 
-    t.assert_equals(result, 1)
+    t.assert_equals(result, -1)
     t.assert_equals(hooks, {'before_suite_1', 'after_suite'})
 end
 
@@ -78,7 +78,7 @@ g.test_after_suite_failed = function()
         t2.test = function() table.insert(hooks, 'test') end
     end)
 
-    t.assert_equals(result, 1)
+    t.assert_equals(result, -1)
     t.assert_equals(hooks, {'before_suite', 'before_all', 'test', 'after_all', 'after_suite_1'})
 end
 
@@ -105,7 +105,7 @@ g.test_before_class_failed = function()
         t_2.test = function() table.insert(hooks, 'test_2') end
     end)
 
-    t.assert_equals(result, 1)
+    t.assert_equals(result, -1)
     t.assert_equals(hooks, {
         'before_suite',
         'before_all_0',
@@ -134,7 +134,7 @@ g.test_after_class_failed = function()
         t_2.test = function() table.insert(hooks, 'test_2') end
     end)
 
-    t.assert_equals(result, 1)
+    t.assert_equals(result, -1)
     t.assert_equals(hooks, {
         'before_suite',
         'before_all_1',
@@ -155,5 +155,23 @@ g.test_suite_and_group_hooks_dont_run_when_no_tests_running = function()
         t2.after_all = function() table.insert(hooks, 'after_all') end
     end)
     t.assert_equals(result, 0)
+    t.assert_equals(hooks, {})
+end
+
+g.test_suite_and_group_hooks_dont_run_when_luaunit_stops_before_suite = function()
+    local hooks = {}
+
+    local suite = function(lu2)
+        lu2.before_suite(function() table.insert(hooks, 'before_suite') end)
+        lu2.after_suite(function() table.insert(hooks, 'after_suite') end)
+        local t2 = lu2.group('test')
+        t2.before_all = function() table.insert(hooks, 'before_all') end
+        t2.after_all = function() table.insert(hooks, 'after_all') end
+        t2.test = function() table.insert(hooks, 'test') end
+    end
+
+    t.assert_equals(helper.run_suite(suite, {'-h'}), 0)
+    t.assert_equals(hooks, {})
+    t.assert_equals(helper.run_suite(suite, {'--invalid'}), -1)
     t.assert_equals(hooks, {})
 end

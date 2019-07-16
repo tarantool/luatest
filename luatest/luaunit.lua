@@ -112,16 +112,24 @@ local is_equal -- defined here to allow calling from mismatchFormattingPureList
 --
 ----------------------------------------------------------------
 
+-- Replace LuaUnit's calls to os exit to exit gracefully from luatest runner.
+local function os_exit(code)
+    error({type = 'LUAUNIT_EXIT', code = code})
+end
+
 local function pcall_or_abort(func, ...)
     -- unpack is a global function for Lua 5.1, otherwise use table.unpack
     local unpack = rawget(_G, "unpack") or table.unpack
     local result = {pcall(func, ...)}
     if not result[1] then
+        if result[2].type == 'LUAUNIT_EXIT' then
+            error(result[2])
+        end
         -- an error occurred
         print(result[2]) -- error message
         print()
         print(M.USAGE)
-        os.exit(-1)
+        os_exit(-1)
     end
     return unpack(result, 2)
 end
@@ -2565,12 +2573,12 @@ end
 
     function M.LuaUnit.help()
         print(M.USAGE)
-        os.exit(0)
+        os_exit(0)
     end
 
     function M.LuaUnit.version()
         print('LuaUnit v'..M.VERSION..' by Philippe Fremy <phil@freehackers.org>')
-        os.exit(0)
+        os_exit(0)
     end
 
 ----------------------------------------------------------------
@@ -3082,7 +3090,7 @@ end
 
         if self.result.aborted then
             print("LuaUnit ABORTED (as requested by --error or --failure option)")
-            os.exit(-2)
+            os_exit(-2)
         end
     end
 
@@ -3174,7 +3182,7 @@ end
         if options.output then
             if options.output:lower() == 'junit' and options.fname == nil then
                 print('With junit output, a filename must be supplied with -n or --name')
-                os.exit(-1)
+                os_exit(-1)
             end
             pcall_or_abort(self.setOutputType, self, options.output)
         end

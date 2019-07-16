@@ -34,7 +34,7 @@ local function assert_shown(fn)
 end
 
 local function assert_error(fn)
-    t.assert_equals(helper.run_suite(fn), 1)
+    t.assert_equals(helper.run_suite(fn), -1)
     local captured = capture:flush()
     t.assert_str_contains(captured.stderr, 'custom-error')
     t.assert_str_contains(captured.stderr, 'Captured stdout:\ntest-out')
