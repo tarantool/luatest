@@ -35,9 +35,9 @@ end
 
 function runner:run(args, options)
     args = args or rawget(_G, 'arg')
-    options = utils.reverse_merge(self.parse_args(args), options or {}, {
+    options = utils.merge({
         enable_capture = true,
-    })
+    }, self.parse_args(args), options or {})
 
     local lu = options.luaunit or require('luatest.luaunit')
     local capture = options.capture or Capture:new()
