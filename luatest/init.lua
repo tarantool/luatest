@@ -54,6 +54,16 @@ end
 
 return luatest
 
+--- Add before suite hook.
+--
+-- @function before_suite
+-- @func fn
+
+--- Add after suite hook.
+--
+-- @function after_suite
+-- @func fn
+
 -- LDocs for luaunit functions.
 -- We encourage using snake_case naming and simple assertions (no assertNumber, etc.)
 -- so we document only these functions.
@@ -229,6 +239,7 @@ return luatest
 --
 -- @function group
 -- @string name
+-- @return @{TestGroup}
 
 --- Skip a running test.
 --
@@ -249,3 +260,15 @@ return luatest
 --
 -- @function success_if
 -- @param condition
+
+--- Tests group.
+-- To add new example add function at key starting with `test`.
+--
+-- Group hooks run always when test group is changed.
+-- So it may run multiple times when `--shuffle` option is used.
+--
+-- @table TestGroup
+-- @func before_all Function to run once before all tests in the group.
+-- @func after_all Function to run once after all tests in the group.
+-- @func setup Function to run before each test in the group.
+-- @func teardown Function to run after each test in the group.
