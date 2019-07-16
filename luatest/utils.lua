@@ -1,3 +1,5 @@
+local yaml = require('yaml')
+
 local utils = {}
 
 -- Helper to override methods.
@@ -25,11 +27,12 @@ function utils.reverse_merge(target, ...)
     return target
 end
 
-function utils.print_captured(name, text, stream)
-    stream = stream or io.stdout
-    if text and text:len() > 0 then
-        stream:write('Captured ' .. name .. ':\n' .. text .. '\n\n')
+-- Pretty traceback for error.
+function utils.traceback(err, skip)
+    if type(err) ~= 'string' then
+        err = yaml.encode(err)
     end
+    return debug.traceback(err, 2 + (skip or 0)) .. '\n'
 end
 
 return utils

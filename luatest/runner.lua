@@ -1,5 +1,3 @@
-local luaunit = require('luatest.luaunit')
-
 local hooks = require('luatest.hooks')
 local capturing = require('luatest.capturing')
 local Capture = require('luatest.capture')
@@ -11,40 +9,57 @@ local runner = {
     HELPER_MODULE = 'test.helper',
 }
 
+-- Adds functions to luatest which can be patched in `hooks` or `capturing` module.
+local function patch_luatest(lu)
+    lu.GLOBAL_TESTS = false
+
+    function lu.load_tests(options)
+        if package.search(runner.HELPER_MODULE) then
+            require(runner.HELPER_MODULE)
+        end
+
+        local paths = options.paths
+        if #options.paths == 0 then
+            paths = {runner.SOURCE_DIR}
+        end
+        local load_tests = options.load_tests or loader.require_tests
+        for _, path in pairs(paths) do
+            load_tests(path)
+        end
+    end
+
+    function lu.print_error(err)
+        io.stderr:write(utils.traceback(err, 1))
+    end
+end
+
 function runner:run(args, options)
     args = args or rawget(_G, 'arg')
     options = utils.reverse_merge(self.parse_args(args), options or {}, {
-        path = self.SOURCE_DIR,
-        luaunit = luaunit,
-        capture = Capture:new(),
         enable_capture = true,
     })
 
-    local lu = options.luaunit
-    local capture = options.capture
+    local lu = options.luaunit or require('luatest.luaunit')
+    local capture = options.capture or Capture:new()
 
+    patch_luatest(lu)
     hooks(lu)
     if options.enable_capture then
         capturing(lu, capture)
     end
 
-    lu.GLOBAL_TESTS = false
-    local ok, result = capture:wrap(options.enable_capture, function()
-        self:require_helper()
-        local load_tests = options.load_tests or loader.require_tests
-        if #options.paths > 0 then
-            for _, path in pairs(options.paths) do
-                load_tests(path)
-            end
-        else
-            load_tests(self.SOURCE_DIR)
-        end
+    local ok, result = xpcall(function()
+        lu.load_tests(options)
         lu.run_before_suite()
+        return lu.LuaUnit.run(unpack(args))
+    end, function(err)
+        lu.print_error(err)
+        return err
     end)
-    if ok then
-        ok, result = capture:wrap(false, function() return lu.LuaUnit.run(unpack(args)) end)
-    end
-    ok = capture:wrap(options.enable_capture, function() lu.run_after_suite() end) and ok
+    xpcall(lu.run_after_suite, function(err)
+        ok = false
+        lu.print_error(err)
+    end)
     return ok and result or 1
 end
 
@@ -74,12 +89,6 @@ function runner.parse_args(args)
     end
 
     return result
-end
-
-function runner:require_helper()
-    if package.search(self.HELPER_MODULE) then
-        require(self.HELPER_MODULE)
-    end
 end
 
 return runner
