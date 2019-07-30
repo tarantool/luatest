@@ -2,6 +2,7 @@
 
 - Don't run suite hooks when suite is not going to be run.
 - Gracefully shutdown even when luanit calls `os.exit`.
+- Show failed tests summary.
 
 # 0.2.0
 

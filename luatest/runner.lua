@@ -1,7 +1,8 @@
-local hooks = require('luatest.hooks')
 local capturing = require('luatest.capturing')
 local Capture = require('luatest.capture')
+local hooks = require('luatest.hooks')
 local loader = require('luatest.loader')
+local reporting = require('luatest.reporting')
 local utils = require('luatest.utils')
 
 local runner = {
@@ -43,6 +44,7 @@ function runner:run(args, options)
     local capture = options.capture or Capture:new()
 
     patch_luatest(lu)
+    reporting(lu)
     hooks(lu)
     if options.enable_capture then
         capturing(lu, capture)
