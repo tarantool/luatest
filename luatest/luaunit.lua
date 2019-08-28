@@ -71,9 +71,6 @@ M.DEFAULT_DEEP_ANALYSIS = nil
 M.FORCE_DEEP_ANALYSIS   = true
 M.DISABLE_DEEP_ANALYSIS = false
 
--- set EXPORT_ASSERT_TO_GLOBALS to have all asserts visible as global values
--- EXPORT_ASSERT_TO_GLOBALS = true
-
 M.FAILURE_PREFIX = 'LuaUnit test FAILURE: ' -- prefix string for failed tests
 M.SUCCESS_PREFIX = 'LuaUnit test SUCCESS: ' -- prefix string for successful tests finished early
 M.SKIP_PREFIX    = 'LuaUnit test SKIP:    ' -- prefix string for skipped tests
@@ -1934,11 +1931,6 @@ local list_of_funcs = {
 for _,v in ipairs( list_of_funcs ) do
     local funcname, alias = v[1], v[2]
     M[alias] = M[funcname]
-
-    if EXPORT_ASSERT_TO_GLOBALS then
-        _G[funcname] = M[funcname]
-        _G[alias] = M[funcname]
-    end
 end
 
 ----------------------------------------------------------------
@@ -2365,9 +2357,6 @@ M.LuaUnit = {
 }
 local LuaUnit_MT = { __index = M.LuaUnit }
 
-if EXPORT_ASSERT_TO_GLOBALS then
-    LuaUnit = M.LuaUnit
-end
 
     function M.LuaUnit.new()
         return setmetatable( {}, LuaUnit_MT )
