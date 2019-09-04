@@ -1,5 +1,7 @@
 # luatest
 
+[![Build Status](https://travis-ci.com/tarantool/luatest.svg?branch=master)](https://travis-ci.com/tarantool/luatest)
+
 Tool for testing tarantool applications.
 
 This rock is based on [luanit](https://github.com/bluebird75/luaunit) and additionaly provides:
