@@ -1,3 +1,7 @@
+-- Disable jit until this issue is fixed:
+-- https://github.com/tarantool/tarantool/issues/4476
+jit.off() -- luacheck: no global
+
 local runner = require('luatest').runner
 
 local helper = {}
