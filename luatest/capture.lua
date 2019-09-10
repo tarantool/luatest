@@ -14,7 +14,8 @@ ffi.cdef([[
     int fileno(struct FILE *stream);
 
     ssize_t read(int fd, void *buf, size_t count);
-    ssize_t write(int fildes, const void *buf, size_t nbyte);
+
+    int coio_wait(int fd, int event, double timeout);
 ]])
 
 local function create_pipe()
@@ -34,34 +35,21 @@ local function dup_io(file)
     return newfd
 end
 
-local READ_BUFFER_SIZE = 65536
+local COIO_READ = 0x1
+local READ_BUFFER_SIZE = 4096
 
 local function read_fd(fd)
-    local buffer = ffi.new('char[?]', READ_BUFFER_SIZE)
-    local count = ffi.C.read(fd, buffer, READ_BUFFER_SIZE)
-    if count < 0 then
-        error('read pipe failed')
+    local chunks = {}
+    local buffer = nil
+    while ffi.C.coio_wait(fd, COIO_READ, 0) ~= 0 do
+        buffer = buffer or ffi.new('char[?]', READ_BUFFER_SIZE)
+        local count = ffi.C.read(fd, buffer, READ_BUFFER_SIZE)
+        if count < 0 then
+            error('read pipe failed')
+        end
+        table.insert(chunks, ffi.string(buffer, count))
     end
-    return ffi.string(buffer, count)
-end
-
--- It's not possible to implement platform-independent select/poll using ffi
--- because of macros and constant usage. To avoid blocking read call we put
--- character to pipe and remove it from result.
-local function read_pipe(pipe)
-    if ffi.C.write(pipe[1], ' ', 1) ~= 1 then
-        error('write to pipe failed')
-    end
-    local result = read_fd(pipe[0])
-    if result:len() < READ_BUFFER_SIZE then
-        return result:sub(1, -2)
-    end
-    local suffix = read_pipe(pipe)
-    if suffix:len() > 0 then
-        return result .. suffix
-    else
-        return result:sub(1, -2)
-    end
+    return table.concat(chunks)
 end
 
 local Capture = {
@@ -125,8 +113,8 @@ function Capture:flush()
     end
     io.flush()
     return {
-        stdout = read_pipe(self.pipes.stdout),
-        stderr = read_pipe(self.pipes.stderr),
+        stdout = read_fd(self.pipes.stdout[0]),
+        stderr = read_fd(self.pipes.stderr[0]),
     }
 end
 
