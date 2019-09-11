@@ -1,5 +1,7 @@
 # Unreleased
 
+# 0.2.1
+
 - Don't run suite hooks when suite is not going to be run.
 - Gracefully shutdown even when luanit calls `os.exit`.
 - Show failed tests summary.
