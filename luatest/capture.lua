@@ -2,7 +2,6 @@
 -- descriptors with pipes inputs.
 
 local ffi = require('ffi')
-local fiber = require('fiber')
 
 local utils = require('luatest.utils')
 
@@ -15,8 +14,7 @@ ffi.cdef([[
     int fileno(struct FILE *stream);
 
     ssize_t read(int fd, void *buf, size_t count);
-
-    int coio_wait(int fd, int event, double timeout);
+    ssize_t write(int fildes, const void *buf, size_t nbyte);
 ]])
 
 local function create_pipe()
@@ -36,22 +34,34 @@ local function dup_io(file)
     return newfd
 end
 
-local COIO_READ = 0x1
-local READ_BUFFER_SIZE = 4096
+local READ_BUFFER_SIZE = 65536
 
--- Read fd into chunks array while it's readable.
-local function read_fd(fd, chunks)
-    chunks = chunks or {}
-    local buffer = nil
-    while ffi.C.coio_wait(fd, COIO_READ, 0) ~= 0 do
-        buffer = buffer or ffi.new('char[?]', READ_BUFFER_SIZE)
-        local count = ffi.C.read(fd, buffer, READ_BUFFER_SIZE)
-        if count < 0 then
-            error('read pipe failed')
-        end
-        table.insert(chunks, ffi.string(buffer, count))
+local function read_fd(fd)
+    local buffer = ffi.new('char[?]', READ_BUFFER_SIZE)
+    local count = ffi.C.read(fd, buffer, READ_BUFFER_SIZE)
+    if count < 0 then
+        error('read pipe failed')
     end
-    return chunks
+    return ffi.string(buffer, count)
+end
+
+-- It's not possible to implement platform-independent select/poll using ffi
+-- because of macros and constant usage. To avoid blocking read call we put
+-- character to pipe and remove it from result.
+local function read_pipe(pipe)
+    if ffi.C.write(pipe[1], ' ', 1) ~= 1 then
+        error('write to pipe failed')
+    end
+    local result = read_fd(pipe[0])
+    if result:len() < READ_BUFFER_SIZE then
+        return result:sub(1, -2)
+    end
+    local suffix = read_pipe(pipe)
+    if suffix:len() > 0 then
+        return result .. suffix
+    else
+        return result:sub(1, -2)
+    end
 end
 
 local Capture = {
@@ -63,7 +73,6 @@ function Capture:new()
     setmetatable(object, self)
     self.__index = self
     object.enabled = false
-    object.buffer = {stdout = {}, stderr = {}}
     return object
 end
 
@@ -83,40 +92,7 @@ function Capture:enable(raise)
     io.flush()
     ffi.C.dup2(self.pipes.stdout[1], ffi.C.fileno(io.stdout))
     ffi.C.dup2(self.pipes.stderr[1], ffi.C.fileno(io.stderr))
-    self:start_reader_fiber()
     self.enabled = true
-end
-
--- Start the fiber that reads from pipes to the buffer.
-function Capture:start_reader_fiber()
-    assert(not self.reader_fiber, 'reader_fiber is already running')
-    self.reader_fiber = fiber.new(function()
-        while true do
-            self:read_pipes()
-            fiber.testcancel()
-            fiber.sleep(0.5)
-        end
-    end)
-    self.reader_fiber:set_joinable(true)
-end
-
--- Stop reader fiber and read available data from pipe after fiber was stopped.
-function Capture:stop_reader_fiber()
-    if not self.reader_fiber then
-        return false
-    end
-    self.reader_fiber:cancel()
-    self.reader_fiber:join()
-    self:read_pipes()
-    self.reader_fiber = nil
-    return true
-end
-
--- Read from pipes to buffer.
-function Capture:read_pipes()
-    for _, name in pairs({'stdout', 'stderr'}) do
-        read_fd(self.pipes[name][0], self.buffer[name])
-    end
 end
 
 -- Restore original fds for stdout and stderr.
@@ -128,7 +104,6 @@ function Capture:disable(raise)
         return
     end
     io.flush()
-    self:stop_reader_fiber()
     ffi.C.dup2(self.original_fds.stdout, ffi.C.fileno(io.stdout))
     ffi.C.dup2(self.original_fds.stderr, ffi.C.fileno(io.stderr))
     self.enabled = false
@@ -149,16 +124,10 @@ function Capture:flush()
         return {stdout = '', stderr = ''}
     end
     io.flush()
-    local restart_reader_fiber = self:stop_reader_fiber()
-    local result = {
-        stdout = table.concat(self.buffer.stdout),
-        stderr = table.concat(self.buffer.stderr),
+    return {
+        stdout = read_pipe(self.pipes.stdout),
+        stderr = read_pipe(self.pipes.stderr),
     }
-    self.buffer = {stdout = {}, stderr = {}}
-    if restart_reader_fiber then
-        self:start_reader_fiber()
-    end
-    return result
 end
 
 -- Run function with enabled/disabled capture and restore previous state.

@@ -1,5 +1,7 @@
 # Unreleased
 
+- Revert: Capture works with large outputs.
+
 # 0.2.1
 
 - Don't run suite hooks when suite is not going to be run.
