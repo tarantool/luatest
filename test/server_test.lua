@@ -66,10 +66,15 @@ g.test_http_request_post_json = function()
     t.assert_equals(response.json, value)
 end
 
+g.test_http_request_post_created = function()
+    local response = server:http_request('post', '/test')
+    t.assert_equals(response.status, 201) 
+end
+
 g.test_http_request_failed = function()
     local ok, err = pcall(function() server:http_request('get', '/invalid') end)
     t.assert_equals(ok, false)
-    t.assert_equals(err.type, 'HTTPReqest')
+    t.assert_equals(err.type, 'HTTPRequest')
     t.assert_equals(err.response.status, 404)
 end
 
