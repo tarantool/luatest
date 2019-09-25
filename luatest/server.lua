@@ -125,7 +125,7 @@ end
 -- @bool[opt] options.raw not to raise error and return response when status is not 200
 -- @return response object from HTTP client.
 --   If response body is valid JSON it's parsed into `json` field.
--- @raise HTTPReqest error when response status is not 200.
+-- @raise HTTPRequest error when response status is not 200.
 function Server:http_request(method, path, options)
     if not self.http_client then
         error('http_port not configured')
@@ -140,7 +140,7 @@ function Server:http_request(method, path, options)
         response.json = json_body
     end
     if not options.raw and response.status ~= 200 then
-        error({type = 'HTTPReqest', response = response})
+        error({type = 'HTTPRequest', response = response})
     end
     return response
 end
