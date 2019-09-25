@@ -68,7 +68,7 @@ end
 
 g.test_http_request_post_created = function()
     local response = server:http_request('post', '/test')
-    t.assert_equals(response.status, 201) 
+    t.assert_equals(response.status, 201)
 end
 
 g.test_http_request_failed = function()
