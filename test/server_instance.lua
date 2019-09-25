@@ -33,4 +33,8 @@ httpd:route({path = '/echo', method = 'post'}, function(request)
     return {status = 200, body = request:read()}
 end)
 
+httpd:route({path = '/test', method = 'post'}, function(request)
+    return {status = 201, body = request:read()}
+end)
+
 httpd:start()

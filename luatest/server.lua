@@ -139,7 +139,7 @@ function Server:http_request(method, path, options)
     if ok then
         response.json = json_body
     end
-    if not options.raw and response.status ~= 200 then
+    if not options.raw and response.status < 200 or response.status > 299 then
         error({type = 'HTTPRequest', response = response})
     end
     return response
