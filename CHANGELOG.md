@@ -1,6 +1,6 @@
 # Unreleased
 
-- Revert: Capture works with large outputs.
+- Fix issue with crashes in capture.
 - Do not raise error for 2xx responses in Server:http_request
 
 # 0.2.1
