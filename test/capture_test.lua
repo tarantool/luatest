@@ -18,14 +18,31 @@ g.test_flush = function()
     t.assert_equals(capture:flush(), {stdout = '', stderr = ''})
 end
 
+-- io.write is blocking, fio is not.
+local function io_to_fio(io)
+    local fd = require('ffi').C.fileno(io)
+    local dev_null, err = require('fio').open('/dev/null')
+    assert(dev_null, tostring(err))
+    local fio_file_mt = getmetatable(dev_null)
+    dev_null:close()
+    local file = {fh = fd}
+    setmetatable(file, fio_file_mt)
+    return file
+ end
+
 g.test_flush_large_strings = function()
-    t.skip('no support for large strings yet')
     local buffer_size = 65536
-    local out = ('a'):rep(buffer_size)
-    local err = ('a'):rep(buffer_size + 1)
-    io.stdout:write(out)
-    io.stderr:write(err)
-    t.assert_equals(capture:flush(), {stdout = out, stderr = err})
+    local out = ('out'):rep(buffer_size / 3)
+    local err = ('error'):rep(buffer_size / 5 + 1)
+    io_to_fio(io.stdout):write(out)
+    io_to_fio(io.stderr):write(err)
+    -- manually compare strings to avoid large diffs
+    local captured = capture:flush()
+    t.assert_equals(#captured.stdout, #out)
+    t.assert(captured.stdout == out, 'invalid captured stdout')
+    t.assert_equals(#captured.stderr, #err)
+    t.assert(captured.stderr == err, 'invalid captured stdout')
+    capture:disable()
 end
 
 g.test_wrap = function()
