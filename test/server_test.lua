@@ -78,6 +78,11 @@ g.test_http_request_failed = function()
     t.assert_equals(err.response.status, 404)
 end
 
+g.test_http_request_supress_exception = function()
+    local response = server:http_request('post', '/invalid', { raw = true })
+    t.assert_equals(response.status, 404)
+end
+
 g.test_net_box = function()
     server:connect_net_box()
     t.assert_equals(server.net_box:eval('return os.getenv("custom_env")'), 'test_value')
