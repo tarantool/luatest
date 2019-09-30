@@ -1,5 +1,7 @@
 # Unreleased
 
+# 0.2.2
+
 - Fix issue with crashes in capture.
 - Do not raise error for 2xx responses in Server:http_request
 
