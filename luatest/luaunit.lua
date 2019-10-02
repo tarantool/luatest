@@ -1761,6 +1761,51 @@ function M.assertNotIsMinusZero(value, extra_msg_or_nil)
 end
 
 ----------------------------------------------------------------
+--                     Custom assertions
+----------------------------------------------------------------
+
+function M.assert_table_has_key(tbl, key, extra_msg_or_nil)
+    M.assert_is_table(tbl)
+    M.assert_is_string(key)
+
+    if tbl[key] == nil then
+        fail_fmt(2, extra_msg_or_nil,
+            "expected %s to have key %s", prettystr(tbl), prettystr(key))
+    end
+end
+
+function M.assert_table_has_keys(tbl, ...)
+    M.assert_is_table(tbl)
+
+    local n = select('#', ...)
+    for i = 1,n do
+        local key = select(i, ...)
+        M.assert_table_has_key(tbl, key)
+    end
+end
+
+function M.assert_table_has_pair(tbl, key, value, extra_msg_or_nil)
+    M.assert_is_table(tbl)
+    M.assert_is_string(key)
+    M.assert_not_is_nil(value)
+
+    if tbl[key] ~= value then
+        fail_fmt(2, extra_msg_or_nil,
+            "expected %s to have key-value pair %s",
+            prettystr(tbl), prettystr({ [key] = value }))
+    end
+end
+
+function M.assert_table_to_include(tbl, inclusion, extra_msg_or_nil)
+    M.assert_is_table(tbl)
+    M.assert_is_table(inclusion)
+
+    for key, value in pairs(inclusion) do
+        M.assert_table_has_pair(tbl, key, value, extra_msg_or_nil)
+    end
+end
+
+----------------------------------------------------------------
 --                     Compatibility layer
 ----------------------------------------------------------------
 
