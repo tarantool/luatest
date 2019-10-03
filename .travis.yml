@@ -1,9 +1,24 @@
+sudo: false
 language: minimal
-dist: xenial
+services:
+  - docker
 
 env:
   global:
     - ROCK_NAME=luatest
+    - PRODUCT=luatest
+
+stages:
+  - test
+  - name: deploy
+    # Deploy packages to PackageCloud from tags and master
+    # see:
+    #   * https://github.com/tarantool/tarantool/issues/3745
+    #   * https://github.com/travis-ci/travis-ci/issues/7780#issuecomment-302389370
+    if: (branch = master OR tag IS present) AND (env(PACKAGECLOUD_TOKEN) IS present)
+
+before_script:
+  - git describe --long
 
 _test: &test
   before_install:
@@ -15,6 +30,29 @@ _test: &test
   script:
     - make lint test
 
+_deploy_to_packagecloud: &deploy_to_packagecloud
+  provider: packagecloud
+  username: tarantool
+  token: $PACKAGECLOUD_TOKEN
+  dist: $OS/$DIST
+  package_glob: build/*.{rpm,deb}
+  skip_cleanup: true
+
+# Pack and deploy packages to PackageCloud
+_packpack: &packpack
+  stage: deploy
+  script:
+    - git clone https://github.com/packpack/packpack.git
+    - packpack/packpack
+    - ls -l build/
+  deploy:
+    - <<: *deploy_to_packagecloud
+      repository: '1_10'
+    - <<: *deploy_to_packagecloud
+      repository: '2x'
+    - <<: *deploy_to_packagecloud
+      repository: '2_2'
+
 jobs:
   include:
     - <<: *test
@@ -22,11 +60,12 @@ jobs:
     - <<: *test
       env: TARANTOOL_VERSION=2x
     - stage: deploy
+      name: Publish rockspecs
       script: skip
       deploy:
         - provider: script
           script: curl --fail -X PUT -F rockspec=@$ROCK_NAME-scm-1.rockspec
-            https://$ROCKS_USERNAME:$ROCKS_PASSWORD@$ROCKS_SERVER
+            https://$ROCKS_USERNAME:$ROCKS_PASSWORD@$rocks.tarantool.org
         - on:
             tags: true
           provider: script
@@ -35,7 +74,32 @@ jobs:
               -e "s/branch = '.+'/tag = '$TRAVIS_TAG'/g"
               -e "s/version = '.+'/version = '$TRAVIS_TAG-1'/g" |
             curl --fail -X PUT -F "rockspec=@-;filename=$ROCK_NAME-$TRAVIS_TAG-1.rockspec"
-              https://$ROCKS_USERNAME:$ROCKS_PASSWORD@$ROCKS_SERVER
+              https://$ROCKS_USERNAME:$ROCKS_PASSWORD@$rocks.tarantool.org
+
+    - <<: *packpack
+      env: OS=el DIST=7
+    - <<: *packpack
+      env: OS=el DIST=8
+    - <<: *packpack
+      env: OS=fedora DIST=30
+    - <<: *packpack
+      env: OS=ubuntu DIST=trusty
+    - <<: *packpack
+      env: OS=ubuntu DIST=xenial
+    - <<: *packpack
+      env: OS=ubuntu DIST=bionic
+    - <<: *packpack
+      env: OS=ubuntu DIST=eoan
+    - <<: *packpack
+      env: OS=debian DIST=jessie
+    - <<: *packpack
+      env: OS=debian DIST=stretch
+    - <<: *packpack
+      env: OS=debian DIST=buster
 
 notifications:
-  email: false
+  email:
+    recipients:
+      - build@tarantool.org
+    on_success: change
+    on_failure: always
