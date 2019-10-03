@@ -1,0 +1,21 @@
+Source: luatest
+Priority: optional
+Section: database
+Maintainer: Konstantin Nazarov <mail@knazarov.com>
+Build-Depends: debhelper (>= 9), cdbs,
+               tarantool (>= 1.9.0),
+               tarantool-dev (>= 1.9.0),
+               tarantool-http (>= 1.1.0),
+               tarantool-checks (>= 3.0.1)
+Standards-Version: 3.9.6
+Homepage: https://github.com/tarantool/luatest
+Vcs-Git: git://github.com/tarantool/luatest.git
+Vcs-Browser: https://github.com/tarantool/luatest
+
+Package: luatest
+Architecture: all
+Depends: tarantool (>= 1.9.0),
+         tarantool-checks (>= 3.0.1),
+         ${misc:Depends}
+Description: A simple Tarantool test framework for both unit and integration testing
+ A simple Tarantool test framework for both unit and integration testing

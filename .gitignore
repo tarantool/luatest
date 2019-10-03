@@ -5,3 +5,10 @@
 
 /tmp/*
 !/tmp/.keep
+CMakeCache.txt
+cmake_install.cmake
+CMakeFiles
+CTestTestfile.cmake
+packpack
+build
+Testing
