@@ -9,7 +9,8 @@ This rock is based on [luanit](https://github.com/bluebird75/luaunit) and additi
 - executable to run tests in directory or specific files,
 - before/after suite hooks,
 - before/after test group hooks,
-- output capturing.
+- [output capturing](#capturing-output),
+- [test helpers](#test-helpers).
 
 Please refer to [luanit docs](https://luaunit.readthedocs.io/en/latest/) for original features and examples.
 
@@ -26,6 +27,10 @@ Define tests.
 local t = require('luatest')
 local g = t.group('feature')
 
+-- Tests. All properties with name staring with `test` are treated as test cases.
+g.test_example_1 = function() ... end
+g.test_example_n = function() ... end
+
 -- Define suite hooks. can be called multiple times to define hooks from different files
 t.before_suite(function() ... end)
 t.before_suite(function() ... end)
@@ -39,10 +44,6 @@ g.after_all = function() ... end
 -- Hooks to run for each test in group
 g.setup = function() ... end
 g.teardown = function() ... end
-
--- Tests. All properties with name staring with `test` are treated as test cases.
-g.test_example_1 = function() ... end
-g.test_example_n = function() ... end
 
 -- test/other_test.lua
 local t = require('luatest')
@@ -60,10 +61,52 @@ luatest test/feature_test.lua         # by file
 luatest test/integration              # all within directory
 luatest test/ -f                      # luaunit options are supported
 luatest feature other.test_example_2  # by group or test name
+luater --help                         # list available options
 ```
 
 If `luatest` executable does not appear in $PATH after installing the rock,
 it can be found in `.rocks/bin/luatest`.
+
+## List of luatest functions
+
+| Assertions |  |
+| :--- | --- |
+| `assert (value[, message])` | Check that value is truthy. |
+| `assert_almost_equals (actual, expected, margin[, message])` | Check that two floats are close by margin. |
+| `assert_covers (actual, expected[, message])` | Checks that map contains the other one. |
+| `assert_equals (actual, expected[, message[, deep_analysis]])` | Check that two values are equal. |
+| `assert_error (fn, ...)` | Check that calling fn raises an error. |
+| `assert_error_msg_contains (expected_partial, fn, ...)` | |
+| `assert_error_msg_content_equals (expected, fn, ...)` | Strips location info from message text. |
+| `assert_error_msg_equals (expected, fn, ...)` | Checks full error: location and text. |
+| `assert_error_msg_matches (pattern, fn, ...)` | |
+| `assert_eval_to_false (value[, message])` | Alias for assert_not. |
+| `assert_eval_to_true (value[, message])` | Alias for assert. |
+| `assert_is (actual, expected[, message])` | Check that values are the same. |
+| `assert_items_equals (actual, expected[, message])` | Check that the items of table expected are contained in table actual. |
+| `assert_nan (value[, message])` | |
+| `assert_not (value[, message])` | Check that value is falsy. |
+| `assert_not_almost_equals (actual, expected, margin[, message])` | Check that two floats are not close by margin. |
+| `assert_not_covers (actual, expected[, message])` | Checks that map does not contain the other one. |
+| `assert_not_equals (actual, expected[, message])` | Check that two values are not equal. |
+| `assert_not_is (actual, expected[, message])` | Check that values are not the same. |
+| `assert_not_nan (value[, message])` | |
+| `assert_not_str_contains (actual, expected[, is_pattern[, message]])` | Case-sensitive strings comparison. |
+| `assert_not_str_icontains (value, expected[, message])` | Case-insensitive strings comparison. |
+| `assert_str_contains (value, expected[, is_pattern[, message]])` | Case-sensitive strings comparison. |
+| `assert_str_icontains (value, expected[, message])` | Case-insensitive strings comparison. |
+| `assert_str_matches (value, pattern[, start=1[, final=value:len()[, message]]])` | Verify a full match for the string. |
+| **Flow control** |  |
+| `fail (message)` | Stops a test due to a failure. |
+| `fail_if (condition, message)` | Stops a test due to a failure if condition is met. |
+| `skip (message)` | Skip a running test. |
+| `skip_if (condition, message)` | Skip a running test if condition is met. |
+| `success ()` | Stops a test with a success. |
+| `success_if (condition)` | Stops a test with a success if condition is met. |
+| **Suite and groups** |  |
+| `after_suite (fn)` | Add after suite hook. |
+| `before_suite (fn)` | Add before suite hook. |
+| `group (name)` | Create group of tests. |
 
 ## Capturing output
 
@@ -124,7 +167,6 @@ luatest.helpers.retrying({}, function() server:http_request('get', '/status') en
 
 - When `before_all/after_all` hook fails with error, all other tests even from other classes
 are not executed.
-- Process hangs when there is a lot of output within single test.
 
 ## Development
 
