@@ -86,7 +86,11 @@ Options:
   -c                      Disable capture
   -e, --error:            Stop on first error
   -f, --failure:          Stop on first failure or error
-  -s, --shuffle:          Shuffle tests before running them
+  --shuffle ORDER:        Set execution order:
+                            - group[:seed] - shuffle tests within group (default)
+                            - all[:seed] - shuffle all tests
+                            - defined - sort tests within group by line number
+  --seed NUMBER:          Set seed value for shuffler
   -o, --output OUTPUT:    Set output type to OUTPUT
                           Possible values: text, tap, junit, nil
   -n, --name NAME:        For junit only, mandatory name of xml file
@@ -223,9 +227,6 @@ local function sortedPairs(tbl)
     return sortedNext, {t = tbl, sortedIdx = __genSortedIndex(tbl)}, nil
 end
 M.private.sortedPairs = sortedPairs
-
--- seed the random with a strongly varying seed
-math.randomseed(os.clock()*1E11)
 
 local function randomizeTable( t )
     -- randomize the item orders of the table t
@@ -2247,6 +2248,9 @@ TextOutput.__class__ = 'TextOutput'
     end
 
     function TextOutput:startSuite()
+        if self.runner.seed then
+            print('Running with --shuffle ' .. self.runner.shuffle .. ':' .. self.runner.seed)
+        end
         if self.verbosity > M.VERBOSITY_DEFAULT then
             print( 'Started on '.. self.result.startDate )
         end
@@ -2353,13 +2357,14 @@ end
 M.LuaUnit = {
     outputType = TextOutput,
     verbosity = M.VERBOSITY_DEFAULT,
+    shuffle = 'group',
     __class__ = 'LuaUnit'
 }
 local LuaUnit_MT = { __index = M.LuaUnit }
 
 
-    function M.LuaUnit.new()
-        return setmetatable( {}, LuaUnit_MT )
+    function M.LuaUnit.new(object)
+        return setmetatable( object or {}, LuaUnit_MT )
     end
 
     -----------------[[ Utility methods ]]---------------------
@@ -2432,7 +2437,8 @@ local LuaUnit_MT = { __index = M.LuaUnit }
         -- --output, -o, + name: select output type
         -- --pattern, -p, + pattern: run test matching pattern, may be repeated
         -- --exclude, -x, + pattern: run test not matching pattern, may be repeated
-        -- --shuffle, -s, : shuffle tests before reunning them
+        -- --shuffle, -s, + value: shuffle tests before reunning them
+        -- --seed, + value : set random seed for shuffler
         -- --name, -n, + fname: name of output file for junit, default to stdout
         -- --repeat, -r, + num: number of times to execute each test
         -- [testnames, ...]: run selected test names
@@ -2445,7 +2451,7 @@ local LuaUnit_MT = { __index = M.LuaUnit }
         -- pattern: nil or a list of patterns
         -- exclude: nil or a list of patterns
 
-        local result, state = {}, nil
+        local result, state = {paths = {}}, nil
         local SET_OUTPUT = 1
         local SET_PATTERN = 2
         local SET_EXCLUDE = 3
@@ -2476,8 +2482,9 @@ local LuaUnit_MT = { __index = M.LuaUnit }
                 result['quitOnFailure'] = true
                 return
             elseif option == '--shuffle' or option == '-s' then
-                result['shuffle'] = true
-                return
+                return 'SET_SHUFFLE'
+            elseif option == '--seed' then
+                return 'SET_SEED'
             elseif option == '--output' or option == '-o' then
                 state = SET_OUTPUT
                 return state
@@ -2493,6 +2500,8 @@ local LuaUnit_MT = { __index = M.LuaUnit }
             elseif option == '--exclude' or option == '-x' then
                 state = SET_EXCLUDE
                 return state
+            elseif option == '-c' then
+                result.enable_capture = false
             end
             error('Unknown option: '..option,3)
         end
@@ -2523,6 +2532,21 @@ local LuaUnit_MT = { __index = M.LuaUnit }
                     result['pattern'] = { notArg }
                 end
                 return
+            elseif state == 'SET_SHUFFLE' then
+                local seed
+                result.shuffle, seed = unpack(cmdArg:split(':'))
+                local seed_n = tonumber(seed)
+                if seed and not seed_n then
+                    error('Invalid seed value')
+                end
+                result.seed = seed_n
+                return
+            elseif state == 'SET_SEED' then
+                result.seed = tonumber(cmdArg)
+                if not result.seed then
+                    error('Invalid seed value')
+                end
+                return
             end
             error('Unknown parse state: '.. state)
         end
@@ -2535,6 +2559,10 @@ local LuaUnit_MT = { __index = M.LuaUnit }
             else
                 if cmdArg:sub(1,1) == '-' then
                     state = parseOption( cmdArg )
+                -- If argument contains / then it's treated as file path.
+                -- This assumption to support luaunit's test names along with file paths.
+                elseif cmdArg:find('/') then
+                    table.insert(result.paths, cmdArg)
                 else
                     if result['testNames'] then
                         table.insert( result['testNames'], cmdArg )
@@ -2971,20 +2999,32 @@ local LuaUnit_MT = { __index = M.LuaUnit }
         self:endTest()
     end
 
-    function M.LuaUnit.expandOneClass( result, className, classInstance )
+    function M.LuaUnit:expandOneClass( className, classInstance )
         --[[
-        Input: a list of { name, instance }, a class name, a class instance
-        Ouptut: modify result to add all test method instance in the form:
+        Input: a class name, a class instance
+        Ouptut: list of test method instances in the form:
         { className.methodName, classInstance }
         ]]
-        for methodName, methodInstance in sortedPairs(classInstance) do
+        local result = {}
+        for methodName, methodInstance in pairs(classInstance) do
             if M.LuaUnit.asFunction(methodInstance) and M.LuaUnit.isMethodTestName( methodName ) then
-                table.insert( result, { className..'.'..methodName, classInstance } )
+                table.insert( result, {
+                    className..'.'..methodName,
+                    classInstance,
+                    func = methodInstance,
+                    line = debug.getinfo(methodInstance).linedefined or 0,
+                 } )
             end
         end
+        if self.shuffle == 'group' then
+            randomizeTable(result)
+        elseif self.shuffle == 'none' then
+            table.sort(result, function(a, b) return a.line < b.line end)
+        end
+        return result
     end
 
-    function M.LuaUnit.expandClasses( listOfNameAndInst )
+    function M.LuaUnit:expandClasses( listOfNameAndInst )
         --[[
         -- expand all classes (provided as {className, classInstance}) to a list of {className.methodName, classInstance}
         -- functions and methods remain untouched
@@ -3014,7 +3054,10 @@ local LuaUnit_MT = { __index = M.LuaUnit }
                     end
                     table.insert( result, { name, instance } )
                 else
-                    M.LuaUnit.expandOneClass( result, name, instance )
+                    local fns = self:expandOneClass( name, instance )
+                    for _, x in pairs(fns) do
+                        table.insert(result, x)
+                    end
                 end
             end
         end
@@ -3066,10 +3109,16 @@ local LuaUnit_MT = { __index = M.LuaUnit }
         * { class.method name, class instance }
         ]]
 
-        local expandedList = self.expandClasses( listOfNameAndInst )
-        if self.shuffle then
+        -- Set seed to ordering.
+        if self.seed then
+            math.randomseed(self.seed)
+        end
+        local expandedList = self:expandClasses( listOfNameAndInst )
+        if self.shuffle == 'all' then
             randomizeTable( expandedList )
         end
+        -- Make seed for ordering not affect other random numbers.
+        math.randomseed(os.time())
         local filteredList, filteredOutList = self.applyPatternFilter(
             self.patternIncludeFilter, expandedList )
 
@@ -3132,7 +3181,17 @@ local LuaUnit_MT = { __index = M.LuaUnit }
         self:runSuiteByInstances( listOfNameAndInst )
     end
 
-    function M.LuaUnit.run(...)
+    -- Available options are:
+    --
+    --   - verbosity
+    --   - quitOnError
+    --   - quitOnFailure
+    --   - fname
+    --   - exeRepeat
+    --   - patternIncludeFilter
+    --   - shuffle
+    --   - seed
+    function M.LuaUnit.run(options)
         -- Run some specific test classes.
         -- If no arguments are passed, run the class names specified on the
         -- command line. If no class name is specified on the command line
@@ -3141,42 +3200,32 @@ local LuaUnit_MT = { __index = M.LuaUnit }
         -- If arguments are passed, they must be strings of the class names
         -- that you want to run or generic command line arguments (-o, -p, -v, ...)
 
-        local runner = M.LuaUnit.new()
-        return runner:runSuite(...)
+        local runner = M.LuaUnit.new(options)
+
+        os.time()
+
+        return runner:runSuite()
     end
 
-    function M.LuaUnit:runSuite( ... )
-
-        local args = {...}
-        if type(args[1]) == 'table' and args[1].__class__ == 'LuaUnit' then
-            -- run was called with the syntax M.LuaUnit:runSuite()
-            -- we support both M.LuaUnit.run() and M.LuaUnit:run()
-            -- strip out the first argument
-            table.remove(args,1)
+    function M.LuaUnit:runSuite()
+        if self.shuffle == 'group' or self.shuffle == 'all' then
+            if not self.seed then
+                math.randomseed(os.time())
+                self.seed = math.random(1000, 10000)
+            end
+        elseif self.shuffle ~= 'none' then
+            error('Invalid shuffle value')
         end
 
-        local options = pcall_or_abort( M.LuaUnit.parseCmdLine, args )
-
-        -- We expect these option fields to be either `nil` or contain
-        -- valid values, so it's safe to always copy them directly.
-        self.verbosity     = options.verbosity
-        self.quitOnError   = options.quitOnError
-        self.quitOnFailure = options.quitOnFailure
-        self.fname         = options.fname
-
-        self.exeRepeat            = options.exeRepeat
-        self.patternIncludeFilter = options.pattern
-        self.shuffle              = options.shuffle
-
-        if options.output then
-            if options.output:lower() == 'junit' and options.fname == nil then
+        if self.output then
+            if self.output:lower() == 'junit' and self.fname == nil then
                 print('With junit output, a filename must be supplied with -n or --name')
                 os_exit(-1)
             end
-            pcall_or_abort(self.setOutputType, self, options.output)
+            pcall_or_abort(self.setOutputType, self, self.output)
         end
 
-        self:runSuiteByNames( options.testNames or M.LuaUnit.collectTests() )
+        self:runSuiteByNames( self.testNames or M.LuaUnit.collectTests() )
 
         return self.result.notSuccessCount
     end
@@ -3192,5 +3241,10 @@ end
 M.set_verbosity = M.setVerbosity
 M.SetVerbosity = M.setVerbosity
 
+function M.defaults(options)
+    for k, v in pairs(options) do
+        M.LuaUnit[k] = v
+    end
+end
 
 return M

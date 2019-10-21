@@ -34,66 +34,37 @@ local function patch_luatest(lu)
     end
 end
 
-function runner:run(args, options)
+function runner.run(args, options)
     args = args or rawget(_G, 'arg')
-    options = utils.merge({
-        enable_capture = true,
-    }, self.parse_args(args), options or {})
-
+    options = options or {}
     local lu = options.luaunit or require('luatest.luaunit')
-    local capture = options.capture or Capture:new()
-
     patch_luatest(lu)
-    reporting(lu)
-    hooks(lu)
-    if options.enable_capture then
-        capturing(lu, capture)
-    end
 
-    local ok, result = xpcall(function()
+    local _, code = xpcall(function()
+        options = utils.merge({
+            enable_capture = true,
+        }, lu.LuaUnit.parseCmdLine(args), options)
+
+        local capture = options.capture or Capture:new()
+
+        reporting(lu)
+        hooks(lu)
+        if options.enable_capture then
+            capturing(lu, capture)
+        end
+
         lu.load_tests(options)
-        return lu.LuaUnit.run(unpack(args))
+        return lu.LuaUnit.run(options)
     end, function(err)
-        if err.type ~= 'LUAUNIT_EXIT' then
-            lu.print_error(err)
-        end
-        return err
-    end)
-    if ok then
-        return result
-    elseif result.type == 'LUAUNIT_EXIT' then
-        return result.code
-    else
-        return -1
-    end
-end
-
-local OPTIONS = {
-    ['-c'] = function(x) x.enable_capture = false end,
-}
-
--- Parses runner specific cli args. All matching args are removed from the list.
--- All remaining arguments are parsed by luaunit.
-function runner.parse_args(args)
-    local result = {paths = {}}
-
-    local i = 1
-    while i <= #args do
-        local arg = args[i]
-        if OPTIONS[arg] then
-            OPTIONS[arg](result)
-            table.remove(args, i)
-        -- If argument contains / then it's treated as file path.
-        -- This assumption to support luaunit's test names along with file paths.
-        elseif arg:find('/') then
-            table.insert(result.paths, arg)
-            table.remove(args, i)
+        require('log').info({o = err})
+        if err.type == 'LUAUNIT_EXIT' then
+            return err.code
         else
-            i = i + 1
+            lu.print_error(err)
+            return -1
         end
-    end
-
-    return result
+    end)
+    return code
 end
 
 return runner

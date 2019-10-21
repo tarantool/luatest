@@ -1,5 +1,7 @@
 # Unreleased
 
+- Make --shuffle option accept `group`, `all`, `none` values
+
 # 0.2.2
 
 - Fix issue with crashes in capture.

@@ -38,7 +38,7 @@ g.test_hooks = function()
 
         table.insert(expected, 'after_suite_1')
         table.insert(expected, 'after_suite_2')
-    end)
+    end, {'--shuffle', 'none'})
 
     t.assert_equals(result, 0)
     t.assert_equals(hooks, expected)
@@ -132,7 +132,7 @@ g.test_after_class_failed = function()
         t_2.before_all = function() table.insert(hooks, 'before_all_2') end
         t_2.after_all = function() table.insert(hooks, 'after_all_2') end
         t_2.test = function() table.insert(hooks, 'test_2') end
-    end)
+    end, {'--shuffle', 'none'})
 
     t.assert_equals(result, -1)
     t.assert_equals(hooks, {

@@ -26,7 +26,7 @@ end
 
 function export.run(...)
     local args = {...}
-    return export.gc_sandboxed(function() return require('luatest').runner:run(unpack(args)) end)
+    return export.gc_sandboxed(function() return require('luatest').runner.run(unpack(args)) end)
 end
 
 return export

@@ -36,8 +36,6 @@ t.before_suite(function() ... end)
 t.before_suite(function() ... end)
 
 -- Hooks to run once for tests group
--- This hooks run always when test class is changed.
--- So it may run multiple times when --shuffle option is used.
 g.before_all = function() ... end
 g.after_all = function() ... end
 
@@ -66,6 +64,36 @@ luater --help                         # list available options
 
 If `luatest` executable does not appear in $PATH after installing the rock,
 it can be found in `.rocks/bin/luatest`.
+
+## Tests order
+
+Use the `--shuffle` option to tell luatest how to order the tests.
+The available ordering schemes are `group`, `all` and `none`.
+
+`group` is the default, which shuffles tests within the groups.
+
+`all` randomizes execution order across all available tests.
+Be careful: `before_all/after_all` hooks run always when test class is changed,
+so it may run multiple time.
+
+`none` executes examples within the group in the order they
+are defined (eventually they are ordered by functions line numbers).
+
+With `group` and `all` you can also specify a `seed` to reproduce specific order.
+
+```
+--shuffle none
+--shuffle group
+--shuffle all --seed 123
+--shuffle all:123 # same as above
+```
+
+To change default order use:
+
+```lua
+local t = require('luatest')
+t.defaults({shuffle = 'none'})
+```
 
 ## List of luatest functions
 
