@@ -52,16 +52,16 @@ return function(lu, capture)
     wrap_methods(capture, true, lu, 'load_tests')
 
     -- Patch output here because it's created in `super`
-    utils.patch(lu.LuaUnit, 'startSuite', function(super) return function(self, ...)
+    utils.patch(lu.LuaUnit, 'start_suite', function(super) return function(self, ...)
         super(self, ...)
         patch_output(capture, self.output, lu.genericOutput)
     end end)
 
     -- Main capturing wrapper.
-    wrap_methods(capture, true, lu.LuaUnit, 'runTestsList')
+    wrap_methods(capture, true, lu.LuaUnit, 'run_tests_list')
 
-    -- Disable capture in case of failure because `endSuite` is not called.
-    for _, name in pairs({'startClass', 'endClass'}) do
+    -- Disable capture in case of failure because `end_suite` is not called.
+    for _, name in pairs({'start_class', 'end_class'}) do
         utils.patch(lu.LuaUnit, name, function(super) return function(...)
             local args = {...}
             utils.reraise_and_ensure(function()
@@ -75,10 +75,10 @@ return function(lu, capture)
     end
 
     -- Disable capturing to print possible notices.
-    wrap_methods(capture, false, lu.LuaUnit, 'endTest')
+    wrap_methods(capture, false, lu.LuaUnit, 'end_test')
 
     -- Save captured output into the current test.
-    utils.patch(lu.LuaUnit, 'endTest', function(super) return function(self, ...)
+    utils.patch(lu.LuaUnit, 'end_test', function(super) return function(self, ...)
         local node = self.result.currentNode
         if capture.enabled then
             node.capture = capture:flush()
@@ -89,7 +89,7 @@ return function(lu, capture)
     local TextOutput = lu.LuaUnit.outputType
 
     -- Print captured output for failed test.
-    utils.patch(TextOutput, 'displayOneFailedTest', function(super) return function(self, index, node)
+    utils.patch(TextOutput, 'display_one_failed_test', function(super) return function(self, index, node)
         super(self, index, node)
         if node.capture then
             io.stdout:write(format_captured('stdout', node.capture.stdout))

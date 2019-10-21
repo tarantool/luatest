@@ -5,7 +5,7 @@ local utils = require('luatest.utils')
 return function(lu)
     local TextOutput = lu.LuaUnit.outputType
 
-    utils.patch(TextOutput, 'endSuite', function(super) return function(self)
+    utils.patch(TextOutput, 'end_suite', function(super) return function(self)
         super(self)
         local list = fun.chain(self.result.failedTests, self.result.errorTests):
             map(function(x) return x.testName end):
