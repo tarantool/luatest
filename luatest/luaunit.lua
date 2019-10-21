@@ -21,8 +21,8 @@ M._VERSION=M.VERSION -- For LuaUnit v2 compatibility
 -- a version which distinguish between regular Lua and LuaJit
 M._LUAVERSION = (jit and jit.version) or _VERSION
 
---[[ Some people like assertEquals( actual, expected ) and some people prefer
-assertEquals( expected, actual ).
+--[[ Some people like assert_equals( actual, expected ) and some people prefer
+assert_equals( expected, actual ).
 ]]--
 M.ORDER_ACTUAL_EXPECTED = true
 M.PRINT_TABLE_REF_IN_ERROR_MSG = false
@@ -43,11 +43,11 @@ M.group = function( name )
 end
 
 --[[ EPS is meant to help with Lua's floating point math in simple corner
-cases like almostEquals(1.1-0.1, 1), which may not work as-is (e.g. on numbers
+cases like almost_equals(1.1-0.1, 1), which may not work as-is (e.g. on numbers
 with rational binary representation) if the user doesn't provide some explicit
 error margin.
 
-The default margin used by almostEquals() in such cases is EPS; and since
+The default margin used by almost_equals() in such cases is EPS; and since
 Lua may be compiled with different numeric precisions (single vs. double), we
 try to select a useful default for it dynamically. Note: If the initial value
 is not acceptable, it can be changed by the user to better suit specific needs.
@@ -105,7 +105,7 @@ Options:
                               TestClass or TestClass.testMethod
 ]]
 
-local is_equal -- defined here to allow calling from mismatchFormattingPureList
+local is_equal -- defined here to allow calling from mismatch_formatting_pure_list
 
 ----------------------------------------------------------------
 --
@@ -144,7 +144,7 @@ local crossTypeComparison = {
     other = function(a, b) return tostring(a) < tostring(b) end,
 }
 
-local function crossTypeSort(a, b)
+local function cross_type_sort(a, b)
     local type_a, type_b = type(a), type(b)
     if type_a == type_b then
         local func = crossTypeComparison[type_a] or crossTypeComparison.other
@@ -155,7 +155,7 @@ local function crossTypeSort(a, b)
     return type_a < type_b
 end
 
-local function __genSortedIndex( t )
+local function __gen_sorted_index( t )
     -- Returns a sequence consisting of t's keys, sorted.
     local sortedIndex = {}
 
@@ -163,20 +163,20 @@ local function __genSortedIndex( t )
         table.insert(sortedIndex, key)
     end
 
-    table.sort(sortedIndex, crossTypeSort)
+    table.sort(sortedIndex, cross_type_sort)
     return sortedIndex
 end
-M.private.__genSortedIndex = __genSortedIndex
+M.private.__gen_sorted_index = __gen_sorted_index
 
-local function sortedNext(state, control)
+local function sorted_next(state, control)
     -- Equivalent of the next() function of table iteration, but returns the
-    -- keys in sorted order (see __genSortedIndex and crossTypeSort).
+    -- keys in sorted order (see __gen_sorted_index and cross_type_sort).
     -- The state is a temporary variable during iteration and contains the
     -- sorted key table (state.sortedIdx). It also stores the last index (into
     -- the keys) used by the iteration, to find the next one quickly.
     local key
 
-    --print("sortedNext: control = "..tostring(control) )
+    --print("sorted_next: control = "..tostring(control) )
     if control == nil then
         -- start of iteration
         state.count = #state.sortedIdx
@@ -188,7 +188,7 @@ local function sortedNext(state, control)
     -- normally, we expect the control variable to match the last key used
     if control ~= state.sortedIdx[state.lastIdx] then
         -- strange, we have to find the next value by ourselves
-        -- the key table is sorted in crossTypeSort() order! -> use bisection
+        -- the key table is sorted in cross_type_sort() order! -> use bisection
         local lower, upper = 1, state.count
         repeat
             state.lastIdx = math.modf((lower + upper) / 2)
@@ -196,7 +196,7 @@ local function sortedNext(state, control)
             if key == control then
                 break -- key found (and thus prev index)
             end
-            if crossTypeSort(key, control) then
+            if cross_type_sort(key, control) then
                 -- key < control, continue search "right" (towards upper bound)
                 lower = state.lastIdx + 1
             else
@@ -219,16 +219,16 @@ local function sortedNext(state, control)
     -- getting here means returning `nil`, which will end the iteration
 end
 
-local function sortedPairs(tbl)
+local function sorted_pairs(tbl)
     -- Equivalent of the pairs() function on tables. Allows to iterate in
     -- sorted order. As required by "generic for" loops, this will return the
     -- iterator (function), an "invariant state", and the initial control value.
     -- (see http://www.lua.org/pil/7.2.html)
-    return sortedNext, {t = tbl, sortedIdx = __genSortedIndex(tbl)}, nil
+    return sorted_next, {t = tbl, sortedIdx = __gen_sorted_index(tbl)}, nil
 end
-M.private.sortedPairs = sortedPairs
+M.private.sorted_pairs = sorted_pairs
 
-local function randomizeTable( t )
+local function randomize_table( t )
     -- randomize the item orders of the table t
     for i = #t, 2, -1 do
         local j = math.random(i)
@@ -237,7 +237,7 @@ local function randomizeTable( t )
         end
     end
 end
-M.private.randomizeTable = randomizeTable
+M.private.randomize_table = randomize_table
 
 local function strsplit(delimiter, text)
 -- Split text into a list consisting of the strings in text, separated
@@ -265,19 +265,19 @@ local function strsplit(delimiter, text)
 end
 M.private.strsplit = strsplit
 
-local function hasNewLine( s )
+local function has_new_line( s )
     -- return true if s has a newline
     return (string.find(s, '\n', 1, true) ~= nil)
 end
-M.private.hasNewLine = hasNewLine
+M.private.has_new_line = has_new_line
 
-local function prefixString( prefix, s )
+local function prefix_string( prefix, s )
     -- Prefix all the lines of s with prefix
     return prefix .. string.gsub(s, '\n', '\n' .. prefix)
 end
-M.private.prefixString = prefixString
+M.private.prefix_string = prefix_string
 
-local function strMatch(s, pattern, start, final )
+local function str_match(s, pattern, start, final )
     -- return true if s matches completely the pattern from index start to index end
     -- return false in every other cases
     -- if start is nil, matches from the beginning of the string
@@ -288,9 +288,9 @@ local function strMatch(s, pattern, start, final )
     local foundStart, foundEnd = string.find(s, pattern, start, false)
     return foundStart == start and foundEnd == final
 end
-M.private.strMatch = strMatch
+M.private.str_match = str_match
 
-local function patternFilter(patterns, expr)
+local function pattern_filter(patterns, expr)
     -- Run `expr` through the inclusion and exclusion rules defined in patterns
     -- and return true if expr shall be included, false for excluded.
     -- Inclusion pattern are defined as normal patterns, exclusions
@@ -325,9 +325,9 @@ local function patternFilter(patterns, expr)
     end
     return default
 end
-M.private.patternFilter = patternFilter
+M.private.pattern_filter = pattern_filter
 
-local function xmlEscape( s )
+local function xml_escape( s )
     -- Return s escaped for XML attributes
     -- escapes table:
     -- "   &quot;
@@ -344,40 +344,40 @@ local function xmlEscape( s )
         ['>'] = "&gt;",
     } )
 end
-M.private.xmlEscape = xmlEscape
+M.private.xml_escape = xml_escape
 
-local function xmlCDataEscape( s )
+local function xml_c_data_escape( s )
     -- Return s escaped for CData section, escapes: "]]>"
     return string.gsub( s, ']]>', ']]&gt;' )
 end
-M.private.xmlCDataEscape = xmlCDataEscape
+M.private.xml_c_data_escape = xml_c_data_escape
 
-local function stripLuaunitTrace( stackTrace )
+local function strip_luaunit_trace( stackTrace )
     --[[
     -- Example of  a traceback:
     <<stack traceback:
         example_with_luaunit.lua:130: in function 'test2_withFailure'
         ./luaunit.lua:1449: in function <./luaunit.lua:1449>
         [C]: in function 'xpcall'
-        ./luaunit.lua:1449: in function 'protectedCall'
-        ./luaunit.lua:1508: in function 'execOneFunction'
-        ./luaunit.lua:1596: in function 'runSuiteByInstances'
-        ./luaunit.lua:1660: in function 'runSuiteByNames'
-        ./luaunit.lua:1736: in function 'runSuite'
+        ./luaunit.lua:1449: in function 'protected_call'
+        ./luaunit.lua:1508: in function 'exec_one_function'
+        ./luaunit.lua:1596: in function 'run_suite_by_instances'
+        ./luaunit.lua:1660: in function 'run_suite_by_names'
+        ./luaunit.lua:1736: in function 'run_suite'
         example_with_luaunit.lua:140: in main chunk
         [C]: in ?>>
 
         Other example:
     <<stack traceback:
-        ./luaunit.lua:545: in function 'assertEquals'
+        ./luaunit.lua:545: in function 'assert_equals'
         example_with_luaunit.lua:58: in function 'TestToto.test7'
         ./luaunit.lua:1517: in function <./luaunit.lua:1517>
         [C]: in function 'xpcall'
-        ./luaunit.lua:1517: in function 'protectedCall'
-        ./luaunit.lua:1578: in function 'execOneFunction'
-        ./luaunit.lua:1677: in function 'runSuiteByInstances'
-        ./luaunit.lua:1730: in function 'runSuiteByNames'
-        ./luaunit.lua:1806: in function 'runSuite'
+        ./luaunit.lua:1517: in function 'protected_call'
+        ./luaunit.lua:1578: in function 'exec_one_function'
+        ./luaunit.lua:1677: in function 'run_suite_by_instances'
+        ./luaunit.lua:1730: in function 'run_suite_by_names'
+        ./luaunit.lua:1806: in function 'run_suite'
         example_with_luaunit.lua:140: in main chunk
         [C]: in ?>>
 
@@ -385,11 +385,11 @@ local function stripLuaunitTrace( stackTrace )
         luaunit2/example_with_luaunit.lua:124: in function 'test1_withFailure'
         luaunit2/luaunit.lua:1532: in function <luaunit2/luaunit.lua:1532>
         [C]: in function 'xpcall'
-        luaunit2/luaunit.lua:1532: in function 'protectedCall'
-        luaunit2/luaunit.lua:1591: in function 'execOneFunction'
-        luaunit2/luaunit.lua:1679: in function 'runSuiteByInstances'
-        luaunit2/luaunit.lua:1743: in function 'runSuiteByNames'
-        luaunit2/luaunit.lua:1819: in function 'runSuite'
+        luaunit2/luaunit.lua:1532: in function 'protected_call'
+        luaunit2/luaunit.lua:1591: in function 'exec_one_function'
+        luaunit2/luaunit.lua:1679: in function 'run_suite_by_instances'
+        luaunit2/luaunit.lua:1743: in function 'run_suite_by_names'
+        luaunit2/luaunit.lua:1819: in function 'run_suite'
         luaunit2/example_with_luaunit.lua:140: in main chunk
         [C]: in ?>>
 
@@ -405,7 +405,7 @@ local function stripLuaunitTrace( stackTrace )
     -- kepp lines until we hit a luaunit line
     ]]
 
-    local function isLuaunitInternalLine( s )
+    local function is_luaunit_internal_line( s )
         -- return true if line of stack trace comes from inside luaunit
         return s:find('[/\\]luaunit%.lua:%d+: ') ~= nil
     end
@@ -418,13 +418,13 @@ local function stripLuaunitTrace( stackTrace )
     local idx = 2
 
     -- remove lines that are still part of luaunit
-    while t[idx] and isLuaunitInternalLine( t[idx] ) do
+    while t[idx] and is_luaunit_internal_line( t[idx] ) do
         -- print('Removing : '..t[idx] )
         table.remove(t, idx)
     end
 
     -- keep lines until we hit luaunit again
-    while t[idx] and (not isLuaunitInternalLine(t[idx])) do
+    while t[idx] and (not is_luaunit_internal_line(t[idx])) do
         -- print('Keeping : '..t[idx] )
         idx = idx + 1
     end
@@ -439,7 +439,7 @@ local function stripLuaunitTrace( stackTrace )
     return table.concat( t, '\n')
 
 end
-M.private.stripLuaunitTrace = stripLuaunitTrace
+M.private.strip_luaunit_trace = strip_luaunit_trace
 
 
 local function prettystr_sub(v, indentLevel, printTableRefs, recursionTable )
@@ -564,7 +564,7 @@ function M.adjust_err_msg_with_iter( err_msg, iter_msg )
     return err_msg, M.NodeStatus.ERROR
 end
 
-local function tryMismatchFormatting( table_a, table_b, doDeepAnalysis )
+local function try_mismatch_formatting( table_a, table_b, doDeepAnalysis )
     --[[
     Prepares a nice error message when comparing tables, performing a deeper
     analysis.
@@ -618,27 +618,27 @@ local function tryMismatchFormatting( table_a, table_b, doDeepAnalysis )
     end
 
     if isPureList then
-        return M.private.mismatchFormattingPureList( table_a, table_b )
+        return M.private.mismatch_formatting_pure_list( table_a, table_b )
     else
         -- only work on mapping for the moment
-        -- return M.private.mismatchFormattingMapping( table_a, table_b, doDeepAnalysis )
+        -- return M.private.mismatch_formatting_mapping( table_a, table_b, doDeepAnalysis )
         return false
     end
 end
-M.private.tryMismatchFormatting = tryMismatchFormatting
+M.private.try_mismatch_formatting = try_mismatch_formatting
 
-local function getTaTbDescr()
+local function get_ta_tb_descr()
     if not M.ORDER_ACTUAL_EXPECTED then
         return 'expected', 'actual'
     end
     return 'actual', 'expected'
 end
 
-local function extendWithStrFmt( res, ... )
+local function extend_with_str_fmt( res, ... )
     table.insert( res, string.format( ... ) )
 end
 
-local function mismatchFormattingMapping( table_a, table_b, doDeepAnalysis )
+local function mismatch_formatting_mapping( table_a, table_b, doDeepAnalysis )
     --[[
     Prepares a nice error message when comparing tables which are not pure lists, performing a deeper
     analysis.
@@ -652,7 +652,7 @@ local function mismatchFormattingMapping( table_a, table_b, doDeepAnalysis )
     -- disable for the moment
     --[[
     local result = {}
-    local descrTa, descrTb = getTaTbDescr()
+    local descrTa, descrTb = get_ta_tb_descr()
 
     local keysCommon = {}
     local keysOnlyTa = {}
@@ -689,9 +689,9 @@ local function mismatchFormattingMapping( table_a, table_b, doDeepAnalysis )
 
     if not limited_display then
         if len_a == len_b then
-            extendWithStrFmt( result, 'Table A (%s) and B (%s) both have %d items', descrTa, descrTb, len_a )
+            extend_with_str_fmt( result, 'Table A (%s) and B (%s) both have %d items', descrTa, descrTb, len_a )
         else
-            extendWithStrFmt( result, 'Table A (%s) has %d items and table B (%s) has %d items', descrTa, len_a, descrTb, len_b )
+            extend_with_str_fmt( result, 'Table A (%s) has %d items and table B (%s) has %d items', descrTa, len_a, descrTb, len_b )
             end
 
         if #keysCommon == 0 and #keysDiffTaTb == 0 then
@@ -699,7 +699,7 @@ local function mismatchFormattingMapping( table_a, table_b, doDeepAnalysis )
         else
             local s_other = 'other '
             if #keysCommon then
-                extendWithStrFmt( result, 'Table A and B have %d identical items', #keysCommon )
+                extend_with_str_fmt( result, 'Table A and B have %d identical items', #keysCommon )
             else
                 table.insert( result, 'Table A and B have no identical items' )
                 s_other = ''
@@ -712,7 +712,7 @@ local function mismatchFormattingMapping( table_a, table_b, doDeepAnalysis )
             end
         end
 
-        extendWithStrFmt( result, 'Table A has %d keys not present in table B and table B has %d keys not present in table A', #keysOnlyTa, #keysOnlyTb )
+        extend_with_str_fmt( result, 'Table A has %d keys not present in table B and table B has %d keys not present in table A', #keysOnlyTa, #keysOnlyTb )
     end
 
     local function keytostring(k)
@@ -724,39 +724,39 @@ local function mismatchFormattingMapping( table_a, table_b, doDeepAnalysis )
 
     if #keysDiffTaTb ~= 0 then
         table.insert( result, 'Items differing in A and B:')
-        for k,v in sortedPairs( keysDiffTaTb ) do
-            extendWithStrFmt( result, '  - A[%s]: %s', keytostring(v), prettystr(table_a[v]) )
-            extendWithStrFmt( result, '  + B[%s]: %s', keytostring(v), prettystr(table_b[v]) )
+        for k,v in sorted_pairs( keysDiffTaTb ) do
+            extend_with_str_fmt( result, '  - A[%s]: %s', keytostring(v), prettystr(table_a[v]) )
+            extend_with_str_fmt( result, '  + B[%s]: %s', keytostring(v), prettystr(table_b[v]) )
         end
     end
 
     if #keysOnlyTa ~= 0 then
         table.insert( result, 'Items only in table A:' )
-        for k,v in sortedPairs( keysOnlyTa ) do
-            extendWithStrFmt( result, '  - A[%s]: %s', keytostring(v), prettystr(table_a[v]) )
+        for k,v in sorted_pairs( keysOnlyTa ) do
+            extend_with_str_fmt( result, '  - A[%s]: %s', keytostring(v), prettystr(table_a[v]) )
         end
     end
 
     if #keysOnlyTb ~= 0 then
         table.insert( result, 'Items only in table B:' )
-        for k,v in sortedPairs( keysOnlyTb ) do
-            extendWithStrFmt( result, '  + B[%s]: %s', keytostring(v), prettystr(table_b[v]) )
+        for k,v in sorted_pairs( keysOnlyTb ) do
+            extend_with_str_fmt( result, '  + B[%s]: %s', keytostring(v), prettystr(table_b[v]) )
         end
     end
 
     if #keysCommon ~= 0 then
         table.insert( result, 'Items common to A and B:')
-        for k,v in sortedPairs( keysCommon ) do
-            extendWithStrFmt( result, '  = A and B [%s]: %s', keytostring(v), prettystr(table_a[v]) )
+        for k,v in sorted_pairs( keysCommon ) do
+            extend_with_str_fmt( result, '  = A and B [%s]: %s', keytostring(v), prettystr(table_a[v]) )
         end
     end
 
     return true, table.concat( result, '\n')
     ]]
 end
-M.private.mismatchFormattingMapping = mismatchFormattingMapping
+M.private.mismatch_formatting_mapping = mismatch_formatting_mapping
 
-local function mismatchFormattingPureList( table_a, table_b )
+local function mismatch_formatting_pure_list( table_a, table_b )
     --[[
     Prepares a nice error message when comparing tables which are lists, performing a deeper
     analysis.
@@ -766,7 +766,7 @@ local function mismatchFormattingPureList( table_a, table_b )
                in this case, just use standard assertion message
     * result: if success is true, a multi-line string with deep analysis of the two lists
     ]]
-    local result, descrTa, descrTb = {}, getTaTbDescr()
+    local result, descrTa, descrTb = {}, get_ta_tb_descr()
 
     local len_a, len_b, refa, refb = #table_a, #table_b, '', ''
     if M.PRINT_TABLE_REF_IN_ERROR_MSG then
@@ -795,27 +795,27 @@ local function mismatchFormattingPureList( table_a, table_b )
     table.insert( result, 'List difference analysis:' )
     if len_a == len_b then
         -- TODO: handle expected/actual naming
-        extendWithStrFmt( result, '* lists %sA (%s) and %sB (%s) have the same size', refa, descrTa, refb, descrTb )
+        extend_with_str_fmt( result, '* lists %sA (%s) and %sB (%s) have the same size', refa, descrTa, refb, descrTb )
     else
-        extendWithStrFmt( result, '* list sizes differ: list %sA (%s) has %d items, list %sB (%s) has %d items', refa, descrTa, len_a, refb, descrTb, len_b )
+        extend_with_str_fmt( result, '* list sizes differ: list %sA (%s) has %d items, list %sB (%s) has %d items', refa, descrTa, len_a, refb, descrTb, len_b )
     end
 
-    extendWithStrFmt( result, '* lists A and B start differing at index %d', commonUntil+1 )
+    extend_with_str_fmt( result, '* lists A and B start differing at index %d', commonUntil+1 )
     if commonBackTo >= 0 then
         if deltalv > 0 then
-            extendWithStrFmt( result, '* lists A and B are equal again from index %d for A, %d for B', len_a-commonBackTo, len_b-commonBackTo )
+            extend_with_str_fmt( result, '* lists A and B are equal again from index %d for A, %d for B', len_a-commonBackTo, len_b-commonBackTo )
         else
-            extendWithStrFmt( result, '* lists A and B are equal again from index %d', len_a-commonBackTo )
+            extend_with_str_fmt( result, '* lists A and B are equal again from index %d', len_a-commonBackTo )
         end
     end
 
-    local function insertABValue(ai, bi)
+    local function insert_ab_value(ai, bi)
         bi = bi or ai
         if is_equal( table_a[ai], table_b[bi]) then
-            return extendWithStrFmt( result, '  = A[%d], B[%d]: %s', ai, bi, prettystr(table_a[ai]) )
+            return extend_with_str_fmt( result, '  = A[%d], B[%d]: %s', ai, bi, prettystr(table_a[ai]) )
         else
-            extendWithStrFmt( result, '  - A[%d]: %s', ai, prettystr(table_a[ai]))
-            extendWithStrFmt( result, '  + B[%d]: %s', bi, prettystr(table_b[bi]))
+            extend_with_str_fmt( result, '  - A[%d]: %s', ai, prettystr(table_a[ai]))
+            extend_with_str_fmt( result, '  + B[%d]: %s', bi, prettystr(table_b[bi]))
         end
     end
 
@@ -823,7 +823,7 @@ local function mismatchFormattingPureList( table_a, table_b )
     if commonUntil > 0 then
         table.insert( result, '* Common parts:' )
         for i = 1, commonUntil do
-            insertABValue( i )
+            insert_ab_value( i )
         end
     end
 
@@ -831,7 +831,7 @@ local function mismatchFormattingPureList( table_a, table_b )
     if commonUntil < shortest - commonBackTo - 1 then
         table.insert( result, '* Differing parts:' )
         for i = commonUntil + 1, shortest - commonBackTo - 1 do
-            insertABValue( i )
+            insert_ab_value( i )
         end
     end
 
@@ -840,11 +840,11 @@ local function mismatchFormattingPureList( table_a, table_b )
         table.insert( result, '* Present only in one list:' )
         for i = shortest - commonBackTo, longest - commonBackTo - 1 do
             if len_a > len_b then
-                extendWithStrFmt( result, '  - A[%d]: %s', i, prettystr(table_a[i]) )
+                extend_with_str_fmt( result, '  - A[%d]: %s', i, prettystr(table_a[i]) )
                 -- table.insert( result, '+ (no matching B index)')
             else
                 -- table.insert( result, '- no matching A index')
-                extendWithStrFmt( result, '  + B[%d]: %s', i, prettystr(table_b[i]) )
+                extend_with_str_fmt( result, '  + B[%d]: %s', i, prettystr(table_b[i]) )
             end
         end
     end
@@ -854,18 +854,18 @@ local function mismatchFormattingPureList( table_a, table_b )
         table.insert( result, '* Common parts at the end of the lists' )
         for i = longest - commonBackTo, longest do
             if len_a > len_b then
-                insertABValue( i, i-deltalv )
+                insert_ab_value( i, i-deltalv )
             else
-                insertABValue( i-deltalv, i )
+                insert_ab_value( i-deltalv, i )
             end
         end
     end
 
     return true, table.concat( result, '\n')
 end
-M.private.mismatchFormattingPureList = mismatchFormattingPureList
+M.private.mismatch_formatting_pure_list = mismatch_formatting_pure_list
 
-local function prettystrPairs(value1, value2, suffix_a, suffix_b)
+local function prettystr_pairs(value1, value2, suffix_a, suffix_b)
     --[[
     This function helps with the recurring task of constructing the "expected
     vs. actual" error messages. It takes two arbitrary values and formats
@@ -880,13 +880,13 @@ local function prettystrPairs(value1, value2, suffix_a, suffix_b)
     Returns the two formatted strings (including padding/newlines).
     ]]
     local str1, str2 = prettystr(value1), prettystr(value2)
-    if hasNewLine(str1) or hasNewLine(str2) then
+    if has_new_line(str1) or has_new_line(str2) then
         -- line break(s) detected, add padding
         return "\n" .. str1 .. (suffix_a or ""), "\n" .. str2
     end
     return str1 .. (suffix_b or ""), str2
 end
-M.private.prettystrPairs = prettystrPairs
+M.private.prettystr_pairs = prettystr_pairs
 
 local function _table_raw_tostring( t )
     -- return the default tostring() for tables, with the table ID, even if the table has a metatable
@@ -934,7 +934,7 @@ local function _table_tostring( tbl, indentLevel, printTableRefs, recursionTable
         -- no metatable, compute the table representation
 
         local entry, count, seq_index = nil, 0, 1
-        for k, v in sortedPairs( tbl ) do
+        for k, v in sorted_pairs( tbl ) do
 
             -- key part
             if k == seq_index then
@@ -1232,18 +1232,18 @@ end
 --
 ----------------------------------------------------------------
 
-local function errorMsgEquality(actual, expected, doDeepAnalysis)
+local function error_msg_equality(actual, expected, doDeepAnalysis)
 
     if not M.ORDER_ACTUAL_EXPECTED then
         expected, actual = actual, expected
     end
     if type(expected) == 'string' or type(expected) == 'table' then
-        local strExpected, strActual = prettystrPairs(expected, actual)
+        local strExpected, strActual = prettystr_pairs(expected, actual)
         local result = string.format("expected: %s\nactual: %s", strExpected, strActual)
 
         -- extend with mismatch analysis if possible:
         local success, mismatchResult
-        success, mismatchResult = tryMismatchFormatting( actual, expected, doDeepAnalysis )
+        success, mismatchResult = try_mismatch_formatting( actual, expected, doDeepAnalysis )
         if success then
             result = table.concat( { result, mismatchResult }, '\n' )
         end
@@ -1253,9 +1253,9 @@ local function errorMsgEquality(actual, expected, doDeepAnalysis)
                          prettystr(expected), prettystr(actual))
 end
 
-function M.assertError(f, ...)
+function M.assert_error(f, ...)
     -- assert that calling f with the arguments will raise an error
-    -- example: assertError( f, 1, 2 ) => f(1,2) should generate an error
+    -- example: assert_error( f, 1, 2 ) => f(1,2) should generate an error
     if pcall( f, ... ) then
         failure( "Expected an error when calling function but no error generated", nil, 2 )
     end
@@ -1266,7 +1266,7 @@ function M.fail( msg )
     failure( msg, nil, 2 )
 end
 
-function M.failIf( cond, msg )
+function M.fail_if( cond, msg )
     -- Fails a test with "msg" if condition is true
     if cond and cond ~= nil then
         failure( msg, nil, 2 )
@@ -1278,14 +1278,14 @@ function M.skip(msg)
     error(M.SKIP_PREFIX .. msg, 2)
 end
 
-function M.skipIf( cond, msg )
+function M.skip_if( cond, msg )
     -- skip a running test if condition is met
     if cond and cond ~= nil then
         error(M.SKIP_PREFIX .. msg, 2)
     end
 end
 
-function M.runOnlyIf( cond, msg )
+function M.run_only_if( cond, msg )
     -- continue a running test if condition is met, else skip it
     if not (cond and cond ~= nil) then
         error(M.SKIP_PREFIX .. prettystr(msg), 2)
@@ -1297,7 +1297,7 @@ function M.success()
     error(M.SUCCESS_PREFIX, 2)
 end
 
-function M.successIf( cond )
+function M.success_if( cond )
     -- stops a test with a success if condition is met
     if cond and cond ~= nil then
         error(M.SUCCESS_PREFIX, 2)
@@ -1309,33 +1309,33 @@ end
 --                  Equality assertions
 ------------------------------------------------------------------
 
-function M.assertEquals(actual, expected, extra_msg_or_nil, doDeepAnalysis)
+function M.assert_equals(actual, expected, extra_msg_or_nil, doDeepAnalysis)
     if type(actual) == 'table' and type(expected) == 'table' then
         if not _is_table_equals(actual, expected) then
-            failure( errorMsgEquality(actual, expected, doDeepAnalysis), extra_msg_or_nil, 2 )
+            failure( error_msg_equality(actual, expected, doDeepAnalysis), extra_msg_or_nil, 2 )
         end
     elseif type(actual) ~= type(expected) then
-        failure( errorMsgEquality(actual, expected), extra_msg_or_nil, 2 )
+        failure( error_msg_equality(actual, expected), extra_msg_or_nil, 2 )
     elseif actual ~= expected then
-        failure( errorMsgEquality(actual, expected), extra_msg_or_nil, 2 )
+        failure( error_msg_equality(actual, expected), extra_msg_or_nil, 2 )
     end
 end
 
-function M.almostEquals( actual, expected, margin )
+function M.almost_equals( actual, expected, margin )
     if type(actual) ~= 'number' or type(expected) ~= 'number' or type(margin) ~= 'number' then
-        error_fmt(3, 'almostEquals: must supply only number arguments.\nArguments supplied: %s, %s, %s',
+        error_fmt(3, 'almost_equals: must supply only number arguments.\nArguments supplied: %s, %s, %s',
             prettystr(actual), prettystr(expected), prettystr(margin))
     end
     if margin < 0 then
-        error('almostEquals: margin must not be negative, current value is ' .. margin, 3)
+        error('almost_equals: margin must not be negative, current value is ' .. margin, 3)
     end
     return math.abs(expected - actual) <= margin
 end
 
-function M.assertAlmostEquals( actual, expected, margin, extra_msg_or_nil )
+function M.assert_almost_equals( actual, expected, margin, extra_msg_or_nil )
     -- check that two floats are close by margin
     margin = margin or M.EPS
-    if not M.almostEquals(actual, expected, margin) then
+    if not M.almost_equals(actual, expected, margin) then
         if not M.ORDER_ACTUAL_EXPECTED then
             expected, actual = actual, expected
         end
@@ -1346,7 +1346,7 @@ function M.assertAlmostEquals( actual, expected, margin, extra_msg_or_nil )
     end
 end
 
-function M.assertNotEquals(actual, expected, extra_msg_or_nil)
+function M.assert_not_equals(actual, expected, extra_msg_or_nil)
     if type(actual) ~= type(expected) then
         return
     end
@@ -1361,10 +1361,10 @@ function M.assertNotEquals(actual, expected, extra_msg_or_nil)
     fail_fmt(2, extra_msg_or_nil, 'Received the not expected value: %s', prettystr(actual))
 end
 
-function M.assertNotAlmostEquals( actual, expected, margin, extra_msg_or_nil )
+function M.assert_not_almost_equals( actual, expected, margin, extra_msg_or_nil )
     -- check that two floats are not close by margin
     margin = margin or M.EPS
-    if M.almostEquals(actual, expected, margin) then
+    if M.almost_equals(actual, expected, margin) then
         if not M.ORDER_ACTUAL_EXPECTED then
             expected, actual = actual, expected
         end
@@ -1375,12 +1375,12 @@ function M.assertNotAlmostEquals( actual, expected, margin, extra_msg_or_nil )
     end
 end
 
-function M.assertItemsEquals(actual, expected, extra_msg_or_nil)
+function M.assert_items_equals(actual, expected, extra_msg_or_nil)
     -- checks that the items of table expected
     -- are contained in table actual. Warning, this function
     -- is at least O(n^2)
     if not _is_table_items_equals(actual, expected ) then
-        expected, actual = prettystrPairs(expected, actual)
+        expected, actual = prettystr_pairs(expected, actual)
         fail_fmt(2, extra_msg_or_nil, 'Content of the tables are not identical:\nExpected: %s\nActual: %s',
                  expected, actual)
     end
@@ -1390,58 +1390,58 @@ end
 --                  String assertion
 ------------------------------------------------------------------
 
-function M.assertStrContains( str, sub, isPattern, extra_msg_or_nil )
+function M.assert_str_contains( str, sub, isPattern, extra_msg_or_nil )
     -- this relies on lua string.find function
     -- a string always contains the empty string
-    -- assert( type(str) == 'string', 'Argument 1 of assertStrContains() should be a string.' ) )
-    -- assert( type(sub) == 'string', 'Argument 2 of assertStrContains() should be a string.' ) )
+    -- assert( type(str) == 'string', 'Argument 1 of assert_str_contains() should be a string.' ) )
+    -- assert( type(sub) == 'string', 'Argument 2 of assert_str_contains() should be a string.' ) )
     if not string.find(str, sub, 1, not isPattern) then
-        sub, str = prettystrPairs(sub, str, '\n')
+        sub, str = prettystr_pairs(sub, str, '\n')
         fail_fmt(2, extra_msg_or_nil, 'Could not find %s %s in string %s',
                  isPattern and 'pattern' or 'substring', sub, str)
     end
 end
 
-function M.assertStrIContains( str, sub, extra_msg_or_nil )
+function M.assert_str_i_contains( str, sub, extra_msg_or_nil )
     -- this relies on lua string.find function
     -- a string always contains the empty string
     if not string.find(str:lower(), sub:lower(), 1, true) then
-        sub, str = prettystrPairs(sub, str, '\n')
+        sub, str = prettystr_pairs(sub, str, '\n')
         fail_fmt(2, extra_msg_or_nil, 'Could not find (case insensitively) substring %s in string %s',
                  sub, str)
     end
 end
 
-function M.assertNotStrContains( str, sub, isPattern, extra_msg_or_nil )
+function M.assert_not_str_contains( str, sub, isPattern, extra_msg_or_nil )
     -- this relies on lua string.find function
     -- a string always contains the empty string
     if string.find(str, sub, 1, not isPattern) then
-        sub, str = prettystrPairs(sub, str, '\n')
+        sub, str = prettystr_pairs(sub, str, '\n')
         fail_fmt(2, extra_msg_or_nil, 'Found the not expected %s %s in string %s',
                  isPattern and 'pattern' or 'substring', sub, str)
     end
 end
 
-function M.assertNotStrIContains( str, sub, extra_msg_or_nil )
+function M.assert_not_str_i_contains( str, sub, extra_msg_or_nil )
     -- this relies on lua string.find function
     -- a string always contains the empty string
     if string.find(str:lower(), sub:lower(), 1, true) then
-        sub, str = prettystrPairs(sub, str, '\n')
+        sub, str = prettystr_pairs(sub, str, '\n')
         fail_fmt(2, extra_msg_or_nil, 'Found (case insensitively) the not expected substring %s in string %s',
                  sub, str)
     end
 end
 
-function M.assertStrMatches( str, pattern, start, final, extra_msg_or_nil )
+function M.assert_str_matches( str, pattern, start, final, extra_msg_or_nil )
     -- Verify a full match for the string
-    if not strMatch( str, pattern, start, final ) then
-        pattern, str = prettystrPairs(pattern, str, '\n')
+    if not str_match( str, pattern, start, final ) then
+        pattern, str = prettystr_pairs(pattern, str, '\n')
         fail_fmt(2, extra_msg_or_nil, 'Could not match pattern %s with string %s',
                  pattern, str)
     end
 end
 
-local function _assertErrorMsgEquals( stripFileAndLine, expectedMsg, func, ... )
+local function _assert_error_msg_equals( stripFileAndLine, expectedMsg, func, ... )
     local no_error, error_msg = pcall( func, ... )
     if no_error then
         failure( 'No error generated when calling function but expected error: '..M.prettystr(expectedMsg), nil, 3 )
@@ -1463,7 +1463,7 @@ local function _assertErrorMsgEquals( stripFileAndLine, expectedMsg, func, ... )
                 if tr ~= 'table' then
                     differ = true
                 else
-                     local ok = pcall(M.assertItemsEquals, error_msg, expectedMsg)
+                     local ok = pcall(M.assert_items_equals, error_msg, expectedMsg)
                      if not ok then
                          differ = true
                      end
@@ -1475,25 +1475,25 @@ local function _assertErrorMsgEquals( stripFileAndLine, expectedMsg, func, ... )
     end
 
     if differ then
-        error_msg, expectedMsg = prettystrPairs(error_msg, expectedMsg)
+        error_msg, expectedMsg = prettystr_pairs(error_msg, expectedMsg)
         fail_fmt(3, nil, 'Error message expected: %s\nError message received: %s\n',
                  expectedMsg, error_msg)
     end
 end
 
-function M.assertErrorMsgEquals( expectedMsg, func, ... )
+function M.assert_error_msg_equals( expectedMsg, func, ... )
     -- assert that calling f with the arguments will raise an error
-    -- example: assertError( f, 1, 2 ) => f(1,2) should generate an error
-    _assertErrorMsgEquals(false, expectedMsg, func, ...)
+    -- example: assert_error( f, 1, 2 ) => f(1,2) should generate an error
+    _assert_error_msg_equals(false, expectedMsg, func, ...)
 end
 
-function M.assertErrorMsgContentEquals(expectedMsg, func, ...)
-     _assertErrorMsgEquals(true, expectedMsg, func, ...)
+function M.assert_error_msg_content_equals(expectedMsg, func, ...)
+     _assert_error_msg_equals(true, expectedMsg, func, ...)
 end
 
-function M.assertErrorMsgContains( partialMsg, func, ... )
+function M.assert_error_msg_contains( partialMsg, func, ... )
     -- assert that calling f with the arguments will raise an error
-    -- example: assertError( f, 1, 2 ) => f(1,2) should generate an error
+    -- example: assert_error( f, 1, 2 ) => f(1,2) should generate an error
     local no_error, error_msg = pcall( func, ... )
     if no_error then
         failure( 'No error generated when calling function but expected error containing: '..prettystr(partialMsg), nil, 2 )
@@ -1502,15 +1502,15 @@ function M.assertErrorMsgContains( partialMsg, func, ... )
         error_msg = tostring(error_msg)
     end
     if not string.find( error_msg, partialMsg, nil, true ) then
-        error_msg, partialMsg = prettystrPairs(error_msg, partialMsg)
+        error_msg, partialMsg = prettystr_pairs(error_msg, partialMsg)
         fail_fmt(2, nil, 'Error message does not contain: %s\nError message received: %s\n',
                  partialMsg, error_msg)
     end
 end
 
-function M.assertErrorMsgMatches( expectedMsg, func, ... )
+function M.assert_error_msg_matches( expectedMsg, func, ... )
     -- assert that calling f with the arguments will raise an error
-    -- example: assertError( f, 1, 2 ) => f(1,2) should generate an error
+    -- example: assert_error( f, 1, 2 ) => f(1,2) should generate an error
     local no_error, error_msg = pcall( func, ... )
     if no_error then
         failure( 'No error generated when calling function but expected error matching: "'..expectedMsg..'"', nil, 2 )
@@ -1518,8 +1518,8 @@ function M.assertErrorMsgMatches( expectedMsg, func, ... )
     if type(error_msg) ~= "string" then
         error_msg = tostring(error_msg)
     end
-    if not strMatch( error_msg, expectedMsg ) then
-        expectedMsg, error_msg = prettystrPairs(expectedMsg, error_msg)
+    if not str_match( error_msg, expectedMsg ) then
+        expectedMsg, error_msg = prettystr_pairs(expectedMsg, error_msg)
         fail_fmt(2, nil, 'Error message does not match pattern: %s\nError message received: %s\n',
                  expectedMsg, error_msg)
     end
@@ -1529,49 +1529,49 @@ end
 --              Type assertions
 ------------------------------------------------------------------
 
-function M.assertEvalToTrue(value, extra_msg_or_nil)
+function M.assert_eval_to_true(value, extra_msg_or_nil)
     if not value or value == nil then
         failure("expected: a value evaluating to true, actual: " ..prettystr(value), extra_msg_or_nil, 2)
     end
 end
 
-function M.assertEvalToFalse(value, extra_msg_or_nil)
+function M.assert_eval_to_false(value, extra_msg_or_nil)
     if value and value ~= nil then
         failure("expected: false or nil, actual: " ..prettystr(value), extra_msg_or_nil, 2)
     end
 end
 
-function M.assertIsTrue(value, extra_msg_or_nil)
+function M.assert_is_true(value, extra_msg_or_nil)
     if value ~= true then
         failure("expected: true, actual: " ..prettystr(value), extra_msg_or_nil, 2)
     end
 end
 
-function M.assertNotIsTrue(value, extra_msg_or_nil)
+function M.assert_not_is_true(value, extra_msg_or_nil)
     if value == true then
         failure("expected: not true, actual: " ..prettystr(value), extra_msg_or_nil, 2)
     end
 end
 
-function M.assertIsFalse(value, extra_msg_or_nil)
+function M.assert_is_false(value, extra_msg_or_nil)
     if value ~= false then
         failure("expected: false, actual: " ..prettystr(value), extra_msg_or_nil, 2)
     end
 end
 
-function M.assertNotIsFalse(value, extra_msg_or_nil)
+function M.assert_not_is_false(value, extra_msg_or_nil)
     if value == false then
         failure("expected: not false, actual: " ..prettystr(value), extra_msg_or_nil, 2)
     end
 end
 
-function M.assertIsNil(value, extra_msg_or_nil)
+function M.assert_is_nil(value, extra_msg_or_nil)
     if value ~= nil then
         failure("expected: nil, actual: " ..prettystr(value), extra_msg_or_nil, 2)
     end
 end
 
-function M.assertNotIsNil(value, extra_msg_or_nil)
+function M.assert_not_is_nil(value, extra_msg_or_nil)
     if value == nil then
         failure("expected: not nil, actual: nil", extra_msg_or_nil, 2)
     end
@@ -1585,10 +1585,10 @@ expected string (derived from the function name):
 M.assertIsXxx(value) -> ensure that type(value) conforms to "xxx"
 ]]
 for _, funcName in ipairs(
-    {'assertIsNumber', 'assertIsString', 'assertIsTable', 'assertIsBoolean',
-     'assertIsFunction', 'assertIsUserdata', 'assertIsThread'}
+    {'assert_is_number', 'assert_is_string', 'assert_is_table', 'assert_is_boolean',
+     'assert_is_function', 'assert_is_userdata', 'assert_is_thread'}
 ) do
-    local typeExpected = funcName:match("^assertIs([A-Z]%a*)$")
+    local typeExpected = funcName:match("^assert_is_(%a*)$")
     -- Lua type() always returns lowercase, also make sure the match() succeeded
     typeExpected = typeExpected and typeExpected:lower()
                    or error("bad function name '"..funcName.."' for type assertion")
@@ -1597,10 +1597,10 @@ for _, funcName in ipairs(
         if type(value) ~= typeExpected then
             if type(value) == 'nil' then
                 fail_fmt(2, extra_msg_or_nil, 'expected: a %s value, actual: nil',
-                         typeExpected, type(value), prettystrPairs(value))
+                         typeExpected, type(value), prettystr_pairs(value))
             else
                 fail_fmt(2, extra_msg_or_nil, 'expected: a %s value, actual: type %s, value %s',
-                         typeExpected, type(value), prettystrPairs(value))
+                         typeExpected, type(value), prettystr_pairs(value))
             end
         end
     end
@@ -1611,15 +1611,13 @@ Add shortcuts for verifying type of a variable, without failure (luaunit v2 comp
 M.isXxx(value) -> returns true if type(value) conforms to "xxx"
 ]]
 for _, typeExpected in ipairs(
-    {'Number', 'String', 'Table', 'Boolean',
-     'Function', 'Userdata', 'Thread', 'Nil' }
+    {'number', 'string', 'table', 'boolean',
+     'function', 'userdata', 'thread', 'nil' }
 ) do
-    local typeExpectedLower = typeExpected:lower()
-    local isType = function(value)
-        return (type(value) == typeExpectedLower)
+    local is_type = function(value)
+        return (type(value) == typeExpected)
     end
-    M['is'..typeExpected] = isType
-    M['is_'..typeExpectedLower] = isType
+    M['is_'..typeExpected] = is_type
 end
 
 --[[
@@ -1630,10 +1628,10 @@ expected string (derived from the function name):
 M.assertNotIsXxx(value) -> ensure that type(value) is not "xxx"
 ]]
 for _, funcName in ipairs(
-    {'assertNotIsNumber', 'assertNotIsString', 'assertNotIsTable', 'assertNotIsBoolean',
-     'assertNotIsFunction', 'assertNotIsUserdata', 'assertNotIsThread'}
+    {'assert_not_is_number', 'assert_not_is_string', 'assert_not_is_table', 'assert_not_is_boolean',
+     'assert_not_is_function', 'assert_not_is_userdata', 'assert_not_is_thread'}
 ) do
-    local typeUnexpected = funcName:match("^assertNotIs([A-Z]%a*)$")
+    local typeUnexpected = funcName:match("^assert_not_is_(%a*)$")
     -- Lua type() always returns lowercase, also make sure the match() succeeded
     typeUnexpected = typeUnexpected and typeUnexpected:lower()
                    or error("bad function name '"..funcName.."' for type assertion")
@@ -1641,29 +1639,29 @@ for _, funcName in ipairs(
     M[funcName] = function(value, extra_msg_or_nil)
         if type(value) == typeUnexpected then
             fail_fmt(2, extra_msg_or_nil, 'expected: not a %s type, actual: value %s',
-                     typeUnexpected, prettystrPairs(value))
+                     typeUnexpected, prettystr_pairs(value))
         end
     end
 end
 
-function M.assertIs(actual, expected, extra_msg_or_nil)
+function M.assert_is(actual, expected, extra_msg_or_nil)
     if actual ~= expected then
         if not M.ORDER_ACTUAL_EXPECTED then
             actual, expected = expected, actual
         end
-        expected, actual = prettystrPairs(expected, actual, '\n', '')
+        expected, actual = prettystr_pairs(expected, actual, '\n', '')
         fail_fmt(2, extra_msg_or_nil, 'expected and actual object should not be different\nExpected: %s\nReceived: %s',
                  expected, actual)
     end
 end
 
-function M.assertNotIs(actual, expected, extra_msg_or_nil)
+function M.assert_not_is(actual, expected, extra_msg_or_nil)
     if actual == expected then
         if not M.ORDER_ACTUAL_EXPECTED then
             expected = actual
         end
         fail_fmt(2, extra_msg_or_nil, 'expected and actual object should be different: %s',
-                 prettystrPairs(expected))
+                 prettystr_pairs(expected))
     end
 end
 
@@ -1673,55 +1671,55 @@ end
 ------------------------------------------------------------------
 
 
-function M.assertIsNaN(value, extra_msg_or_nil)
+function M.assert_is_na_n(value, extra_msg_or_nil)
     if type(value) ~= "number" or value == value then
         failure("expected: NaN, actual: " ..prettystr(value), extra_msg_or_nil, 2)
     end
 end
 
-function M.assertNotIsNaN(value, extra_msg_or_nil)
+function M.assert_not_is_na_n(value, extra_msg_or_nil)
     if type(value) == "number" and value ~= value then
         failure("expected: not NaN, actual: NaN", extra_msg_or_nil, 2)
     end
 end
 
-function M.assertIsInf(value, extra_msg_or_nil)
+function M.assert_is_inf(value, extra_msg_or_nil)
     if type(value) ~= "number" or math.abs(value) ~= math.huge then
         failure("expected: #Inf, actual: " ..prettystr(value), extra_msg_or_nil, 2)
     end
 end
 
-function M.assertIsPlusInf(value, extra_msg_or_nil)
+function M.assert_is_plus_inf(value, extra_msg_or_nil)
     if type(value) ~= "number" or value ~= math.huge then
         failure("expected: #Inf, actual: " ..prettystr(value), extra_msg_or_nil, 2)
     end
 end
 
-function M.assertIsMinusInf(value, extra_msg_or_nil)
+function M.assert_is_minus_inf(value, extra_msg_or_nil)
     if type(value) ~= "number" or value ~= -math.huge then
         failure("expected: -#Inf, actual: " ..prettystr(value), extra_msg_or_nil, 2)
     end
 end
 
-function M.assertNotIsPlusInf(value, extra_msg_or_nil)
+function M.assert_not_is_plus_inf(value, extra_msg_or_nil)
     if type(value) == "number" and value == math.huge then
         failure("expected: not #Inf, actual: #Inf", extra_msg_or_nil, 2)
     end
 end
 
-function M.assertNotIsMinusInf(value, extra_msg_or_nil)
+function M.assert_not_is_minus_inf(value, extra_msg_or_nil)
     if type(value) == "number" and value == -math.huge then
         failure("expected: not -#Inf, actual: -#Inf", extra_msg_or_nil, 2)
     end
 end
 
-function M.assertNotIsInf(value, extra_msg_or_nil)
+function M.assert_not_is_inf(value, extra_msg_or_nil)
     if type(value) == "number" and math.abs(value) == math.huge then
         failure("expected: not infinity, actual: " .. prettystr(value), extra_msg_or_nil, 2)
     end
 end
 
-function M.assertIsPlusZero(value, extra_msg_or_nil)
+function M.assert_is_plus_zero(value, extra_msg_or_nil)
     if type(value) ~= 'number' or value ~= 0 then
         failure("expected: +0.0, actual: " ..prettystr(value), extra_msg_or_nil, 2)
     else if (1/value == -math.huge) then
@@ -1735,7 +1733,7 @@ function M.assertIsPlusZero(value, extra_msg_or_nil)
     end
 end
 
-function M.assertIsMinusZero(value, extra_msg_or_nil)
+function M.assert_is_minus_zero(value, extra_msg_or_nil)
     if type(value) ~= 'number' or value ~= 0 then
         failure("expected: -0.0, actual: " ..prettystr(value), extra_msg_or_nil, 2)
     else if (1/value == math.huge) then
@@ -1749,13 +1747,13 @@ function M.assertIsMinusZero(value, extra_msg_or_nil)
     end
 end
 
-function M.assertNotIsPlusZero(value, extra_msg_or_nil)
+function M.assert_not_is_plus_zero(value, extra_msg_or_nil)
     if type(value) == 'number' and (1/value == math.huge) then
         failure("expected: not +0.0, actual: +0.0", extra_msg_or_nil, 2)
     end
 end
 
-function M.assertNotIsMinusZero(value, extra_msg_or_nil)
+function M.assert_not_is_minus_zero(value, extra_msg_or_nil)
     if type(value) == 'number' and (1/value == -math.huge) then
         failure("expected: not -0.0, actual: -0.0", extra_msg_or_nil, 2)
     end
@@ -1766,7 +1764,7 @@ end
 ----------------------------------------------------------------
 
 -- for compatibility with LuaUnit v2.x
-function M.wrapFunctions()
+function M.wrap_functions()
     -- In LuaUnit version <= 2.1 , this function was necessary to include
     -- a test function inside the global test suite. Nowadays, the functions
     -- are simply run directly as part of the test discovery process.
@@ -1781,151 +1779,151 @@ local list_of_funcs = {
     -- { official function name , alias }
 
     -- general assertions
-    { 'almostEquals'            , 'almost_equals' },
-    { 'assertEquals'            , 'assert_equals' },
-    { 'assertItemsEquals'       , 'assert_items_equals' },
-    { 'assertNotEquals'         , 'assert_not_equals' },
-    { 'assertAlmostEquals'      , 'assert_almost_equals' },
-    { 'assertNotAlmostEquals'   , 'assert_not_almost_equals' },
-    { 'assertEvalToTrue'        , 'assert_eval_to_true' },
-    { 'assertEvalToFalse'       , 'assert_eval_to_false' },
-    { 'assertStrContains'       , 'assert_str_contains' },
-    { 'assertStrIContains'      , 'assert_str_icontains' },
-    { 'assertNotStrContains'    , 'assert_not_str_contains' },
-    { 'assertNotStrIContains'   , 'assert_not_str_icontains' },
-    { 'assertStrMatches'        , 'assert_str_matches' },
-    { 'assertError'             , 'assert_error' },
-    { 'assertErrorMsgEquals'    , 'assert_error_msg_equals' },
-    { 'assertErrorMsgContains'  , 'assert_error_msg_contains' },
-    { 'assertErrorMsgMatches'   , 'assert_error_msg_matches' },
-    { 'assertErrorMsgContentEquals', 'assert_error_msg_content_equals' },
-    { 'assertIs'                , 'assert_is' },
-    { 'assertNotIs'             , 'assert_not_is' },
-    { 'wrapFunctions'           , 'WrapFunctions' },
-    { 'wrapFunctions'           , 'wrap_functions' },
+    { 'almost_equals'            , 'almost_equals' },
+    { 'assert_equals'            , 'assert_equals' },
+    { 'assert_items_equals'       , 'assert_items_equals' },
+    { 'assert_not_equals'         , 'assert_not_equals' },
+    { 'assert_almost_equals'      , 'assert_almost_equals' },
+    { 'assert_not_almost_equals'   , 'assert_not_almost_equals' },
+    { 'assert_eval_to_true'        , 'assert_eval_to_true' },
+    { 'assert_eval_to_false'       , 'assert_eval_to_false' },
+    { 'assert_str_contains'       , 'assert_str_contains' },
+    { 'assert_str_i_contains'      , 'assert_str_icontains' },
+    { 'assert_not_str_contains'    , 'assert_not_str_contains' },
+    { 'assert_not_str_i_contains'   , 'assert_not_str_icontains' },
+    { 'assert_str_matches'        , 'assert_str_matches' },
+    { 'assert_error'             , 'assert_error' },
+    { 'assert_error_msg_equals'    , 'assert_error_msg_equals' },
+    { 'assert_error_msg_contains'  , 'assert_error_msg_contains' },
+    { 'assert_error_msg_matches'   , 'assert_error_msg_matches' },
+    { 'assert_error_msg_content_equals', 'assert_error_msg_content_equals' },
+    { 'assert_is'                , 'assert_is' },
+    { 'assert_not_is'             , 'assert_not_is' },
+    { 'wrap_functions'           , 'WrapFunctions' },
+    { 'wrap_functions'           , 'wrap_functions' },
 
-    { 'failIf'                  , 'fail_if' },
-    { 'runOnlyIf'               , 'run_only_if' },
-    { 'skipIf'                  , 'skip_if' },
-    { 'successIf'               , 'success_if' },
+    { 'fail_if'                  , 'fail_if' },
+    { 'run_only_if'               , 'run_only_if' },
+    { 'skip_if'                  , 'skip_if' },
+    { 'success_if'               , 'success_if' },
 
     -- type assertions: assertIsXXX -> assert_is_xxx
-    { 'assertIsNumber'          , 'assert_is_number' },
-    { 'assertIsString'          , 'assert_is_string' },
-    { 'assertIsTable'           , 'assert_is_table' },
-    { 'assertIsBoolean'         , 'assert_is_boolean' },
-    { 'assertIsNil'             , 'assert_is_nil' },
-    { 'assertIsTrue'            , 'assert_is_true' },
-    { 'assertIsFalse'           , 'assert_is_false' },
-    { 'assertIsNaN'             , 'assert_is_nan' },
-    { 'assertIsInf'             , 'assert_is_inf' },
-    { 'assertIsPlusInf'         , 'assert_is_plus_inf' },
-    { 'assertIsMinusInf'        , 'assert_is_minus_inf' },
-    { 'assertIsPlusZero'        , 'assert_is_plus_zero' },
-    { 'assertIsMinusZero'       , 'assert_is_minus_zero' },
-    { 'assertIsFunction'        , 'assert_is_function' },
-    { 'assertIsThread'          , 'assert_is_thread' },
-    { 'assertIsUserdata'        , 'assert_is_userdata' },
+    { 'assert_is_number'          , 'assert_is_number' },
+    { 'assert_is_string'          , 'assert_is_string' },
+    { 'assert_is_table'           , 'assert_is_table' },
+    { 'assert_is_boolean'         , 'assert_is_boolean' },
+    { 'assert_is_nil'             , 'assert_is_nil' },
+    { 'assert_is_true'            , 'assert_is_true' },
+    { 'assert_is_false'           , 'assert_is_false' },
+    { 'assert_is_na_n'             , 'assert_is_nan' },
+    { 'assert_is_inf'             , 'assert_is_inf' },
+    { 'assert_is_plus_inf'         , 'assert_is_plus_inf' },
+    { 'assert_is_minus_inf'        , 'assert_is_minus_inf' },
+    { 'assert_is_plus_zero'        , 'assert_is_plus_zero' },
+    { 'assert_is_minus_zero'       , 'assert_is_minus_zero' },
+    { 'assert_is_function'        , 'assert_is_function' },
+    { 'assert_is_thread'          , 'assert_is_thread' },
+    { 'assert_is_userdata'        , 'assert_is_userdata' },
 
     -- type assertions: assertIsXXX -> assertXxx
-    { 'assertIsNumber'          , 'assertNumber' },
-    { 'assertIsString'          , 'assertString' },
-    { 'assertIsTable'           , 'assertTable' },
-    { 'assertIsBoolean'         , 'assertBoolean' },
-    { 'assertIsNil'             , 'assertNil' },
-    { 'assertIsTrue'            , 'assertTrue' },
-    { 'assertIsFalse'           , 'assertFalse' },
-    { 'assertIsNaN'             , 'assertNaN' },
-    { 'assertIsInf'             , 'assertInf' },
-    { 'assertIsPlusInf'         , 'assertPlusInf' },
-    { 'assertIsMinusInf'        , 'assertMinusInf' },
-    { 'assertIsPlusZero'        , 'assertPlusZero' },
-    { 'assertIsMinusZero'       , 'assertMinusZero'},
-    { 'assertIsFunction'        , 'assertFunction' },
-    { 'assertIsThread'          , 'assertThread' },
-    { 'assertIsUserdata'        , 'assertUserdata' },
+    { 'assert_is_number'          , 'assertNumber' },
+    { 'assert_is_string'          , 'assertString' },
+    { 'assert_is_table'           , 'assertTable' },
+    { 'assert_is_boolean'         , 'assertBoolean' },
+    { 'assert_is_nil'             , 'assertNil' },
+    { 'assert_is_true'            , 'assertTrue' },
+    { 'assert_is_false'           , 'assertFalse' },
+    { 'assert_is_na_n'             , 'assertNaN' },
+    { 'assert_is_inf'             , 'assertInf' },
+    { 'assert_is_plus_inf'         , 'assertPlusInf' },
+    { 'assert_is_minus_inf'        , 'assertMinusInf' },
+    { 'assert_is_plus_zero'        , 'assertPlusZero' },
+    { 'assert_is_minus_zero'       , 'assertMinusZero'},
+    { 'assert_is_function'        , 'assertFunction' },
+    { 'assert_is_thread'          , 'assertThread' },
+    { 'assert_is_userdata'        , 'assertUserdata' },
 
     -- type assertions: assertIsXXX -> assert_xxx (luaunit v2 compat)
-    { 'assertIsNumber'          , 'assert_number' },
-    { 'assertIsString'          , 'assert_string' },
-    { 'assertIsTable'           , 'assert_table' },
-    { 'assertIsBoolean'         , 'assert_boolean' },
-    { 'assertIsNil'             , 'assert_nil' },
-    { 'assertIsTrue'            , 'assert_true' },
-    { 'assertIsFalse'           , 'assert_false' },
-    { 'assertIsNaN'             , 'assert_nan' },
-    { 'assertIsInf'             , 'assert_inf' },
-    { 'assertIsPlusInf'         , 'assert_plus_inf' },
-    { 'assertIsMinusInf'        , 'assert_minus_inf' },
-    { 'assertIsPlusZero'        , 'assert_plus_zero' },
-    { 'assertIsMinusZero'       , 'assert_minus_zero' },
-    { 'assertIsFunction'        , 'assert_function' },
-    { 'assertIsThread'          , 'assert_thread' },
-    { 'assertIsUserdata'        , 'assert_userdata' },
+    { 'assert_is_number'          , 'assert_number' },
+    { 'assert_is_string'          , 'assert_string' },
+    { 'assert_is_table'           , 'assert_table' },
+    { 'assert_is_boolean'         , 'assert_boolean' },
+    { 'assert_is_nil'             , 'assert_nil' },
+    { 'assert_is_true'            , 'assert_true' },
+    { 'assert_is_false'           , 'assert_false' },
+    { 'assert_is_na_n'             , 'assert_nan' },
+    { 'assert_is_inf'             , 'assert_inf' },
+    { 'assert_is_plus_inf'         , 'assert_plus_inf' },
+    { 'assert_is_minus_inf'        , 'assert_minus_inf' },
+    { 'assert_is_plus_zero'        , 'assert_plus_zero' },
+    { 'assert_is_minus_zero'       , 'assert_minus_zero' },
+    { 'assert_is_function'        , 'assert_function' },
+    { 'assert_is_thread'          , 'assert_thread' },
+    { 'assert_is_userdata'        , 'assert_userdata' },
 
     -- type assertions: assertNotIsXXX -> assert_not_is_xxx
-    { 'assertNotIsNumber'       , 'assert_not_is_number' },
-    { 'assertNotIsString'       , 'assert_not_is_string' },
-    { 'assertNotIsTable'        , 'assert_not_is_table' },
-    { 'assertNotIsBoolean'      , 'assert_not_is_boolean' },
-    { 'assertNotIsNil'          , 'assert_not_is_nil' },
-    { 'assertNotIsTrue'         , 'assert_not_is_true' },
-    { 'assertNotIsFalse'        , 'assert_not_is_false' },
-    { 'assertNotIsNaN'          , 'assert_not_is_nan' },
-    { 'assertNotIsInf'          , 'assert_not_is_inf' },
-    { 'assertNotIsPlusInf'      , 'assert_not_is_plus_inf' },
-    { 'assertNotIsMinusInf'     , 'assert_not_is_minus_inf' },
-    { 'assertNotIsPlusZero'     , 'assert_not_is_plus_zero' },
-    { 'assertNotIsMinusZero'    , 'assert_not_is_minus_zero' },
-    { 'assertNotIsFunction'     , 'assert_not_is_function' },
-    { 'assertNotIsThread'       , 'assert_not_is_thread' },
-    { 'assertNotIsUserdata'     , 'assert_not_is_userdata' },
+    { 'assert_not_is_number'       , 'assert_not_is_number' },
+    { 'assert_not_is_string'       , 'assert_not_is_string' },
+    { 'assert_not_is_table'        , 'assert_not_is_table' },
+    { 'assert_not_is_boolean'      , 'assert_not_is_boolean' },
+    { 'assert_not_is_nil'          , 'assert_not_is_nil' },
+    { 'assert_not_is_true'         , 'assert_not_is_true' },
+    { 'assert_not_is_false'        , 'assert_not_is_false' },
+    { 'assert_not_is_na_n'          , 'assert_not_is_nan' },
+    { 'assert_not_is_inf'          , 'assert_not_is_inf' },
+    { 'assert_not_is_plus_inf'      , 'assert_not_is_plus_inf' },
+    { 'assert_not_is_minus_inf'     , 'assert_not_is_minus_inf' },
+    { 'assert_not_is_plus_zero'     , 'assert_not_is_plus_zero' },
+    { 'assert_not_is_minus_zero'    , 'assert_not_is_minus_zero' },
+    { 'assert_not_is_function'     , 'assert_not_is_function' },
+    { 'assert_not_is_thread'       , 'assert_not_is_thread' },
+    { 'assert_not_is_userdata'     , 'assert_not_is_userdata' },
 
     -- type assertions: assertNotIsXXX -> assertNotXxx (luaunit v2 compat)
-    { 'assertNotIsNumber'       , 'assertNotNumber' },
-    { 'assertNotIsString'       , 'assertNotString' },
-    { 'assertNotIsTable'        , 'assertNotTable' },
-    { 'assertNotIsBoolean'      , 'assertNotBoolean' },
-    { 'assertNotIsNil'          , 'assertNotNil' },
-    { 'assertNotIsTrue'         , 'assertNotTrue' },
-    { 'assertNotIsFalse'        , 'assertNotFalse' },
-    { 'assertNotIsNaN'          , 'assertNotNaN' },
-    { 'assertNotIsInf'          , 'assertNotInf' },
-    { 'assertNotIsPlusInf'      , 'assertNotPlusInf' },
-    { 'assertNotIsMinusInf'     , 'assertNotMinusInf' },
-    { 'assertNotIsPlusZero'     , 'assertNotPlusZero' },
-    { 'assertNotIsMinusZero'    , 'assertNotMinusZero' },
-    { 'assertNotIsFunction'     , 'assertNotFunction' },
-    { 'assertNotIsThread'       , 'assertNotThread' },
-    { 'assertNotIsUserdata'     , 'assertNotUserdata' },
+    { 'assert_not_is_number'       , 'assertNotNumber' },
+    { 'assert_not_is_string'       , 'assertNotString' },
+    { 'assert_not_is_table'        , 'assertNotTable' },
+    { 'assert_not_is_boolean'      , 'assertNotBoolean' },
+    { 'assert_not_is_nil'          , 'assertNotNil' },
+    { 'assert_not_is_true'         , 'assertNotTrue' },
+    { 'assert_not_is_false'        , 'assertNotFalse' },
+    { 'assert_not_is_na_n'          , 'assertNotNaN' },
+    { 'assert_not_is_inf'          , 'assertNotInf' },
+    { 'assert_not_is_plus_inf'      , 'assertNotPlusInf' },
+    { 'assert_not_is_minus_inf'     , 'assertNotMinusInf' },
+    { 'assert_not_is_plus_zero'     , 'assertNotPlusZero' },
+    { 'assert_not_is_minus_zero'    , 'assertNotMinusZero' },
+    { 'assert_not_is_function'     , 'assertNotFunction' },
+    { 'assert_not_is_thread'       , 'assertNotThread' },
+    { 'assert_not_is_userdata'     , 'assertNotUserdata' },
 
     -- type assertions: assertNotIsXXX -> assert_not_xxx
-    { 'assertNotIsNumber'       , 'assert_not_number' },
-    { 'assertNotIsString'       , 'assert_not_string' },
-    { 'assertNotIsTable'        , 'assert_not_table' },
-    { 'assertNotIsBoolean'      , 'assert_not_boolean' },
-    { 'assertNotIsNil'          , 'assert_not_nil' },
-    { 'assertNotIsTrue'         , 'assert_not_true' },
-    { 'assertNotIsFalse'        , 'assert_not_false' },
-    { 'assertNotIsNaN'          , 'assert_not_nan' },
-    { 'assertNotIsInf'          , 'assert_not_inf' },
-    { 'assertNotIsPlusInf'      , 'assert_not_plus_inf' },
-    { 'assertNotIsMinusInf'     , 'assert_not_minus_inf' },
-    { 'assertNotIsPlusZero'     , 'assert_not_plus_zero' },
-    { 'assertNotIsMinusZero'    , 'assert_not_minus_zero' },
-    { 'assertNotIsFunction'     , 'assert_not_function' },
-    { 'assertNotIsThread'       , 'assert_not_thread' },
-    { 'assertNotIsUserdata'     , 'assert_not_userdata' },
+    { 'assert_not_is_number'       , 'assert_not_number' },
+    { 'assert_not_is_string'       , 'assert_not_string' },
+    { 'assert_not_is_table'        , 'assert_not_table' },
+    { 'assert_not_is_boolean'      , 'assert_not_boolean' },
+    { 'assert_not_is_nil'          , 'assert_not_nil' },
+    { 'assert_not_is_true'         , 'assert_not_true' },
+    { 'assert_not_is_false'        , 'assert_not_false' },
+    { 'assert_not_is_na_n'          , 'assert_not_nan' },
+    { 'assert_not_is_inf'          , 'assert_not_inf' },
+    { 'assert_not_is_plus_inf'      , 'assert_not_plus_inf' },
+    { 'assert_not_is_minus_inf'     , 'assert_not_minus_inf' },
+    { 'assert_not_is_plus_zero'     , 'assert_not_plus_zero' },
+    { 'assert_not_is_minus_zero'    , 'assert_not_minus_zero' },
+    { 'assert_not_is_function'     , 'assert_not_function' },
+    { 'assert_not_is_thread'       , 'assert_not_thread' },
+    { 'assert_not_is_userdata'     , 'assert_not_userdata' },
 
     -- all assertions with Coroutine duplicate Thread assertions
-    { 'assertIsThread'          , 'assertIsCoroutine' },
-    { 'assertIsThread'          , 'assertCoroutine' },
-    { 'assertIsThread'          , 'assert_is_coroutine' },
-    { 'assertIsThread'          , 'assert_coroutine' },
-    { 'assertNotIsThread'       , 'assertNotIsCoroutine' },
-    { 'assertNotIsThread'       , 'assertNotCoroutine' },
-    { 'assertNotIsThread'       , 'assert_not_is_coroutine' },
-    { 'assertNotIsThread'       , 'assert_not_coroutine' },
+    { 'assert_is_thread'          , 'assertIsCoroutine' },
+    { 'assert_is_thread'          , 'assertCoroutine' },
+    { 'assert_is_thread'          , 'assert_is_coroutine' },
+    { 'assert_is_thread'          , 'assert_coroutine' },
+    { 'assert_not_is_thread'       , 'assertNotIsCoroutine' },
+    { 'assert_not_is_thread'       , 'assertNotCoroutine' },
+    { 'assert_not_is_thread'       , 'assert_not_is_coroutine' },
+    { 'assert_not_is_thread'       , 'assert_not_coroutine' },
 }
 
 -- Create all aliases in M
@@ -1961,34 +1959,34 @@ function genericOutput.new(runner, default_verbosity)
 end
 
 -- abstract ("empty") methods
-function genericOutput:startSuite()
+function genericOutput:start_suite()
     -- Called once, when the suite is started
 end
 
-function genericOutput:startClass(className)
+function genericOutput:start_class(className)
     -- Called each time a new test class is started
 end
 
-function genericOutput:startTest(testName)
+function genericOutput:start_test(testName)
     -- called each time a new test is started, right before the setUp()
     -- the current test status node is already created and available in: self.result.currentNode
 end
 
-function genericOutput:updateStatus(node)
+function genericOutput:update_status(node)
     -- called with status failed or error as soon as the error/failure is encountered
     -- this method is NOT called for a successful test because a test is marked as successful by default
     -- and does not need to be updated
 end
 
-function genericOutput:endTest(node)
+function genericOutput:end_test(node)
     -- called when the test is finished, after the tearDown() method
 end
 
-function genericOutput:endClass()
+function genericOutput:end_class()
     -- called when executing the class is finished, before moving on to the next class of at the end of the test execution
 end
 
-function genericOutput:endSuite()
+function genericOutput:end_suite()
     -- called at the end of the test suite execution
 end
 
@@ -2007,39 +2005,39 @@ TapOutput.__class__ = 'TapOutput'
         local t = genericOutput.new(runner, M.VERBOSITY_LOW)
         return setmetatable( t, TapOutput_MT)
     end
-    function TapOutput:startSuite()
+    function TapOutput:start_suite()
         print("1.."..self.result.selectedCount)
         print('# Started on '..self.result.startDate)
     end
-    function TapOutput:startClass(className)
+    function TapOutput:start_class(className)
         if className ~= '[TestFunctions]' then
             print('# Starting class: '..className)
         end
     end
 
-    function TapOutput:updateStatus( node )
-        if node:isSkipped() then
+    function TapOutput:update_status( node )
+        if node:is_skipped() then
             io.stdout:write("ok ", self.result.currentTestNumber, "\t# SKIP ", node.msg, "\n" )
             return
         end
 
         io.stdout:write("not ok ", self.result.currentTestNumber, "\t", node.testName, "\n")
         if self.verbosity > M.VERBOSITY_LOW then
-           print( prefixString( '#   ', node.msg ) )
+           print( prefix_string( '#   ', node.msg ) )
         end
-        if (node:isFailure() or node:isError()) and self.verbosity > M.VERBOSITY_DEFAULT then
-           print( prefixString( '#   ', node.stackTrace ) )
+        if (node:is_failure() or node:is_error()) and self.verbosity > M.VERBOSITY_DEFAULT then
+           print( prefix_string( '#   ', node.stackTrace ) )
         end
     end
 
-    function TapOutput:endTest( node )
-        if node:isSuccess() then
+    function TapOutput:end_test( node )
+        if node:is_success() then
             io.stdout:write("ok     ", self.result.currentTestNumber, "\t", node.testName, "\n")
         end
     end
 
-    function TapOutput:endSuite()
-        print( '# '..M.LuaUnit.statusLine( self.result ) )
+    function TapOutput:end_suite()
+        print( '# '..M.LuaUnit.status_line( self.result ) )
         return self.result.notSuccessCount
     end
 
@@ -2061,7 +2059,7 @@ JUnitOutput.__class__ = 'JUnitOutput'
         return setmetatable( t, JUnitOutput_MT )
     end
 
-    function JUnitOutput:startSuite()
+    function JUnitOutput:start_suite()
         -- open xml file early to deal with errors
         if self.fname == nil then
             error('With Junit, an output filename must be supplied with --name!')
@@ -2077,27 +2075,27 @@ JUnitOutput.__class__ = 'JUnitOutput'
         print('# XML output to '..self.fname)
         print('# Started on '..self.result.startDate)
     end
-    function JUnitOutput:startClass(className)
+    function JUnitOutput:start_class(className)
         if className ~= '[TestFunctions]' then
             print('# Starting class: '..className)
         end
     end
-    function JUnitOutput:startTest(testName)
+    function JUnitOutput:start_test(testName)
         print('# Starting test: '..testName)
     end
 
-    function JUnitOutput:updateStatus( node )
-        if node:isFailure() then
-            print( '#   Failure: ' .. prefixString( '#   ', node.msg ):sub(4, nil) )
+    function JUnitOutput:update_status( node )
+        if node:is_failure() then
+            print( '#   Failure: ' .. prefix_string( '#   ', node.msg ):sub(4, nil) )
             -- print('# ' .. node.stackTrace)
-        elseif node:isError() then
-            print( '#   Error: ' .. prefixString( '#   '  , node.msg ):sub(4, nil) )
+        elseif node:is_error() then
+            print( '#   Error: ' .. prefix_string( '#   '  , node.msg ):sub(4, nil) )
             -- print('# ' .. node.stackTrace)
         end
     end
 
-    function JUnitOutput:endSuite()
-        print( '# '..M.LuaUnit.statusLine(self.result))
+    function JUnitOutput:end_suite()
+        print( '# '..M.LuaUnit.status_line(self.result))
 
         -- XML file writing
         self.fd:write('<?xml version="1.0" encoding="UTF-8" ?>\n')
@@ -2114,8 +2112,8 @@ JUnitOutput.__class__ = 'JUnitOutput'
         for i,node in ipairs(self.result.allTests) do
             self.fd:write(string.format('        <testcase classname="%s" name="%s" time="%0.3f">\n',
                 node.className, node.testName, node.duration ) )
-            if node:isNotSuccess() then
-                self.fd:write(node:statusXML())
+            if node:is_not_success() then
+                self.fd:write(node:status_xml())
             end
             self.fd:write('        </testcase>\n')
         end
@@ -2247,7 +2245,7 @@ TextOutput.__class__ = 'TextOutput'
         return setmetatable( t, TextOutput_MT )
     end
 
-    function TextOutput:startSuite()
+    function TextOutput:start_suite()
         if self.runner.seed then
             print('Running with --shuffle ' .. self.runner.shuffle .. ':' .. self.runner.seed)
         end
@@ -2256,14 +2254,14 @@ TextOutput.__class__ = 'TextOutput'
         end
     end
 
-    function TextOutput:startTest(testName)
+    function TextOutput:start_test(testName)
         if self.verbosity > M.VERBOSITY_DEFAULT then
             io.stdout:write( "    ", self.result.currentNode.testName, " ... " )
         end
     end
 
-    function TextOutput:endTest( node )
-        if node:isSuccess() then
+    function TextOutput:end_test( node )
+        if node:is_success() then
             if self.verbosity > M.VERBOSITY_DEFAULT then
                 io.stdout:write("Ok\n")
             else
@@ -2288,42 +2286,42 @@ TextOutput.__class__ = 'TextOutput'
         end
     end
 
-    function TextOutput:displayOneFailedTest( index, fail )
+    function TextOutput:display_one_failed_test( index, fail )
         print(index..") "..fail.testName )
         print( fail.msg )
         print( fail.stackTrace )
         print()
     end
 
-    function TextOutput:displayErroredTests()
+    function TextOutput:display_errored_tests()
         if #self.result.errorTests ~= 0 then
             print("Tests with errors:")
             print("------------------")
             for i, v in ipairs(self.result.errorTests) do
-                self:displayOneFailedTest(i, v)
+                self:display_one_failed_test(i, v)
             end
         end
     end
 
-    function TextOutput:displayFailedTests()
+    function TextOutput:display_failed_tests()
         if #self.result.failedTests ~= 0 then
             print("Failed tests:")
             print("-------------")
             for i, v in ipairs(self.result.failedTests) do
-                self:displayOneFailedTest(i, v)
+                self:display_one_failed_test(i, v)
             end
         end
     end
 
-    function TextOutput:endSuite()
+    function TextOutput:end_suite()
         if self.verbosity > M.VERBOSITY_DEFAULT then
             print("=========================================================")
         else
             print()
         end
-        self:displayErroredTests()
-        self:displayFailedTests()
-        print( M.LuaUnit.statusLine( self.result ) )
+        self:display_errored_tests()
+        self:display_failed_tests()
+        print( M.LuaUnit.status_line( self.result ) )
         if self.result.notSuccessCount == 0 then
             print('OK')
         end
@@ -2336,13 +2334,13 @@ TextOutput.__class__ = 'TextOutput'
 --                     class NilOutput
 ----------------------------------------------------------------
 
-local function nopCallable()
+local function nop_callable()
     --print(42)
-    return nopCallable
+    return nop_callable
 end
 
 local NilOutput = { __class__ = 'NilOuptut' } -- class
-local NilOutput_MT = { __index = nopCallable } -- metatable
+local NilOutput_MT = { __index = nop_callable } -- metatable
 
 function NilOutput.new(runner)
     return setmetatable( { __class__ = 'NilOutput' }, NilOutput_MT )
@@ -2369,14 +2367,14 @@ local LuaUnit_MT = { __index = M.LuaUnit }
 
     -----------------[[ Utility methods ]]---------------------
 
-    function M.LuaUnit.asFunction(aObject)
+    function M.LuaUnit.as_function(aObject)
         -- return "aObject" if it is a function, and nil otherwise
         if 'function' == type(aObject) then
             return aObject
         end
     end
 
-    function M.LuaUnit.splitClassMethod(someName)
+    function M.LuaUnit.split_class_method(someName)
         --[[
         Return a pair of className, methodName strings for a name in the form
         "class.method". If no class part (or separator) is found, will return
@@ -2392,19 +2390,19 @@ local LuaUnit_MT = { __index = M.LuaUnit }
         return nil, someName
     end
 
-    function M.LuaUnit.isMethodTestName( s )
+    function M.LuaUnit.is_method_test_name( s )
         -- return true is the name matches the name of a test method
         -- default rule is that is starts with 'Test' or with 'test'
         return string.sub(s, 1, 4):lower() == 'test'
     end
 
-    function M.LuaUnit.isTestName( s )
+    function M.LuaUnit.is_test_name( s )
         -- return true is the name matches the name of a test
         -- default rule is that is starts with 'Test' or with 'test'
         return string.sub(s, 1, 4):lower() == 'test'
     end
 
-    function M.LuaUnit.testsContainer()
+    function M.LuaUnit.tests_container()
         if M.GLOBAL_TESTS then
             return _G
         else
@@ -2412,15 +2410,15 @@ local LuaUnit_MT = { __index = M.LuaUnit }
         end
     end
 
-    function M.LuaUnit.collectTests()
+    function M.LuaUnit.collect_tests()
         -- return a list of all test names.
         -- When M.GLOBAL_TESTS is enabled it returns names
-        -- from the global namespace matching LuaUnit.isTestName.
+        -- from the global namespace matching LuaUnit.is_test_name.
         -- Otherwise returns all keys from M.tests table.
 
         local testNames = {}
-        for k, _ in pairs(M.LuaUnit.testsContainer()) do
-            if type(k) == "string" and ( M.LuaUnit.isTestName( k ) or not M.GLOBAL_TESTS ) then
+        for k, _ in pairs(M.LuaUnit.tests_container()) do
+            if type(k) == "string" and ( M.LuaUnit.is_test_name( k ) or not M.GLOBAL_TESTS ) then
                 table.insert( testNames , k )
             end
         end
@@ -2428,7 +2426,7 @@ local LuaUnit_MT = { __index = M.LuaUnit }
         return testNames
     end
 
-    function M.LuaUnit.parseCmdLine( cmdLine )
+    function M.LuaUnit.parse_cmd_line( cmdLine )
         -- parse the command line
         -- Supported command line parameters:
         -- --verbose, -v: increase verbosity
@@ -2462,7 +2460,7 @@ local LuaUnit_MT = { __index = M.LuaUnit }
             return result
         end
 
-        local function parseOption( option )
+        local function parse_option( option )
             if option == '--help' or option == '-h' then
                 result['help'] = true
                 return
@@ -2506,7 +2504,7 @@ local LuaUnit_MT = { __index = M.LuaUnit }
             error('Unknown option: '..option,3)
         end
 
-        local function setArg( cmdArg, state )
+        local function set_arg( cmdArg, state )
             if state == SET_OUTPUT then
                 result['output'] = cmdArg
                 return
@@ -2554,11 +2552,11 @@ local LuaUnit_MT = { __index = M.LuaUnit }
 
         for i, cmdArg in ipairs(cmdLine) do
             if state ~= nil then
-                setArg( cmdArg, state, result )
+                set_arg( cmdArg, state, result )
                 state = nil
             else
                 if cmdArg:sub(1,1) == '-' then
-                    state = parseOption( cmdArg )
+                    state = parse_option( cmdArg )
                 -- If argument contains / then it's treated as file path.
                 -- This assumption to support luaunit's test names along with file paths.
                 elseif cmdArg:find('/') then
@@ -2645,40 +2643,40 @@ local LuaUnit_MT = { __index = M.LuaUnit }
         self.stackTrace = stackTrace
     end
 
-    function NodeStatus:isSuccess()
+    function NodeStatus:is_success()
         return self.status == NodeStatus.SUCCESS
     end
 
-    function NodeStatus:isNotSuccess()
+    function NodeStatus:is_not_success()
         -- Return true if node is either failure or error or skip
         return (self.status == NodeStatus.FAIL or self.status == NodeStatus.ERROR or self.status == NodeStatus.SKIP)
     end
 
-    function NodeStatus:isSkipped()
+    function NodeStatus:is_skipped()
         return self.status == NodeStatus.SKIP
     end
 
-    function NodeStatus:isFailure()
+    function NodeStatus:is_failure()
         return self.status == NodeStatus.FAIL
     end
 
-    function NodeStatus:isError()
+    function NodeStatus:is_error()
         return self.status == NodeStatus.ERROR
     end
 
-    function NodeStatus:statusXML()
-        if self:isError() then
+    function NodeStatus:status_xml()
+        if self:is_error() then
             return table.concat(
-                {'            <error type="', xmlEscape(self.msg), '">\n',
-                 '                <![CDATA[', xmlCDataEscape(self.stackTrace),
+                {'            <error type="', xml_escape(self.msg), '">\n',
+                 '                <![CDATA[', xml_c_data_escape(self.stackTrace),
                  ']]></error>\n'})
-        elseif self:isFailure() then
+        elseif self:is_failure() then
             return table.concat(
-                {'            <failure type="', xmlEscape(self.msg), '">\n',
-                 '                <![CDATA[', xmlCDataEscape(self.stackTrace),
+                {'            <failure type="', xml_escape(self.msg), '">\n',
+                 '                <![CDATA[', xml_c_data_escape(self.stackTrace),
                  ']]></failure>\n'})
-        elseif self:isSkipped() then
-            return table.concat({'            <skipped>', xmlEscape(self.msg),'</skipped>\n' } )
+        elseif self:is_skipped() then
+            return table.concat({'            <skipped>', xml_escape(self.msg),'</skipped>\n' } )
         end
         return '            <passed/>\n' -- (not XSD-compliant! normally shouldn't get here)
     end
@@ -2694,7 +2692,7 @@ local LuaUnit_MT = { __index = M.LuaUnit }
         return string.format('%d %s%s', number, singular, suffix)
     end
 
-    function M.LuaUnit.statusLine(result)
+    function M.LuaUnit.status_line(result)
         -- return status line string according to results
         local s = {
             string.format('Ran %d tests in %0.3f seconds',
@@ -2720,7 +2718,7 @@ local LuaUnit_MT = { __index = M.LuaUnit }
         return table.concat(s, ', ')
     end
 
-    function M.LuaUnit:startSuite(selectedCount, nonSelectedCount)
+    function M.LuaUnit:start_suite(selectedCount, nonSelectedCount)
         self.result = {
             selectedCount = selectedCount,
             nonSelectedCount = nonSelectedCount,
@@ -2749,15 +2747,15 @@ local LuaUnit_MT = { __index = M.LuaUnit }
 
         self.outputType = self.outputType or TextOutput
         self.output = self.outputType.new(self)
-        self.output:startSuite()
+        self.output:start_suite()
     end
 
-    function M.LuaUnit:startClass( className )
+    function M.LuaUnit:start_class( className )
         self.result.currentClassName = className
-        self.output:startClass( className )
+        self.output:start_class( className )
     end
 
-    function M.LuaUnit:startTest( testName  )
+    function M.LuaUnit:start_test( testName  )
         self.result.currentTestNumber = self.result.currentTestNumber + 1
         self.result.runCount = self.result.runCount + 1
         self.result.currentNode = NodeStatus.new(
@@ -2767,11 +2765,11 @@ local LuaUnit_MT = { __index = M.LuaUnit }
         )
         self.result.currentNode.startTime = clock.time()
         table.insert( self.result.allTests, self.result.currentNode )
-        self.output:startTest( testName )
+        self.output:start_test( testName )
     end
 
-    function M.LuaUnit:updateStatus( err )
-        -- "err" is expected to be a table / result from protectedCall()
+    function M.LuaUnit:update_status( err )
+        -- "err" is expected to be a table / result from protected_call()
         if err.status == NodeStatus.SUCCESS then
             return
         end
@@ -2806,36 +2804,36 @@ local LuaUnit_MT = { __index = M.LuaUnit }
             error('No such status: ' .. prettystr(err.status))
         end
 
-        self.output:updateStatus( node )
+        self.output:update_status( node )
     end
 
-    function M.LuaUnit:endTest()
+    function M.LuaUnit:end_test()
         local node = self.result.currentNode
-        -- print( 'endTest() '..prettystr(node))
-        -- print( 'endTest() '..prettystr(node:isNotSuccess()))
+        -- print( 'end_test() '..prettystr(node))
+        -- print( 'end_test() '..prettystr(node:is_not_success()))
         node.duration = clock.time() - node.startTime
         node.startTime = nil
-        self.output:endTest( node )
+        self.output:end_test( node )
 
-        if node:isSuccess() then
+        if node:is_success() then
             self.result.successCount = self.result.successCount + 1
-        elseif node:isError() then
+        elseif node:is_error() then
             if self.quitOnError or self.quitOnFailure then
                 -- Runtime error - abort test execution as requested by
                 -- "--error" option. This is done by setting a special
-                -- flag that gets handled in runSuiteByInstances().
+                -- flag that gets handled in run_suite_by_instances().
                 print("\nERROR during LuaUnit test execution:\n" .. node.msg)
                 self.result.aborted = true
             end
-        elseif node:isFailure() then
+        elseif node:is_failure() then
             if self.quitOnFailure then
                 -- Failure - abort test execution as requested by
                 -- "--failure" option. This is done by setting a special
-                -- flag that gets handled in runSuiteByInstances().
+                -- flag that gets handled in run_suite_by_instances().
                 print("\nFailure during LuaUnit test execution:\n" .. node.msg)
                 self.result.aborted = true
             end
-        elseif node:isSkipped() then
+        elseif node:is_skipped() then
             self.result.runCount = self.result.runCount - 1
         else
             error('No such node status: ' .. prettystr(node.status))
@@ -2843,18 +2841,18 @@ local LuaUnit_MT = { __index = M.LuaUnit }
         self.result.currentNode = nil
     end
 
-    function M.LuaUnit:endClass()
-        self.output:endClass()
+    function M.LuaUnit:end_class()
+        self.output:end_class()
     end
 
-    function M.LuaUnit:endSuite()
+    function M.LuaUnit:end_suite()
         if self.result.suiteStarted == false then
-            error('LuaUnit:endSuite() -- suite was already ended' )
+            error('LuaUnit:end_suite() -- suite was already ended' )
         end
         self.result.duration = clock.time()-self.result.startTime
         self.result.suiteStarted = false
 
-        -- Expose test counts for outputter's endSuite(). This could be managed
+        -- Expose test counts for outputter's end_suite(). This could be managed
         -- internally instead by using the length of the lists of failed tests
         -- but unit tests rely on these fields being present.
         self.result.failureCount = #self.result.failedTests
@@ -2862,10 +2860,10 @@ local LuaUnit_MT = { __index = M.LuaUnit }
         self.result.notSuccessCount = self.result.failureCount + self.result.errorCount
         self.result.skippedCount = #self.result.skippedTests
 
-        self.output:endSuite()
+        self.output:end_suite()
     end
 
-    function M.LuaUnit:setOutputType(outputType)
+    function M.LuaUnit:set_output_type(outputType)
         -- default to text
         -- tap produces results according to TAP format
         if outputType:upper() == "NIL" then
@@ -2889,7 +2887,7 @@ local LuaUnit_MT = { __index = M.LuaUnit }
 
     --------------[[ Runner ]]-----------------
 
-    function M.LuaUnit:protectedCall(classInstance, methodInstance, prettyFuncName)
+    function M.LuaUnit:protected_call(classInstance, methodInstance, prettyFuncName)
         -- if classInstance is nil, this is just a function call
         -- else, it's method of a class being called.
 
@@ -2928,14 +2926,14 @@ local LuaUnit_MT = { __index = M.LuaUnit }
             err.trace = err.trace:gsub("in (%a+) 'methodInstance'", "in %1 '"..prettyFuncName.."'")
         end
         if STRIP_LUAUNIT_FROM_STACKTRACE then
-            err.trace = stripLuaunitTrace(err.trace)
+            err.trace = strip_luaunit_trace(err.trace)
         end
 
         return err -- return the error "object" (table)
     end
 
 
-    function M.LuaUnit:execOneFunction(className, methodName, classInstance, methodInstance)
+    function M.LuaUnit:exec_one_function(className, methodName, classInstance, methodInstance)
         -- When executing a test function, className and classInstance must be nil
         -- When executing a class method, all parameters must be set
 
@@ -2953,53 +2951,53 @@ local LuaUnit_MT = { __index = M.LuaUnit }
 
         if self.lastClassName ~= className then
             if self.lastClassName ~= nil then
-                self:endClass()
+                self:end_class()
             end
-            self:startClass( className )
+            self:start_class( className )
             self.lastClassName = className
         end
 
-        self:startTest(prettyFuncName)
+        self:start_test(prettyFuncName)
 
         local node = self.result.currentNode
         for iter_n = 1, self.exeRepeat or 1 do
-            if node:isNotSuccess() then
+            if node:is_not_success() then
                 break
             end
             self.currentCount = iter_n
 
             -- run setUp first (if any)
             if classInstance then
-                local func = self.asFunction( classInstance.setUp ) or
-                             self.asFunction( classInstance.Setup ) or
-                             self.asFunction( classInstance.setup ) or
-                             self.asFunction( classInstance.SetUp )
+                local func = self.as_function( classInstance.setUp ) or
+                             self.as_function( classInstance.Setup ) or
+                             self.as_function( classInstance.setup ) or
+                             self.as_function( classInstance.SetUp )
                 if func then
-                    self:updateStatus(self:protectedCall(classInstance, func, className..'.setUp'))
+                    self:update_status(self:protected_call(classInstance, func, className..'.setUp'))
                 end
             end
 
             -- run testMethod()
-            if node:isSuccess() then
-                self:updateStatus(self:protectedCall(classInstance, methodInstance, prettyFuncName))
+            if node:is_success() then
+                self:update_status(self:protected_call(classInstance, methodInstance, prettyFuncName))
             end
 
             -- lastly, run tearDown (if any)
             if classInstance then
-                local func = self.asFunction( classInstance.tearDown ) or
-                             self.asFunction( classInstance.TearDown ) or
-                             self.asFunction( classInstance.teardown ) or
-                             self.asFunction( classInstance.Teardown )
+                local func = self.as_function( classInstance.tearDown ) or
+                             self.as_function( classInstance.TearDown ) or
+                             self.as_function( classInstance.teardown ) or
+                             self.as_function( classInstance.Teardown )
                 if func then
-                    self:updateStatus(self:protectedCall(classInstance, func, className..'.tearDown'))
+                    self:update_status(self:protected_call(classInstance, func, className..'.tearDown'))
                 end
             end
         end
 
-        self:endTest()
+        self:end_test()
     end
 
-    function M.LuaUnit:expandOneClass( className, classInstance )
+    function M.LuaUnit:expand_one_class( className, classInstance )
         --[[
         Input: a class name, a class instance
         Ouptut: list of test method instances in the form:
@@ -3007,7 +3005,7 @@ local LuaUnit_MT = { __index = M.LuaUnit }
         ]]
         local result = {}
         for methodName, methodInstance in pairs(classInstance) do
-            if M.LuaUnit.asFunction(methodInstance) and M.LuaUnit.isMethodTestName( methodName ) then
+            if M.LuaUnit.as_function(methodInstance) and M.LuaUnit.is_method_test_name( methodName ) then
                 table.insert( result, {
                     className..'.'..methodName,
                     classInstance,
@@ -3017,14 +3015,14 @@ local LuaUnit_MT = { __index = M.LuaUnit }
             end
         end
         if self.shuffle == 'group' then
-            randomizeTable(result)
+            randomize_table(result)
         elseif self.shuffle == 'none' then
             table.sort(result, function(a, b) return a.line < b.line end)
         end
         return result
     end
 
-    function M.LuaUnit:expandClasses( listOfNameAndInst )
+    function M.LuaUnit:expand_classes( listOfNameAndInst )
         --[[
         -- expand all classes (provided as {className, classInstance}) to a list of {className.methodName, classInstance}
         -- functions and methods remain untouched
@@ -3040,13 +3038,13 @@ local LuaUnit_MT = { __index = M.LuaUnit }
 
         for i,v in ipairs( listOfNameAndInst ) do
             local name, instance = v[1], v[2]
-            if M.LuaUnit.asFunction(instance) then
+            if M.LuaUnit.as_function(instance) then
                 table.insert( result, { name, instance } )
             else
                 if type(instance) ~= 'table' then
                     error( 'Instance must be a table or a function, not a '..type(instance)..' with value '..prettystr(instance))
                 end
-                local className, methodName = M.LuaUnit.splitClassMethod( name )
+                local className, methodName = M.LuaUnit.split_class_method( name )
                 if className then
                     local methodInstance = instance[methodName]
                     if methodInstance == nil then
@@ -3054,7 +3052,7 @@ local LuaUnit_MT = { __index = M.LuaUnit }
                     end
                     table.insert( result, { name, instance } )
                 else
-                    local fns = self:expandOneClass( name, instance )
+                    local fns = self:expand_one_class( name, instance )
                     for _, x in pairs(fns) do
                         table.insert(result, x)
                     end
@@ -3065,11 +3063,11 @@ local LuaUnit_MT = { __index = M.LuaUnit }
         return result
     end
 
-    function M.LuaUnit.applyPatternFilter( patternIncFilter, listOfNameAndInst )
+    function M.LuaUnit.apply_pattern_filter( patternIncFilter, listOfNameAndInst )
         local included, excluded = {}, {}
         for i, v in ipairs( listOfNameAndInst ) do
             -- local name, instance = v[1], v[2]
-            if  patternFilter( patternIncFilter, v[1] ) then
+            if  pattern_filter( patternIncFilter, v[1] ) then
                 table.insert( included, v )
             else
                 table.insert( excluded, v )
@@ -3078,19 +3076,19 @@ local LuaUnit_MT = { __index = M.LuaUnit }
         return included, excluded
     end
 
-    function M.LuaUnit:runTestsList( filteredList )
+    function M.LuaUnit:run_tests_list( filteredList )
         for i,v in ipairs( filteredList ) do
             local name, instance = v[1], v[2]
-            if M.LuaUnit.asFunction(instance) then
-                self:execOneFunction( nil, name, nil, instance )
+            if M.LuaUnit.as_function(instance) then
+                self:exec_one_function( nil, name, nil, instance )
             else
-                -- expandClasses() should have already taken care of sanitizing the input
+                -- expand_classes() should have already taken care of sanitizing the input
                 assert( type(instance) == 'table' )
-                local className, methodName = M.LuaUnit.splitClassMethod( name )
+                local className, methodName = M.LuaUnit.split_class_method( name )
                 assert( className ~= nil )
                 local methodInstance = instance[methodName]
                 assert(methodInstance ~= nil)
-                self:execOneFunction( className, methodName, instance, methodInstance )
+                self:exec_one_function( className, methodName, instance, methodInstance )
             end
             if self.result.aborted then
                 break -- "--error" or "--failure" option triggered
@@ -3098,11 +3096,11 @@ local LuaUnit_MT = { __index = M.LuaUnit }
         end
 
         if self.lastClassName ~= nil then
-            self:endClass()
+            self:end_class()
         end
     end
 
-    function M.LuaUnit:runSuiteByInstances( listOfNameAndInst )
+    function M.LuaUnit:run_suite_by_instances( listOfNameAndInst )
         --[[ Run an explicit list of tests. Each item of the list must be one of:
         * { function name, function instance }
         * { class name, class instance }
@@ -3113,18 +3111,18 @@ local LuaUnit_MT = { __index = M.LuaUnit }
         if self.seed then
             math.randomseed(self.seed)
         end
-        local expandedList = self:expandClasses( listOfNameAndInst )
+        local expandedList = self:expand_classes( listOfNameAndInst )
         if self.shuffle == 'all' then
-            randomizeTable( expandedList )
+            randomize_table( expandedList )
         end
         -- Make seed for ordering not affect other random numbers.
         math.randomseed(os.time())
-        local filteredList, filteredOutList = self.applyPatternFilter(
+        local filteredList, filteredOutList = self.apply_pattern_filter(
             self.patternIncludeFilter, expandedList )
 
-        self:startSuite( #filteredList, #filteredOutList )
-        self:runTestsList(filteredList)
-        self:endSuite()
+        self:start_suite( #filteredList, #filteredOutList )
+        self:run_tests_list(filteredList)
+        self:end_suite()
 
         if self.result.aborted then
             print("LuaUnit ABORTED (as requested by --error or --failure option)")
@@ -3132,18 +3130,18 @@ local LuaUnit_MT = { __index = M.LuaUnit }
         end
     end
 
-    function M.LuaUnit:runSuiteByNames( listOfName )
+    function M.LuaUnit:run_suite_by_names( listOfName )
         --[[ Run LuaUnit with a list of generic names, coming either from command-line or from global
             namespace analysis. Convert the list into a list of (name, valid instances (table or function))
-            and calls runSuiteByInstances.
+            and calls run_suite_by_instances.
         ]]
 
         local instanceName, instance
         local listOfNameAndInst = {}
-        local tests = M.LuaUnit.testsContainer()
+        local tests = M.LuaUnit.tests_container()
 
         for i,name in ipairs( listOfName ) do
-            local className, methodName = M.LuaUnit.splitClassMethod( name )
+            local className, methodName = M.LuaUnit.split_class_method( name )
             if className then
                 instanceName = className
                 instance = tests[instanceName]
@@ -3178,7 +3176,7 @@ local LuaUnit_MT = { __index = M.LuaUnit }
             table.insert( listOfNameAndInst, { name, instance } )
         end
 
-        self:runSuiteByInstances( listOfNameAndInst )
+        self:run_suite_by_instances( listOfNameAndInst )
     end
 
     -- Available options are:
@@ -3204,10 +3202,10 @@ local LuaUnit_MT = { __index = M.LuaUnit }
 
         os.time()
 
-        return runner:runSuite()
+        return runner:run_suite()
     end
 
-    function M.LuaUnit:runSuite()
+    function M.LuaUnit:run_suite()
         if self.shuffle == 'group' or self.shuffle == 'all' then
             if not self.seed then
                 math.randomseed(os.time())
@@ -3222,10 +3220,10 @@ local LuaUnit_MT = { __index = M.LuaUnit }
                 print('With junit output, a filename must be supplied with -n or --name')
                 os_exit(-1)
             end
-            pcall_or_abort(self.setOutputType, self, self.output)
+            pcall_or_abort(self.set_output_type, self, self.output)
         end
 
-        self:runSuiteByNames( self.testNames or M.LuaUnit.collectTests() )
+        self:run_suite_by_names( self.testNames or M.LuaUnit.collect_tests() )
 
         return self.result.notSuccessCount
     end
@@ -3235,11 +3233,11 @@ local LuaUnit_MT = { __index = M.LuaUnit }
 M.run = M.LuaUnit.run
 M.Run = M.LuaUnit.run
 
-function M:setVerbosity( verbosity )
+function M:set_verbosity( verbosity )
     M.LuaUnit.verbosity = verbosity
 end
-M.set_verbosity = M.setVerbosity
-M.SetVerbosity = M.setVerbosity
+M.set_verbosity = M.set_verbosity
+M.SetVerbosity = M.set_verbosity
 
 function M.defaults(options)
     for k, v in pairs(options) do

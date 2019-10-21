@@ -18,7 +18,7 @@ end
 
 -- test group (class) hooks
 local function run_class_callback(runner, className, type)
-    local classInstance = runner.testsContainer()[className]
+    local classInstance = runner.tests_container()[className]
     local func = classInstance and classInstance[type]
     return func and func()
 end
@@ -28,17 +28,17 @@ return function(lu)
     define_suite_hooks(lu, 'before_suite')
     define_suite_hooks(lu, 'after_suite')
 
-    utils.patch(lu.LuaUnit, 'startClass', function(super) return function(self, className)
+    utils.patch(lu.LuaUnit, 'start_class', function(super) return function(self, className)
         super(self, className)
         run_class_callback(self, className, 'before_all')
     end end)
 
-    utils.patch(lu.LuaUnit, 'endClass', function(super) return function(self)
+    utils.patch(lu.LuaUnit, 'end_class', function(super) return function(self)
         run_class_callback(self, self.lastClassName, 'after_all')
         super(self)
     end end)
 
-    utils.patch(lu.LuaUnit, 'runTestsList', function(super) return function(self, tests)
+    utils.patch(lu.LuaUnit, 'run_tests_list', function(super) return function(self, tests)
         if #tests == 0 then
             return
         end

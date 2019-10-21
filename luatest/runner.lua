@@ -43,7 +43,7 @@ function runner.run(args, options)
     local _, code = xpcall(function()
         options = utils.merge({
             enable_capture = true,
-        }, lu.LuaUnit.parseCmdLine(args), options)
+        }, lu.LuaUnit.parse_cmd_line(args), options)
 
         local capture = options.capture or Capture:new()
 
