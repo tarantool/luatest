@@ -1402,7 +1402,7 @@ function M.assert_str_contains( str, sub, isPattern, extra_msg_or_nil )
     end
 end
 
-function M.assert_str_i_contains( str, sub, extra_msg_or_nil )
+function M.assert_str_icontains( str, sub, extra_msg_or_nil )
     -- this relies on lua string.find function
     -- a string always contains the empty string
     if not string.find(str:lower(), sub:lower(), 1, true) then
@@ -1422,7 +1422,7 @@ function M.assert_not_str_contains( str, sub, isPattern, extra_msg_or_nil )
     end
 end
 
-function M.assert_not_str_i_contains( str, sub, extra_msg_or_nil )
+function M.assert_not_str_icontains( str, sub, extra_msg_or_nil )
     -- this relies on lua string.find function
     -- a string always contains the empty string
     if string.find(str:lower(), sub:lower(), 1, true) then
@@ -1541,106 +1541,10 @@ function M.assert_eval_to_false(value, extra_msg_or_nil)
     end
 end
 
-function M.assert_is_true(value, extra_msg_or_nil)
-    if value ~= true then
-        failure("expected: true, actual: " ..prettystr(value), extra_msg_or_nil, 2)
-    end
-end
-
-function M.assert_not_is_true(value, extra_msg_or_nil)
-    if value == true then
-        failure("expected: not true, actual: " ..prettystr(value), extra_msg_or_nil, 2)
-    end
-end
-
-function M.assert_is_false(value, extra_msg_or_nil)
-    if value ~= false then
-        failure("expected: false, actual: " ..prettystr(value), extra_msg_or_nil, 2)
-    end
-end
-
-function M.assert_not_is_false(value, extra_msg_or_nil)
-    if value == false then
-        failure("expected: not false, actual: " ..prettystr(value), extra_msg_or_nil, 2)
-    end
-end
-
-function M.assert_is_nil(value, extra_msg_or_nil)
-    if value ~= nil then
-        failure("expected: nil, actual: " ..prettystr(value), extra_msg_or_nil, 2)
-    end
-end
-
-function M.assert_not_is_nil(value, extra_msg_or_nil)
-    if value == nil then
-        failure("expected: not nil, actual: nil", extra_msg_or_nil, 2)
-    end
-end
-
---[[
-Add type assertion functions to the module table M. Each of these functions
-takes a single parameter "value", and checks that its Lua type matches the
-expected string (derived from the function name):
-
-M.assertIsXxx(value) -> ensure that type(value) conforms to "xxx"
-]]
-for _, funcName in ipairs(
-    {'assert_is_number', 'assert_is_string', 'assert_is_table', 'assert_is_boolean',
-     'assert_is_function', 'assert_is_userdata', 'assert_is_thread'}
-) do
-    local typeExpected = funcName:match("^assert_is_(%a*)$")
-    -- Lua type() always returns lowercase, also make sure the match() succeeded
-    typeExpected = typeExpected and typeExpected:lower()
-                   or error("bad function name '"..funcName.."' for type assertion")
-
-    M[funcName] = function(value, extra_msg_or_nil)
-        if type(value) ~= typeExpected then
-            if type(value) == 'nil' then
-                fail_fmt(2, extra_msg_or_nil, 'expected: a %s value, actual: nil',
-                         typeExpected, type(value), prettystr_pairs(value))
-            else
-                fail_fmt(2, extra_msg_or_nil, 'expected: a %s value, actual: type %s, value %s',
-                         typeExpected, type(value), prettystr_pairs(value))
-            end
-        end
-    end
-end
-
---[[
-Add shortcuts for verifying type of a variable, without failure (luaunit v2 compatibility)
-M.isXxx(value) -> returns true if type(value) conforms to "xxx"
-]]
-for _, typeExpected in ipairs(
-    {'number', 'string', 'table', 'boolean',
-     'function', 'userdata', 'thread', 'nil' }
-) do
-    local is_type = function(value)
-        return (type(value) == typeExpected)
-    end
-    M['is_'..typeExpected] = is_type
-end
-
---[[
-Add non-type assertion functions to the module table M. Each of these functions
-takes a single parameter "value", and checks that its Lua type differs from the
-expected string (derived from the function name):
-
-M.assertNotIsXxx(value) -> ensure that type(value) is not "xxx"
-]]
-for _, funcName in ipairs(
-    {'assert_not_is_number', 'assert_not_is_string', 'assert_not_is_table', 'assert_not_is_boolean',
-     'assert_not_is_function', 'assert_not_is_userdata', 'assert_not_is_thread'}
-) do
-    local typeUnexpected = funcName:match("^assert_not_is_(%a*)$")
-    -- Lua type() always returns lowercase, also make sure the match() succeeded
-    typeUnexpected = typeUnexpected and typeUnexpected:lower()
-                   or error("bad function name '"..funcName.."' for type assertion")
-
-    M[funcName] = function(value, extra_msg_or_nil)
-        if type(value) == typeUnexpected then
-            fail_fmt(2, extra_msg_or_nil, 'expected: not a %s type, actual: value %s',
-                     typeUnexpected, prettystr_pairs(value))
-        end
+function M.assert_type(value, type_expected, extra_msg_or_nil)
+    if type(value) ~= type_expected then
+        fail_fmt(2, extra_msg_or_nil, 'expected: a %s value, actual: type %s, value %s',
+                 type_expected, type(value), prettystr_pairs(value))
     end
 end
 
@@ -1655,7 +1559,7 @@ function M.assert_is(actual, expected, extra_msg_or_nil)
     end
 end
 
-function M.assert_not_is(actual, expected, extra_msg_or_nil)
+function M.assert_is_not(actual, expected, extra_msg_or_nil)
     if actual == expected then
         if not M.ORDER_ACTUAL_EXPECTED then
             expected = actual
@@ -1671,55 +1575,55 @@ end
 ------------------------------------------------------------------
 
 
-function M.assert_is_na_n(value, extra_msg_or_nil)
+function M.assert_nan(value, extra_msg_or_nil)
     if type(value) ~= "number" or value == value then
         failure("expected: NaN, actual: " ..prettystr(value), extra_msg_or_nil, 2)
     end
 end
 
-function M.assert_not_is_na_n(value, extra_msg_or_nil)
+function M.assert_not_nan(value, extra_msg_or_nil)
     if type(value) == "number" and value ~= value then
         failure("expected: not NaN, actual: NaN", extra_msg_or_nil, 2)
     end
 end
 
-function M.assert_is_inf(value, extra_msg_or_nil)
+function M.assert_inf(value, extra_msg_or_nil)
     if type(value) ~= "number" or math.abs(value) ~= math.huge then
         failure("expected: #Inf, actual: " ..prettystr(value), extra_msg_or_nil, 2)
     end
 end
 
-function M.assert_is_plus_inf(value, extra_msg_or_nil)
+function M.assert_plus_inf(value, extra_msg_or_nil)
     if type(value) ~= "number" or value ~= math.huge then
         failure("expected: #Inf, actual: " ..prettystr(value), extra_msg_or_nil, 2)
     end
 end
 
-function M.assert_is_minus_inf(value, extra_msg_or_nil)
+function M.assert_minus_inf(value, extra_msg_or_nil)
     if type(value) ~= "number" or value ~= -math.huge then
         failure("expected: -#Inf, actual: " ..prettystr(value), extra_msg_or_nil, 2)
     end
 end
 
-function M.assert_not_is_plus_inf(value, extra_msg_or_nil)
+function M.assert_not_plus_inf(value, extra_msg_or_nil)
     if type(value) == "number" and value == math.huge then
         failure("expected: not #Inf, actual: #Inf", extra_msg_or_nil, 2)
     end
 end
 
-function M.assert_not_is_minus_inf(value, extra_msg_or_nil)
+function M.assert_not_minus_inf(value, extra_msg_or_nil)
     if type(value) == "number" and value == -math.huge then
         failure("expected: not -#Inf, actual: -#Inf", extra_msg_or_nil, 2)
     end
 end
 
-function M.assert_not_is_inf(value, extra_msg_or_nil)
+function M.assert_not_inf(value, extra_msg_or_nil)
     if type(value) == "number" and math.abs(value) == math.huge then
         failure("expected: not infinity, actual: " .. prettystr(value), extra_msg_or_nil, 2)
     end
 end
 
-function M.assert_is_plus_zero(value, extra_msg_or_nil)
+function M.assert_plus_zero(value, extra_msg_or_nil)
     if type(value) ~= 'number' or value ~= 0 then
         failure("expected: +0.0, actual: " ..prettystr(value), extra_msg_or_nil, 2)
     else if (1/value == -math.huge) then
@@ -1733,7 +1637,7 @@ function M.assert_is_plus_zero(value, extra_msg_or_nil)
     end
 end
 
-function M.assert_is_minus_zero(value, extra_msg_or_nil)
+function M.assert_minus_zero(value, extra_msg_or_nil)
     if type(value) ~= 'number' or value ~= 0 then
         failure("expected: -0.0, actual: " ..prettystr(value), extra_msg_or_nil, 2)
     else if (1/value == math.huge) then
@@ -1747,13 +1651,13 @@ function M.assert_is_minus_zero(value, extra_msg_or_nil)
     end
 end
 
-function M.assert_not_is_plus_zero(value, extra_msg_or_nil)
+function M.assert_not_plus_zero(value, extra_msg_or_nil)
     if type(value) == 'number' and (1/value == math.huge) then
         failure("expected: not +0.0, actual: +0.0", extra_msg_or_nil, 2)
     end
 end
 
-function M.assert_not_is_minus_zero(value, extra_msg_or_nil)
+function M.assert_not_minus_zero(value, extra_msg_or_nil)
     if type(value) == 'number' and (1/value == -math.huge) then
         failure("expected: not -0.0, actual: -0.0", extra_msg_or_nil, 2)
     end
@@ -1773,163 +1677,6 @@ function M.wrap_functions()
 Just prefix your test function names with "test" or "Test" and they
 will be picked up and run by LuaUnit.
 ]]
-end
-
-local list_of_funcs = {
-    -- { official function name , alias }
-
-    -- general assertions
-    { 'almost_equals'            , 'almost_equals' },
-    { 'assert_equals'            , 'assert_equals' },
-    { 'assert_items_equals'       , 'assert_items_equals' },
-    { 'assert_not_equals'         , 'assert_not_equals' },
-    { 'assert_almost_equals'      , 'assert_almost_equals' },
-    { 'assert_not_almost_equals'   , 'assert_not_almost_equals' },
-    { 'assert_eval_to_true'        , 'assert_eval_to_true' },
-    { 'assert_eval_to_false'       , 'assert_eval_to_false' },
-    { 'assert_str_contains'       , 'assert_str_contains' },
-    { 'assert_str_i_contains'      , 'assert_str_icontains' },
-    { 'assert_not_str_contains'    , 'assert_not_str_contains' },
-    { 'assert_not_str_i_contains'   , 'assert_not_str_icontains' },
-    { 'assert_str_matches'        , 'assert_str_matches' },
-    { 'assert_error'             , 'assert_error' },
-    { 'assert_error_msg_equals'    , 'assert_error_msg_equals' },
-    { 'assert_error_msg_contains'  , 'assert_error_msg_contains' },
-    { 'assert_error_msg_matches'   , 'assert_error_msg_matches' },
-    { 'assert_error_msg_content_equals', 'assert_error_msg_content_equals' },
-    { 'assert_is'                , 'assert_is' },
-    { 'assert_not_is'             , 'assert_not_is' },
-    { 'wrap_functions'           , 'WrapFunctions' },
-    { 'wrap_functions'           , 'wrap_functions' },
-
-    { 'fail_if'                  , 'fail_if' },
-    { 'run_only_if'               , 'run_only_if' },
-    { 'skip_if'                  , 'skip_if' },
-    { 'success_if'               , 'success_if' },
-
-    -- type assertions: assertIsXXX -> assert_is_xxx
-    { 'assert_is_number'          , 'assert_is_number' },
-    { 'assert_is_string'          , 'assert_is_string' },
-    { 'assert_is_table'           , 'assert_is_table' },
-    { 'assert_is_boolean'         , 'assert_is_boolean' },
-    { 'assert_is_nil'             , 'assert_is_nil' },
-    { 'assert_is_true'            , 'assert_is_true' },
-    { 'assert_is_false'           , 'assert_is_false' },
-    { 'assert_is_na_n'             , 'assert_is_nan' },
-    { 'assert_is_inf'             , 'assert_is_inf' },
-    { 'assert_is_plus_inf'         , 'assert_is_plus_inf' },
-    { 'assert_is_minus_inf'        , 'assert_is_minus_inf' },
-    { 'assert_is_plus_zero'        , 'assert_is_plus_zero' },
-    { 'assert_is_minus_zero'       , 'assert_is_minus_zero' },
-    { 'assert_is_function'        , 'assert_is_function' },
-    { 'assert_is_thread'          , 'assert_is_thread' },
-    { 'assert_is_userdata'        , 'assert_is_userdata' },
-
-    -- type assertions: assertIsXXX -> assertXxx
-    { 'assert_is_number'          , 'assertNumber' },
-    { 'assert_is_string'          , 'assertString' },
-    { 'assert_is_table'           , 'assertTable' },
-    { 'assert_is_boolean'         , 'assertBoolean' },
-    { 'assert_is_nil'             , 'assertNil' },
-    { 'assert_is_true'            , 'assertTrue' },
-    { 'assert_is_false'           , 'assertFalse' },
-    { 'assert_is_na_n'             , 'assertNaN' },
-    { 'assert_is_inf'             , 'assertInf' },
-    { 'assert_is_plus_inf'         , 'assertPlusInf' },
-    { 'assert_is_minus_inf'        , 'assertMinusInf' },
-    { 'assert_is_plus_zero'        , 'assertPlusZero' },
-    { 'assert_is_minus_zero'       , 'assertMinusZero'},
-    { 'assert_is_function'        , 'assertFunction' },
-    { 'assert_is_thread'          , 'assertThread' },
-    { 'assert_is_userdata'        , 'assertUserdata' },
-
-    -- type assertions: assertIsXXX -> assert_xxx (luaunit v2 compat)
-    { 'assert_is_number'          , 'assert_number' },
-    { 'assert_is_string'          , 'assert_string' },
-    { 'assert_is_table'           , 'assert_table' },
-    { 'assert_is_boolean'         , 'assert_boolean' },
-    { 'assert_is_nil'             , 'assert_nil' },
-    { 'assert_is_true'            , 'assert_true' },
-    { 'assert_is_false'           , 'assert_false' },
-    { 'assert_is_na_n'             , 'assert_nan' },
-    { 'assert_is_inf'             , 'assert_inf' },
-    { 'assert_is_plus_inf'         , 'assert_plus_inf' },
-    { 'assert_is_minus_inf'        , 'assert_minus_inf' },
-    { 'assert_is_plus_zero'        , 'assert_plus_zero' },
-    { 'assert_is_minus_zero'       , 'assert_minus_zero' },
-    { 'assert_is_function'        , 'assert_function' },
-    { 'assert_is_thread'          , 'assert_thread' },
-    { 'assert_is_userdata'        , 'assert_userdata' },
-
-    -- type assertions: assertNotIsXXX -> assert_not_is_xxx
-    { 'assert_not_is_number'       , 'assert_not_is_number' },
-    { 'assert_not_is_string'       , 'assert_not_is_string' },
-    { 'assert_not_is_table'        , 'assert_not_is_table' },
-    { 'assert_not_is_boolean'      , 'assert_not_is_boolean' },
-    { 'assert_not_is_nil'          , 'assert_not_is_nil' },
-    { 'assert_not_is_true'         , 'assert_not_is_true' },
-    { 'assert_not_is_false'        , 'assert_not_is_false' },
-    { 'assert_not_is_na_n'          , 'assert_not_is_nan' },
-    { 'assert_not_is_inf'          , 'assert_not_is_inf' },
-    { 'assert_not_is_plus_inf'      , 'assert_not_is_plus_inf' },
-    { 'assert_not_is_minus_inf'     , 'assert_not_is_minus_inf' },
-    { 'assert_not_is_plus_zero'     , 'assert_not_is_plus_zero' },
-    { 'assert_not_is_minus_zero'    , 'assert_not_is_minus_zero' },
-    { 'assert_not_is_function'     , 'assert_not_is_function' },
-    { 'assert_not_is_thread'       , 'assert_not_is_thread' },
-    { 'assert_not_is_userdata'     , 'assert_not_is_userdata' },
-
-    -- type assertions: assertNotIsXXX -> assertNotXxx (luaunit v2 compat)
-    { 'assert_not_is_number'       , 'assertNotNumber' },
-    { 'assert_not_is_string'       , 'assertNotString' },
-    { 'assert_not_is_table'        , 'assertNotTable' },
-    { 'assert_not_is_boolean'      , 'assertNotBoolean' },
-    { 'assert_not_is_nil'          , 'assertNotNil' },
-    { 'assert_not_is_true'         , 'assertNotTrue' },
-    { 'assert_not_is_false'        , 'assertNotFalse' },
-    { 'assert_not_is_na_n'          , 'assertNotNaN' },
-    { 'assert_not_is_inf'          , 'assertNotInf' },
-    { 'assert_not_is_plus_inf'      , 'assertNotPlusInf' },
-    { 'assert_not_is_minus_inf'     , 'assertNotMinusInf' },
-    { 'assert_not_is_plus_zero'     , 'assertNotPlusZero' },
-    { 'assert_not_is_minus_zero'    , 'assertNotMinusZero' },
-    { 'assert_not_is_function'     , 'assertNotFunction' },
-    { 'assert_not_is_thread'       , 'assertNotThread' },
-    { 'assert_not_is_userdata'     , 'assertNotUserdata' },
-
-    -- type assertions: assertNotIsXXX -> assert_not_xxx
-    { 'assert_not_is_number'       , 'assert_not_number' },
-    { 'assert_not_is_string'       , 'assert_not_string' },
-    { 'assert_not_is_table'        , 'assert_not_table' },
-    { 'assert_not_is_boolean'      , 'assert_not_boolean' },
-    { 'assert_not_is_nil'          , 'assert_not_nil' },
-    { 'assert_not_is_true'         , 'assert_not_true' },
-    { 'assert_not_is_false'        , 'assert_not_false' },
-    { 'assert_not_is_na_n'          , 'assert_not_nan' },
-    { 'assert_not_is_inf'          , 'assert_not_inf' },
-    { 'assert_not_is_plus_inf'      , 'assert_not_plus_inf' },
-    { 'assert_not_is_minus_inf'     , 'assert_not_minus_inf' },
-    { 'assert_not_is_plus_zero'     , 'assert_not_plus_zero' },
-    { 'assert_not_is_minus_zero'    , 'assert_not_minus_zero' },
-    { 'assert_not_is_function'     , 'assert_not_function' },
-    { 'assert_not_is_thread'       , 'assert_not_thread' },
-    { 'assert_not_is_userdata'     , 'assert_not_userdata' },
-
-    -- all assertions with Coroutine duplicate Thread assertions
-    { 'assert_is_thread'          , 'assertIsCoroutine' },
-    { 'assert_is_thread'          , 'assertCoroutine' },
-    { 'assert_is_thread'          , 'assert_is_coroutine' },
-    { 'assert_is_thread'          , 'assert_coroutine' },
-    { 'assert_not_is_thread'       , 'assertNotIsCoroutine' },
-    { 'assert_not_is_thread'       , 'assertNotCoroutine' },
-    { 'assert_not_is_thread'       , 'assert_not_is_coroutine' },
-    { 'assert_not_is_thread'       , 'assert_not_coroutine' },
-}
-
--- Create all aliases in M
-for _,v in ipairs( list_of_funcs ) do
-    local funcname, alias = v[1], v[2]
-    M[alias] = M[funcname]
 end
 
 ----------------------------------------------------------------

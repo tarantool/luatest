@@ -63,3 +63,12 @@ g.test_assert_not_covers = function()
     t.assert_error(subject, {a = 1, b = 2, c = 3}, {a = 1, c = 3})
     t.assert_error(subject, {a = 1, b = 2, c = 3}, {a = 1, b = 2, c = 3})
 end
+
+g.test_assert_type = function()
+    local subject = t.assert_type
+    subject(1, 'number')
+    subject('1', 'string')
+
+    t.assert_error(subject, 1, 'string')
+    t.assert_error(subject, '1', 'number')
+end
