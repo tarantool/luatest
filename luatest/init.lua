@@ -224,6 +224,13 @@ return luatest
 -- @int[opt=value:len()] final
 -- @string[opt] message
 
+--- Check value's type.
+--
+-- @function assert_type
+-- @string value
+-- @string expected_type
+-- @string[opt] message
+
 --- Stops a test due to a failure.
 --
 -- @function fail

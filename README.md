@@ -124,6 +124,7 @@ t.defaults({shuffle = 'none'})
 | `assert_str_contains (value, expected[, is_pattern[, message]])` | Case-sensitive strings comparison. |
 | `assert_str_icontains (value, expected[, message])` | Case-insensitive strings comparison. |
 | `assert_str_matches (value, pattern[, start=1[, final=value:len()[, message]]])` | Verify a full match for the string. |
+| `assert_type (value, expected_type[, message])` | Check value's type. |
 | **Flow control** |  |
 | `fail (message)` | Stops a test due to a failure. |
 | `fail_if (condition, message)` | Stops a test due to a failure if condition is met. |
