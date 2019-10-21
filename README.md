@@ -18,6 +18,14 @@ Please refer to [luanit docs](https://luaunit.readthedocs.io/en/latest/) for ori
 
 - Tarantool (it requires tarantool-specific `fio` module and `ffi` from LuaJIT).
 
+## Installation
+
+```
+tarantoolctl rocks install luatest
+
+.rocks/bin/luatest --help # list available options
+```
+
 ## Usage
 
 Define tests.
@@ -59,11 +67,7 @@ luatest test/feature_test.lua         # by file
 luatest test/integration              # all within directory
 luatest test/ -f                      # luaunit options are supported
 luatest feature other.test_example_2  # by group or test name
-luater --help                         # list available options
 ```
-
-If `luatest` executable does not appear in $PATH after installing the rock,
-it can be found in `.rocks/bin/luatest`.
 
 ## Tests order
 
