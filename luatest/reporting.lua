@@ -17,10 +17,11 @@ return function(lu)
             else
                 print()
             end
-            print('Failed tests:\n')
+            print(TextOutput.BOLD_CODE .. 'Failed tests:\n' .. TextOutput.ERROR_COLOR_CODE)
             for _, x in pairs(list) do
                 print(x)
             end
+            io.stdout:write(TextOutput.RESET_TERM)
         end
     end end)
 end

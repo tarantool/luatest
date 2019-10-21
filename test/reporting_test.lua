@@ -32,9 +32,8 @@ g.test_fails_summary_on_failure = function()
     end)
     t.assert_equals(result, 2)
     local captured = capture:flush()
+    t.assert_str_contains(captured.stdout, 'Failed tests:')
     t.assert_str_contains(captured.stdout, [[
-Failed tests:
-
 group-name.test_1
 group-name.test_3
 ]])

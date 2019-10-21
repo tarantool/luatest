@@ -1747,6 +1747,11 @@ local TextOutput = genericOutput.new() -- derived class
 local TextOutput_MT = { __index = TextOutput } -- metatable
 TextOutput.__class__ = 'TextOutput'
 
+TextOutput.BOLD_CODE = '\x1B[1m'
+TextOutput.ERROR_COLOR_CODE = TextOutput.BOLD_CODE .. '\x1B[31m' -- red
+TextOutput.SUCCESS_COLOR_CODE = TextOutput.BOLD_CODE .. '\x1B[32m' -- green
+TextOutput.RESET_TERM = '\x1B[0m'
+
     function TextOutput.new(runner)
         local t = genericOutput.new(runner, M.VERBOSITY_DEFAULT)
         t.errorList = {}
@@ -1795,16 +1800,18 @@ TextOutput.__class__ = 'TextOutput'
     end
 
     function TextOutput:display_one_failed_test( index, fail )
-        print(index..") "..fail.testName )
-        print( fail.msg )
+        print(index..") "..fail.testName .. TextOutput.ERROR_COLOR_CODE )
+        print( fail.msg .. TextOutput.RESET_TERM )
         print( fail.stackTrace )
         print()
     end
 
     function TextOutput:display_errored_tests()
         if #self.result.errorTests ~= 0 then
+            print(TextOutput.BOLD_CODE)
             print("Tests with errors:")
             print("------------------")
+            print(TextOutput.RESET_TERM)
             for i, v in ipairs(self.result.errorTests) do
                 self:display_one_failed_test(i, v)
             end
@@ -1813,8 +1820,10 @@ TextOutput.__class__ = 'TextOutput'
 
     function TextOutput:display_failed_tests()
         if #self.result.failedTests ~= 0 then
+            print(TextOutput.BOLD_CODE)
             print("Failed tests:")
             print("-------------")
+            print(TextOutput.RESET_TERM)
             for i, v in ipairs(self.result.failedTests) do
                 self:display_one_failed_test(i, v)
             end
@@ -1829,7 +1838,11 @@ TextOutput.__class__ = 'TextOutput'
         end
         self:display_errored_tests()
         self:display_failed_tests()
-        print( M.LuaUnit.status_line( self.result ) )
+        print( M.LuaUnit.status_line( self.result, {
+            success = TextOutput.SUCCESS_COLOR_CODE,
+            failure = TextOutput.ERROR_COLOR_CODE,
+            reset = TextOutput.RESET_TERM,
+        } ) )
         if self.result.notSuccessCount == 0 then
             print('OK')
         end
@@ -2200,19 +2213,24 @@ local LuaUnit_MT = { __index = M.LuaUnit }
         return string.format('%d %s%s', number, singular, suffix)
     end
 
-    function M.LuaUnit.status_line(result)
+    function M.LuaUnit.status_line(result, colors)
+        colors = colors or {success = '', failure = '', reset = ''}
         -- return status line string according to results
         local s = {
             string.format('Ran %d tests in %0.3f seconds',
                           result.runCount, result.duration),
-            conditional_plural(result.successCount, 'success'),
+            colors.success .. conditional_plural(result.successCount, 'success') .. colors.reset,
         }
         if result.notSuccessCount > 0 then
             if result.failureCount > 0 then
-                table.insert(s, conditional_plural(result.failureCount, 'failure'))
+                table.insert(s,
+                    colors.failure .. conditional_plural(result.failureCount, 'failure') .. colors.reset
+                )
             end
             if result.errorCount > 0 then
-                table.insert(s, conditional_plural(result.errorCount, 'error'))
+                table.insert(s,
+                    colors.failure .. conditional_plural(result.errorCount, 'error') .. colors.reset
+                )
             end
         else
             table.insert(s, '0 failures')
