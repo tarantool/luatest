@@ -43,6 +43,14 @@ g.test_executable_error = function()
     t.assert_equals(run_file('error.lua'), 256) -- luajit multiplies result by 256
 end
 
+g.test_run_without_capture = function()
+    local result = helper.run_suite(function(lu2)
+        lu2.group('test').test = function() t.assert_equals(1, 1) end
+    end, {'-c'})
+
+    t.assert_equals(result, 0)
+end
+
 g.test_run_shuffle = function()
     local function get_run_order(options)
         local result = {}

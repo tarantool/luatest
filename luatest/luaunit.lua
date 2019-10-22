@@ -1949,33 +1949,9 @@ local LuaUnit_MT = { __index = M.LuaUnit }
 
     function M.LuaUnit.parse_cmd_line( cmdLine )
         -- parse the command line
-        -- Supported command line parameters:
-        -- --verbose, -v: increase verbosity
-        -- --quiet, -q: silence output
-        -- --error, -e: treat errors as fatal (quit program)
-        -- --output, -o, + name: select output type
-        -- --pattern, -p, + pattern: run test matching pattern, may be repeated
-        -- --exclude, -x, + pattern: run test not matching pattern, may be repeated
-        -- --shuffle, -s, + value: shuffle tests before reunning them
-        -- --seed, + value : set random seed for shuffler
-        -- --name, -n, + fname: name of output file for junit, default to stdout
-        -- --repeat, -r, + num: number of times to execute each test
-        -- [testnames, ...]: run selected test names
-        --
-        -- Returns a table with the following fields:
-        -- verbosity: nil, M.VERBOSITY_DEFAULT, M.VERBOSITY_QUIET, M.VERBOSITY_VERBOSE
-        -- output: nil, 'tap', 'junit', 'text', 'nil'
-        -- testNames: nil or a list of test names to run
-        -- exeRepeat: num or 1
-        -- pattern: nil or a list of patterns
-        -- exclude: nil or a list of patterns
+        -- See M.USAGE for supported options.
 
         local result, state = {paths = {}}, nil
-        local SET_OUTPUT = 1
-        local SET_PATTERN = 2
-        local SET_EXCLUDE = 3
-        local SET_FNAME = 4
-        local SET_REPEAT = 5
 
         if cmdLine == nil then
             return result
@@ -1983,91 +1959,70 @@ local LuaUnit_MT = { __index = M.LuaUnit }
 
         local function parse_option( option )
             if option == '--help' or option == '-h' then
-                result['help'] = true
-                return
+                M.LuaUnit.help()
             elseif option == '--version' then
-                result['version'] = true
-                return
+                M.LuaUnit.version()
             elseif option == '--verbose' or option == '-v' then
                 result['verbosity'] = M.VERBOSITY_VERBOSE
-                return
             elseif option == '--quiet' or option == '-q' then
                 result['verbosity'] = M.VERBOSITY_QUIET
-                return
             elseif option == '--error' or option == '-e' then
                 result['quitOnError'] = true
-                return
             elseif option == '--failure' or option == '-f' then
                 result['quitOnFailure'] = true
-                return
             elseif option == '--shuffle' or option == '-s' then
                 return 'SET_SHUFFLE'
             elseif option == '--seed' then
                 return 'SET_SEED'
             elseif option == '--output' or option == '-o' then
-                state = SET_OUTPUT
-                return state
+                return 'SET_OUTPUT'
             elseif option == '--name' or option == '-n' then
-                state = SET_FNAME
-                return state
+                return 'SET_FNAME'
             elseif option == '--repeat' or option == '-r' then
-                state = SET_REPEAT
-                return state
+                return 'SET_REPEAT'
             elseif option == '--pattern' or option == '-p' then
-                state = SET_PATTERN
-                return state
+                return 'SET_PATTERN'
             elseif option == '--exclude' or option == '-x' then
-                state = SET_EXCLUDE
-                return state
+                return 'SET_EXCLUDE'
             elseif option == '-c' then
                 result.enable_capture = false
+            else
+                error('Unknown option: '..option,3)
             end
-            error('Unknown option: '..option,3)
         end
 
         local function set_arg( cmdArg, state )
-            if state == SET_OUTPUT then
+            if state == 'SET_OUTPUT' then
                 result['output'] = cmdArg
-                return
-            elseif state == SET_FNAME then
+            elseif state == 'SET_FNAME' then
                 result['fname'] = cmdArg
-                return
-            elseif state == SET_REPEAT then
+            elseif state == 'SET_REPEAT' then
                 result['exeRepeat'] = tonumber(cmdArg)
                                      or error('Malformed -r argument: '..cmdArg)
-                return
-            elseif state == SET_PATTERN then
+            elseif state == 'SET_PATTERN' then
                 if result['pattern'] then
                     table.insert( result['pattern'], cmdArg )
                 else
                     result['pattern'] = { cmdArg }
                 end
-                return
-            elseif state == SET_EXCLUDE then
+            elseif state == 'SET_EXCLUDE' then
                 local notArg = '!'..cmdArg
                 if result['pattern'] then
                     table.insert( result['pattern'],  notArg )
                 else
                     result['pattern'] = { notArg }
                 end
-                return
             elseif state == 'SET_SHUFFLE' then
                 local seed
                 result.shuffle, seed = unpack(cmdArg:split(':'))
-                local seed_n = tonumber(seed)
-                if seed and not seed_n then
-                    error('Invalid seed value')
+                if seed then
+                    result.seed = tonumber(seed) or error('Invalid seed value')
                 end
-                result.seed = seed_n
-                return
             elseif state == 'SET_SEED' then
-                result.seed = tonumber(cmdArg)
-                if not result.seed then
-                    error('Invalid seed value')
-                end
-                return
+                result.seed = tonumber(cmdArg) or error('Invalid seed value')
+            else
+                error('Unknown parse state: '.. state)
             end
-            error('Unknown parse state: '.. state)
         end
 
 
@@ -2090,14 +2045,6 @@ local LuaUnit_MT = { __index = M.LuaUnit }
                     end
                 end
             end
-        end
-
-        if result['help'] then
-            M.LuaUnit.help()
-        end
-
-        if result['version'] then
-            M.LuaUnit.version()
         end
 
         if state ~= nil then
