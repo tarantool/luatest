@@ -4,15 +4,13 @@
 
 Tool for testing tarantool applications.
 
-This rock is based on [luanit](https://github.com/bluebird75/luaunit) and additionaly provides:
+Highlights:
 
 - executable to run tests in directory or specific files,
 - before/after suite hooks,
 - before/after test group hooks,
 - [output capturing](#capturing-output),
-- [test helpers](#test-helpers).
-
-Please refer to [luanit docs](https://luaunit.readthedocs.io/en/latest/) for original features and examples.
+- [helpers](#test-helpers) for testing tarantool applications.
 
 ## Requirements
 
@@ -65,9 +63,12 @@ Run them.
 luatest                               # all in ./test direcroy
 luatest test/feature_test.lua         # by file
 luatest test/integration              # all within directory
-luatest test/ -f                      # luaunit options are supported
 luatest feature other.test_example_2  # by group or test name
+luatest --help # list available options
 ```
+
+Luatest automatically requires `test/helper.lua` file if it's present.
+You can configure luatest or run any bootstrap code there.
 
 ## Tests order
 
@@ -95,6 +96,7 @@ With `group` and `all` you can also specify a `seed` to reproduce specific order
 To change default order use:
 
 ```lua
+-- test/helper.lua
 local t = require('luatest')
 t.defaults({shuffle = 'group'})
 ```
