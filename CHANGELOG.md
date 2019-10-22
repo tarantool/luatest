@@ -1,6 +1,7 @@
 # Unreleased
 
 - Make --shuffle option accept `group`, `all`, `none` values
+- Replace `raw` option for `Server:http_request` with `raise`.
 
 # 0.2.2
 

@@ -122,7 +122,7 @@ end
 -- @string[opt] options.body request body
 -- @param[opt] options.json data to encode as JSON into request body
 -- @tab[opt] options.http other options for HTTP-client
--- @bool[opt] options.raw not to raise error and return response when status is not 200
+-- @bool[opt] options.raise raise error when status is not in 200..299. Default to true.
 -- @return response object from HTTP client.
 --   If response body is valid JSON it's parsed into `json` field.
 -- @raise HTTPRequest error when response status is not 200.
@@ -131,6 +131,9 @@ function Server:http_request(method, path, options)
         error('http_port not configured')
     end
     options = options or {}
+    if options.raw ~= nil then
+        error('`raw` option for http_request is removed, please replace `raw = true` => `raise = false`')
+    end
     local body = options.body or (options.json and json.encode(options.json))
     local http_options = options.http or {}
     local url = 'http://localhost:' .. self.http_port .. path
@@ -139,8 +142,10 @@ function Server:http_request(method, path, options)
     if ok then
         response.json = json_body
     end
-    if not options.raw and (response.status < 200 or response.status > 299) then
-        error({type = 'HTTPRequest', response = response})
+    if response.status < 200 or response.status > 299 then
+        if options.raise == nil or options.raise then
+            error({type = 'HTTPRequest', response = response})
+        end
     end
     return response
 end

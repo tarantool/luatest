@@ -79,7 +79,7 @@ g.test_http_request_failed = function()
 end
 
 g.test_http_request_supress_exception = function()
-    local response = server:http_request('post', '/invalid', { raw = true })
+    local response = server:http_request('post', '/invalid', {raise = false})
     t.assert_equals(response.status, 404)
 end
 
