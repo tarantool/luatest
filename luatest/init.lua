@@ -144,6 +144,13 @@ return luatest
 -- @param expected
 -- @string[opt] message
 
+--- Check that values are not the same.
+--
+-- @function assert_is_not
+-- @param actual
+-- @param expected
+-- @string[opt] message
+
 --- Check that the items of table expected are contained in table actual.
 -- Warning, this function is at least O(n^2)
 --
@@ -169,13 +176,6 @@ return luatest
 -- Tables are compared by value.
 --
 -- @function assert_not_equals
--- @param actual
--- @param expected
--- @string[opt] message
-
---- Check that values are not the same.
---
--- @function assert_not_is
 -- @param actual
 -- @param expected
 -- @string[opt] message

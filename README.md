@@ -115,13 +115,13 @@ t.defaults({shuffle = 'none'})
 | `assert_eval_to_false (value[, message])` | Alias for assert_not. |
 | `assert_eval_to_true (value[, message])` | Alias for assert. |
 | `assert_is (actual, expected[, message])` | Check that values are the same. |
+| `assert_is_not (actual, expected[, message])` | Check that values are not the same. |
 | `assert_items_equals (actual, expected[, message])` | Check that the items of table expected are contained in table actual. |
 | `assert_nan (value[, message])` | |
 | `assert_not (value[, message])` | Check that value is falsy. |
 | `assert_not_almost_equals (actual, expected, margin[, message])` | Check that two floats are not close by margin. |
 | `assert_not_covers (actual, expected[, message])` | Checks that map does not contain the other one. |
 | `assert_not_equals (actual, expected[, message])` | Check that two values are not equal. |
-| `assert_not_is (actual, expected[, message])` | Check that values are not the same. |
 | `assert_not_nan (value[, message])` | |
 | `assert_not_str_contains (actual, expected[, is_pattern[, message]])` | Case-sensitive strings comparison. |
 | `assert_not_str_icontains (value, expected[, message])` | Case-insensitive strings comparison. |
