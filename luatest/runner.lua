@@ -56,7 +56,6 @@ function runner.run(args, options)
         lu.load_tests(options)
         return lu.LuaUnit.run(options)
     end, function(err)
-        require('log').info({o = err})
         if err.type == 'LUAUNIT_EXIT' then
             return err.code
         else
