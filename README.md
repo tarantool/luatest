@@ -173,6 +173,11 @@ server:http_request('get', '/path')
 server:http_request('post', '/path', {body = 'text'})
 server:http_request('post', '/path', {json = {field = value}})
 
+-- This method throws error when response status is outside of then range 200..299.
+-- To change this behaviour, path `raise = false`:
+t.assert_equals(server:http_request('get', '/not_found', {raise = false}).status, 404)
+t.assert_error(function() server:http_request('get', '/not_found') end)
+
 -- using net_box
 server:connect_net_box()
 server.net_box:eval('return do_something(...)', {arg1, arg2})
