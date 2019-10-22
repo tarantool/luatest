@@ -15,11 +15,7 @@ local M={}
 -- private exported functions (for testing)
 M.private = {}
 
-M.VERSION='3.3'
-M._VERSION=M.VERSION -- For LuaUnit v2 compatibility
-
--- a version which distinguish between regular Lua and LuaJit
-M._LUAVERSION = (jit and jit.version) or _VERSION
+M.VERSION='0.3.0'
 
 --[[ Some people like assert_equals( actual, expected ) and some people prefer
 assert_equals( expected, actual ).
@@ -28,7 +24,6 @@ M.ORDER_ACTUAL_EXPECTED = true
 M.PRINT_TABLE_REF_IN_ERROR_MSG = false
 M.TABLE_EQUALS_KEYBYCONTENT = true
 M.LINE_LENGTH = 80
-M.TABLE_DIFF_ANALYSIS_THRESHOLD = 10    -- display deep analysis for more than 10 items
 M.LIST_DIFF_ANALYSIS_THRESHOLD  = 10    -- display deep analysis for more than 10 items
 
 M.GLOBAL_TESTS = true -- Use either _G or M.tests as tests container
@@ -67,7 +62,6 @@ M.VERBOSITY_DEFAULT = 10
 M.VERBOSITY_LOW     = 1
 M.VERBOSITY_QUIET   = 0
 M.VERBOSITY_VERBOSE = 20
-M.DEFAULT_DEEP_ANALYSIS = nil
 M.FORCE_DEEP_ANALYSIS   = true
 M.DISABLE_DEEP_ANALYSIS = false
 
@@ -2060,7 +2054,7 @@ local LuaUnit_MT = { __index = M.LuaUnit }
     end
 
     function M.LuaUnit.version()
-        print('LuaUnit v'..M.VERSION..' by Philippe Fremy <phil@freehackers.org>')
+        print('luatest v'..M.VERSION)
         os_exit(0)
     end
 
