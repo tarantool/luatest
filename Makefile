@@ -3,7 +3,7 @@ bootstrap: .rocks
 .rocks: luatest-scm-1.rockspec
 	tarantoolctl rocks make ./luatest-scm-1.rockspec
 	tarantoolctl rocks install http 1.1.0
-	tarantoolctl rocks install luacheck
+	tarantoolctl rocks install luacheck 0.25.0
 	tarantoolctl rocks install ldoc --server=http://rocks.moonscript.org
 
 .PHONY: lint
