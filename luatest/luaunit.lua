@@ -86,10 +86,10 @@ Options:
   -c                      Disable capture
   -e, --error:            Stop on first error
   -f, --failure:          Stop on first failure or error
-  --shuffle ORDER:        Set execution order:
-                            - group[:seed] - shuffle tests within group (default)
+  --shuffle VALUE:        Set execution order:
+                            - group[:seed] - shuffle tests within group
                             - all[:seed] - shuffle all tests
-                            - defined - sort tests within group by line number
+                            - none - sort tests within group by line number (default)
   --seed NUMBER:          Set seed value for shuffler
   -o, --output OUTPUT:    Set output type to OUTPUT
                           Possible values: text, tap, junit, nil
@@ -1863,7 +1863,7 @@ end
 M.LuaUnit = {
     outputType = TextOutput,
     verbosity = M.VERBOSITY_DEFAULT,
-    shuffle = 'group',
+    shuffle = 'none',
     __class__ = 'LuaUnit'
 }
 local LuaUnit_MT = { __index = M.LuaUnit }

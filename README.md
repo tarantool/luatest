@@ -70,13 +70,13 @@ it can be found in `.rocks/bin/luatest`.
 Use the `--shuffle` option to tell luatest how to order the tests.
 The available ordering schemes are `group`, `all` and `none`.
 
-`group` is the default, which shuffles tests within the groups.
+`group` shuffles tests within the groups.
 
 `all` randomizes execution order across all available tests.
 Be careful: `before_all/after_all` hooks run always when test class is changed,
 so it may run multiple time.
 
-`none` executes examples within the group in the order they
+`none` is the default, which executes examples within the group in the order they
 are defined (eventually they are ordered by functions line numbers).
 
 With `group` and `all` you can also specify a `seed` to reproduce specific order.
@@ -92,7 +92,7 @@ To change default order use:
 
 ```lua
 local t = require('luatest')
-t.defaults({shuffle = 'none'})
+t.defaults({shuffle = 'group'})
 ```
 
 ## List of luatest functions
