@@ -1,7 +1,11 @@
 # Unreleased
 
+# 0.3.0
+
 - Make --shuffle option accept `group`, `all`, `none` values
 - Replace `raw` option for `Server:http_request` with `raise`.
+- Remove not documented methods inherited from luaunit.
+- Colorize report.
 
 # 0.2.2
 
