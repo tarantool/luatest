@@ -2696,16 +2696,6 @@ local LuaUnit_MT = { __index = M.LuaUnit }
     end
 -- class LuaUnit
 
--- For compatbility with LuaUnit v2
-M.run = M.LuaUnit.run
-M.Run = M.LuaUnit.run
-
-function M:set_verbosity( verbosity )
-    M.LuaUnit.verbosity = verbosity
-end
-M.set_verbosity = M.set_verbosity
-M.SetVerbosity = M.set_verbosity
-
 function M.defaults(options)
     for k, v in pairs(options) do
         M.LuaUnit[k] = v
