@@ -1,5 +1,7 @@
 # Unreleased
 
+- Fix not working `--exclude`, `--pattern` options
+
 # 0.3.0
 
 - Make --shuffle option accept `group`, `all`, `none` values

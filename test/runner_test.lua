@@ -51,19 +51,19 @@ g.test_run_without_capture = function()
     t.assert_equals(result, 0)
 end
 
-g.test_run_shuffle = function()
-    local function get_run_order(options)
-        local result = {}
-        helper.run_suite(function(lu2)
-            for i = 1, 3 do
-                local g2 = lu2.group('g' .. i)
-                g2.test_1 = function() table.insert(result, '' .. i .. '-a') end
-                g2.test_2 = function() table.insert(result, '' .. i .. '-b') end
-            end
-        end, options)
-        return result
-    end
+local function get_run_order(options)
+    local result = {}
+    helper.run_suite(function(lu2)
+        for i = 1, 3 do
+            local g2 = lu2.group('g' .. i)
+            g2.test_a = function() table.insert(result, '' .. i .. '-a') end
+            g2.test_b = function() table.insert(result, '' .. i .. '-b') end
+        end
+    end, options)
+    return result
+end
 
+g.test_run_shuffle = function()
     t.assert_equals(get_run_order({'--shuffle', 'none'}), {
         '1-a',
         '1-b',
@@ -74,28 +74,44 @@ g.test_run_shuffle = function()
     })
 
     t.assert_equals(get_run_order({'--shuffle', 'group:1'}), {
-        '1-a',
         '1-b',
-        '2-a',
+        '1-a',
         '2-b',
-        '3-b',
+        '2-a',
         '3-a',
+        '3-b',
     })
     t.assert_equals(get_run_order({'--shuffle', 'group:2'}), {
-        '1-a',
         '1-b',
-        '2-b',
+        '1-a',
         '2-a',
-        '3-b',
+        '2-b',
         '3-a',
+        '3-b',
     })
 
     t.assert_equals(get_run_order({'--shuffle', 'all:1'}), {
-        '3-a',
-        '2-b',
         '3-b',
         '2-a',
-        '1-b',
+        '3-a',
+        '2-b',
         '1-a',
+        '1-b',
+    })
+end
+
+g.test_pattern_and_exclude = function()
+    t.assert_equals(get_run_order({'--shuffle', 'none', '-x', 'a'}), {
+        '1-b',
+        '2-b',
+        '3-b',
+    })
+
+    t.assert_equals(get_run_order({'--shuffle', 'none', '-x', 'g'}), {})
+
+    t.assert_equals(get_run_order({'--shuffle', 'none', '-p', 'a'}), {
+        '1-a',
+        '2-a',
+        '3-a',
     })
 end

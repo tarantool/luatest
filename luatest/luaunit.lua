@@ -1556,7 +1556,7 @@ function genericOutput.new(runner, default_verbosity)
     if runner then
         t.result = runner.result
         t.verbosity = runner.verbosity or default_verbosity
-        t.fname = runner.fname
+        t.output_file_name = runner.output_file_name
     else
         t.verbosity = default_verbosity
     end
@@ -1666,18 +1666,18 @@ JUnitOutput.__class__ = 'JUnitOutput'
 
     function JUnitOutput:start_suite()
         -- open xml file early to deal with errors
-        if self.fname == nil then
+        if self.output_file_name == nil then
             error('With Junit, an output filename must be supplied with --name!')
         end
-        if string.sub(self.fname,-4) ~= '.xml' then
-            self.fname = self.fname..'.xml'
+        if string.sub(self.output_file_name,-4) ~= '.xml' then
+            self.output_file_name = self.output_file_name..'.xml'
         end
-        self.fd = io.open(self.fname, "w")
+        self.fd = io.open(self.output_file_name, "w")
         if self.fd == nil then
-            error("Could not open file for writing: "..self.fname)
+            error("Could not open file for writing: "..self.output_file_name)
         end
 
-        print('# XML output to '..self.fname)
+        print('# XML output to '..self.output_file_name)
         print('# Started on '..self.result.startDate)
     end
     function JUnitOutput:start_class(className)
@@ -1931,14 +1931,14 @@ local LuaUnit_MT = { __index = M.LuaUnit }
         -- from the global namespace matching LuaUnit.is_test_name.
         -- Otherwise returns all keys from M.tests table.
 
-        local testNames = {}
+        local test_names = {}
         for k, _ in pairs(M.LuaUnit.tests_container()) do
             if type(k) == "string" and ( M.LuaUnit.is_test_name( k ) or not M.GLOBAL_TESTS ) then
-                table.insert( testNames , k )
+                table.insert( test_names , k )
             end
         end
-        table.sort( testNames )
-        return testNames
+        table.sort( test_names )
+        return test_names
     end
 
     function M.LuaUnit.parse_cmd_line( cmdLine )
@@ -1957,13 +1957,13 @@ local LuaUnit_MT = { __index = M.LuaUnit }
             elseif option == '--version' then
                 M.LuaUnit.version()
             elseif option == '--verbose' or option == '-v' then
-                result['verbosity'] = M.VERBOSITY_VERBOSE
+                result.verbosity = M.VERBOSITY_VERBOSE
             elseif option == '--quiet' or option == '-q' then
-                result['verbosity'] = M.VERBOSITY_QUIET
+                result.verbosity = M.VERBOSITY_QUIET
             elseif option == '--error' or option == '-e' then
-                result['quitOnError'] = true
+                result.quit_on_error = true
             elseif option == '--failure' or option == '-f' then
-                result['quitOnFailure'] = true
+                result.quit_on_failure = true
             elseif option == '--shuffle' or option == '-s' then
                 return 'SET_SHUFFLE'
             elseif option == '--seed' then
@@ -1971,7 +1971,7 @@ local LuaUnit_MT = { __index = M.LuaUnit }
             elseif option == '--output' or option == '-o' then
                 return 'SET_OUTPUT'
             elseif option == '--name' or option == '-n' then
-                return 'SET_FNAME'
+                return 'SET_OUTPUT_FILENAME'
             elseif option == '--repeat' or option == '-r' then
                 return 'SET_REPEAT'
             elseif option == '--pattern' or option == '-p' then
@@ -1987,24 +1987,24 @@ local LuaUnit_MT = { __index = M.LuaUnit }
 
         local function set_arg( cmdArg, state )
             if state == 'SET_OUTPUT' then
-                result['output'] = cmdArg
-            elseif state == 'SET_FNAME' then
-                result['fname'] = cmdArg
+                result.output = cmdArg
+            elseif state == 'SET_OUTPUT_FILENAME' then
+                result.output_file_name = cmdArg
             elseif state == 'SET_REPEAT' then
-                result['exeRepeat'] = tonumber(cmdArg)
+                result.exe_repeat = tonumber(cmdArg)
                                      or error('Malformed -r argument: '..cmdArg)
             elseif state == 'SET_PATTERN' then
-                if result['pattern'] then
-                    table.insert( result['pattern'], cmdArg )
+                if result.tests_pattern then
+                    table.insert( result.tests_pattern, cmdArg )
                 else
-                    result['pattern'] = { cmdArg }
+                    result.tests_pattern = { cmdArg }
                 end
             elseif state == 'SET_EXCLUDE' then
                 local notArg = '!'..cmdArg
-                if result['pattern'] then
-                    table.insert( result['pattern'],  notArg )
+                if result.tests_pattern then
+                    table.insert( result.tests_pattern,  notArg )
                 else
-                    result['pattern'] = { notArg }
+                    result.tests_pattern = { notArg }
                 end
             elseif state == 'SET_SHUFFLE' then
                 local seed
@@ -2032,10 +2032,10 @@ local LuaUnit_MT = { __index = M.LuaUnit }
                 elseif cmdArg:find('/') then
                     table.insert(result.paths, cmdArg)
                 else
-                    if result['testNames'] then
-                        table.insert( result['testNames'], cmdArg )
+                    if result.test_names then
+                        table.insert( result.test_names, cmdArg )
                     else
-                        result['testNames'] = { cmdArg }
+                        result.test_names = { cmdArg }
                     end
                 end
             end
@@ -2198,7 +2198,7 @@ local LuaUnit_MT = { __index = M.LuaUnit }
             startTime = clock.time(),
             startDate = os.date(os.getenv('LUAUNIT_DATEFMT')),
             startIsodate = os.date('%Y-%m-%dT%H:%M:%S'),
-            patternIncludeFilter = self.patternIncludeFilter,
+            tests_pattern = self.tests_pattern,
 
             -- list of test node status
             allTests = {},
@@ -2285,7 +2285,7 @@ local LuaUnit_MT = { __index = M.LuaUnit }
         if node:is_success() then
             self.result.successCount = self.result.successCount + 1
         elseif node:is_error() then
-            if self.quitOnError or self.quitOnFailure then
+            if self.quit_on_error or self.quit_on_failure then
                 -- Runtime error - abort test execution as requested by
                 -- "--error" option. This is done by setting a special
                 -- flag that gets handled in run_suite_by_instances().
@@ -2293,7 +2293,7 @@ local LuaUnit_MT = { __index = M.LuaUnit }
                 self.result.aborted = true
             end
         elseif node:is_failure() then
-            if self.quitOnFailure then
+            if self.quit_on_failure then
                 -- Failure - abort test execution as requested by
                 -- "--failure" option. This is done by setting a special
                 -- flag that gets handled in run_suite_by_instances().
@@ -2379,7 +2379,7 @@ local LuaUnit_MT = { __index = M.LuaUnit }
         end
 
         local iter_msg
-        iter_msg = self.exeRepeat and 'iteration '..self.currentCount
+        iter_msg = self.exe_repeat and 'iteration '..self.currentCount
 
         err.msg, err.status = M.adjust_err_msg_with_iter( err.msg, iter_msg )
 
@@ -2427,7 +2427,7 @@ local LuaUnit_MT = { __index = M.LuaUnit }
         self:start_test(prettyFuncName)
 
         local node = self.result.currentNode
-        for iter_n = 1, self.exeRepeat or 1 do
+        for iter_n = 1, self.exe_repeat or 1 do
             if node:is_not_success() then
                 break
             end
@@ -2585,7 +2585,7 @@ local LuaUnit_MT = { __index = M.LuaUnit }
         -- Make seed for ordering not affect other random numbers.
         math.randomseed(os.time())
         local filteredList, filteredOutList = self.apply_pattern_filter(
-            self.patternIncludeFilter, expandedList )
+            self.tests_pattern, expandedList )
 
         self:start_suite( #filteredList, #filteredOutList )
         self:run_tests_list(filteredList)
@@ -2649,11 +2649,11 @@ local LuaUnit_MT = { __index = M.LuaUnit }
     -- Available options are:
     --
     --   - verbosity
-    --   - quitOnError
-    --   - quitOnFailure
-    --   - fname
-    --   - exeRepeat
-    --   - patternIncludeFilter
+    --   - quit_on_error
+    --   - quit_on_failure
+    --   - output_file_name
+    --   - exe_repeat
+    --   - tests_pattern
     --   - shuffle
     --   - seed
     function M.LuaUnit.run(options)
@@ -2683,14 +2683,14 @@ local LuaUnit_MT = { __index = M.LuaUnit }
         end
 
         if self.output then
-            if self.output:lower() == 'junit' and self.fname == nil then
+            if self.output:lower() == 'junit' and self.output_file_name == nil then
                 print('With junit output, a filename must be supplied with -n or --name')
                 os_exit(-1)
             end
             pcall_or_abort(self.set_output_type, self, self.output)
         end
 
-        self:run_suite_by_names( self.testNames or M.LuaUnit.collect_tests() )
+        self:run_suite_by_names( self.test_names or M.LuaUnit.collect_tests() )
 
         return self.result.notSuccessCount
     end
