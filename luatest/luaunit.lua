@@ -8,7 +8,7 @@ Based on initial work of Ryu, Gwang (http://www.gpgstudy.com/gpgiki/LuaUnit)
 License: BSD License, see LICENSE.txt
 ]]--
 
-clock = require("clock")
+local clock = require("clock")
 require("math")
 local M={}
 
@@ -114,7 +114,7 @@ end
 
 local function pcall_or_abort(func, ...)
     -- unpack is a global function for Lua 5.1, otherwise use table.unpack
-    local unpack = rawget(_G, "unpack") or table.unpack
+    local unpack = rawget(_G, "unpack") or rawget(table, 'unpack')
     local result = {pcall(func, ...)}
     if not result[1] then
         if result[2].type == 'LUAUNIT_EXIT' then
@@ -464,8 +464,8 @@ local function prettystr_sub(v, indentLevel, printTableRefs, recursionTable )
         if v == -math.huge then
             return "-#Inf"
         end
-        if _VERSION == "Lua 5.3" then
-            local i = math.tointeger(v)
+        if rawget(math, 'tointeger') then -- Lua 5.3
+            local i = rawget(math, 'tointeger')(v)
             if i then
                 return tostring(i)
             end
@@ -521,19 +521,22 @@ function M.adjust_err_msg_with_iter( err_msg, iter_msg )
         err_msg = prettystr( err_msg )
     end
 
-    if (err_msg:find( M.SUCCESS_PREFIX ) == 1) or err_msg:match( '('..RE_FILE_LINE..')' .. M.SUCCESS_PREFIX .. ".*" ) then
+    if (err_msg:find(M.SUCCESS_PREFIX) == 1) or
+            err_msg:match('('..RE_FILE_LINE..')' .. M.SUCCESS_PREFIX .. ".*") then
         -- test finished early with success()
         return nil, M.NodeStatus.SUCCESS
     end
 
-    if (err_msg:find( M.SKIP_PREFIX ) == 1) or (err_msg:match( '('..RE_FILE_LINE..')' .. M.SKIP_PREFIX .. ".*" ) ~= nil) then
+    if (err_msg:find(M.SKIP_PREFIX) == 1) or
+            (err_msg:match('('..RE_FILE_LINE..')' .. M.SKIP_PREFIX .. ".*") ~= nil) then
         -- substitute prefix by iteration message
         err_msg = err_msg:gsub('.*'..M.SKIP_PREFIX, iter_msg, 1)
         -- print("failure detected")
         return err_msg, M.NodeStatus.SKIP
     end
 
-    if (err_msg:find( M.FAILURE_PREFIX ) == 1) or (err_msg:match( '('..RE_FILE_LINE..')' .. M.FAILURE_PREFIX .. ".*" ) ~= nil) then
+    if (err_msg:find(M.FAILURE_PREFIX) == 1) or
+            (err_msg:match('('..RE_FILE_LINE..')' .. M.FAILURE_PREFIX .. ".*") ~= nil) then
         -- substitute prefix by iteration message
         err_msg = err_msg:gsub(M.FAILURE_PREFIX, iter_msg, 1)
         -- print("failure detected")
@@ -566,7 +569,8 @@ local function try_mismatch_formatting( table_a, table_b, doDeepAnalysis )
     Arguments:
     * table_a, table_b: tables to be compared
     * doDeepAnalysis:
-        M.DEFAULT_DEEP_ANALYSIS: (the default if not specified) perform deep analysis only for big lists and big dictionnaries
+        M.DEFAULT_DEEP_ANALYSIS: (the default if not specified) perform deep analysis
+                                    only for big lists and big dictionnaries
         M.FORCE_DEEP_ANALYSIS  : always perform deep analysis
         M.DISABLE_DEEP_ANALYSIS: never perform deep analysis
 
@@ -587,7 +591,7 @@ local function try_mismatch_formatting( table_a, table_b, doDeepAnalysis )
 
     local len_a, len_b, isPureList = #table_a, #table_b, true
 
-    for k1, v1 in pairs(table_a) do
+    for k1 in pairs(table_a) do
         if type(k1) ~= 'number' or k1 > len_a then
             -- this table a mapping
             isPureList = false
@@ -596,7 +600,7 @@ local function try_mismatch_formatting( table_a, table_b, doDeepAnalysis )
     end
 
     if isPureList then
-        for k2, v2 in pairs(table_b) do
+        for k2 in pairs(table_b) do
             if type(k2) ~= 'number' or k2 > len_b then
                 -- this table a mapping
                 isPureList = false
@@ -669,15 +673,17 @@ local function mismatch_formatting_pure_list( table_a, table_b )
     table.insert( result, 'List difference analysis:' )
     if len_a == len_b then
         -- TODO: handle expected/actual naming
-        extend_with_str_fmt( result, '* lists %sA (%s) and %sB (%s) have the same size', refa, descrTa, refb, descrTb )
+        extend_with_str_fmt(result, '* lists %sA (%s) and %sB (%s) have the same size', refa, descrTa, refb, descrTb)
     else
-        extend_with_str_fmt( result, '* list sizes differ: list %sA (%s) has %d items, list %sB (%s) has %d items', refa, descrTa, len_a, refb, descrTb, len_b )
+        extend_with_str_fmt(result, '* list sizes differ: list %sA (%s) has %d items, list %sB (%s) has %d items',
+            refa, descrTa, len_a, refb, descrTb, len_b)
     end
 
     extend_with_str_fmt( result, '* lists A and B start differing at index %d', commonUntil+1 )
     if commonBackTo >= 0 then
         if deltalv > 0 then
-            extend_with_str_fmt( result, '* lists A and B are equal again from index %d for A, %d for B', len_a-commonBackTo, len_b-commonBackTo )
+            extend_with_str_fmt(result, '* lists A and B are equal again from index %d for A, %d for B',
+                len_a-commonBackTo, len_b-commonBackTo)
         else
             extend_with_str_fmt( result, '* lists A and B are equal again from index %d', len_a-commonBackTo )
         end
@@ -781,7 +787,7 @@ local function _table_tostring( tbl, indentLevel, printTableRefs, recursionTable
     recursionTable = recursionTable or {}
     recursionTable[tbl] = true
 
-    local result, dispOnMultLines = {}, false
+    local result = {}
 
     -- like prettystr but do not enclose with "" if the string is just alphanumerical
     -- this is better for displaying table keys who are often simple strings
@@ -807,8 +813,9 @@ local function _table_tostring( tbl, indentLevel, printTableRefs, recursionTable
     else
         -- no metatable, compute the table representation
 
-        local entry, count, seq_index = nil, 0, 1
+        local count, seq_index = 0, 1
         for k, v in sorted_pairs( tbl ) do
+            local entry
 
             -- key part
             if k == seq_index then
@@ -857,7 +864,7 @@ local function _table_tostring_format_result( tbl, result, indentLevel, printTab
 
     -- set dispOnMultLines to true if the maximum LINE_LENGTH would be exceeded with the values
     local totalLength = 0
-    for k, v in ipairs( result ) do
+    for _, v in ipairs( result ) do
         totalLength = totalLength + string.len( v )
         if totalLength >= M.LINE_LENGTH then
             dispOnMultLines = true
@@ -923,12 +930,12 @@ local function _is_table_items_equals(actual, expected )
     local type_a, type_e = type(actual), type(expected)
 
     if (type_a == 'table') and (type_e == 'table') then
-        for k, v in pairs(actual) do
+        for _, v in pairs(actual) do
             if not _table_contains(expected, v) then
                 return false
             end
         end
-        for k, v in pairs(expected) do
+        for _, v in pairs(expected) do
             if not _table_contains(actual, v) then
                 return false
             end
@@ -1370,7 +1377,8 @@ function M.assert_error_msg_contains( partialMsg, func, ... )
     -- example: assert_error( f, 1, 2 ) => f(1,2) should generate an error
     local no_error, error_msg = pcall( func, ... )
     if no_error then
-        failure( 'No error generated when calling function but expected error containing: '..prettystr(partialMsg), nil, 2 )
+        failure( 'No error generated when calling function but expected error containing: '..prettystr(partialMsg),
+            nil, 2 )
     end
     if type(error_msg) ~= "string" then
         error_msg = tostring(error_msg)
@@ -1563,6 +1571,7 @@ function genericOutput.new(runner, default_verbosity)
     return setmetatable( t, genericOutput_MT)
 end
 
+-- luacheck: push no unused
 -- abstract ("empty") methods
 function genericOutput:start_suite()
     -- Called once, when the suite is started
@@ -1588,12 +1597,14 @@ function genericOutput:end_test(node)
 end
 
 function genericOutput:end_class()
-    -- called when executing the class is finished, before moving on to the next class of at the end of the test execution
+    -- called when executing the class is finished, before moving on to the next class
+    -- of at the end of the test execution
 end
 
 function genericOutput:end_suite()
     -- called at the end of the test suite execution
 end
+-- luacheck: pop
 
 
 ----------------------------------------------------------------
@@ -1614,7 +1625,7 @@ TapOutput.__class__ = 'TapOutput'
         print("1.."..self.result.selectedCount)
         print('# Started on '..self.result.startDate)
     end
-    function TapOutput:start_class(className)
+    function TapOutput:start_class(className) -- luacheck: no unused
         if className ~= '[TestFunctions]' then
             print('# Starting class: '..className)
         end
@@ -1680,16 +1691,16 @@ JUnitOutput.__class__ = 'JUnitOutput'
         print('# XML output to '..self.output_file_name)
         print('# Started on '..self.result.startDate)
     end
-    function JUnitOutput:start_class(className)
+    function JUnitOutput:start_class(className) -- luacheck: no unused
         if className ~= '[TestFunctions]' then
             print('# Starting class: '..className)
         end
     end
-    function JUnitOutput:start_test(testName)
+    function JUnitOutput:start_test(testName) -- luacheck: no unused
         print('# Starting test: '..testName)
     end
 
-    function JUnitOutput:update_status( node )
+    function JUnitOutput:update_status( node ) -- luacheck: no unused
         if node:is_failure() then
             print( '#   Failure: ' .. prefix_string( '#   ', node.msg ):sub(4, nil) )
             -- print('# ' .. node.stackTrace)
@@ -1706,15 +1717,18 @@ JUnitOutput.__class__ = 'JUnitOutput'
         self.fd:write('<?xml version="1.0" encoding="UTF-8" ?>\n')
         self.fd:write('<testsuites>\n')
         self.fd:write(string.format(
-            '    <testsuite name="LuaUnit" id="00001" package="" hostname="localhost" tests="%d" timestamp="%s" time="%0.3f" errors="%d" failures="%d" skipped="%d">\n',
-            self.result.runCount, self.result.startIsodate, self.result.duration, self.result.errorCount, self.result.failureCount, self.result.skippedCount ))
+            '    <testsuite name="LuaUnit" id="00001" package="" hostname="localhost" tests="%d" timestamp="%s" ' ..
+            'time="%0.3f" errors="%d" failures="%d" skipped="%d">\n',
+            self.result.runCount, self.result.startIsodate,
+            self.result.duration, self.result.errorCount, self.result.failureCount, self.result.skippedCount
+        ))
         self.fd:write("        <properties>\n")
         self.fd:write(string.format('            <property name="Lua Version" value="%s"/>\n', _VERSION ) )
         self.fd:write(string.format('            <property name="LuaUnit Version" value="%s"/>\n', M.VERSION) )
         -- XXX please include system name and version if possible
         self.fd:write("        </properties>\n")
 
-        for i,node in ipairs(self.result.allTests) do
+        for _,node in ipairs(self.result.allTests) do
             self.fd:write(string.format('        <testcase classname="%s" name="%s" time="%0.3f">\n',
                 node.className, node.testName, node.duration ) )
             if node:is_not_success() then
@@ -1761,7 +1775,7 @@ TextOutput.RESET_TERM = '\x1B[0m'
         end
     end
 
-    function TextOutput:start_test(testName)
+    function TextOutput:start_test(testName) -- luacheck: no unused
         if self.verbosity > M.VERBOSITY_DEFAULT then
             io.stdout:write( "    ", self.result.currentNode.testName, " ... " )
         end
@@ -1793,7 +1807,7 @@ TextOutput.RESET_TERM = '\x1B[0m'
         end
     end
 
-    function TextOutput:display_one_failed_test( index, fail )
+    function TextOutput:display_one_failed_test( index, fail ) -- luacheck: no unused
         print(index..") "..fail.testName .. TextOutput.ERROR_COLOR_CODE )
         print( fail.msg .. TextOutput.RESET_TERM )
         print( fail.stackTrace )
@@ -1857,7 +1871,7 @@ end
 local NilOutput = { __class__ = 'NilOuptut' } -- class
 local NilOutput_MT = { __index = nop_callable } -- metatable
 
-function NilOutput.new(runner)
+function NilOutput.new()
     return setmetatable( { __class__ = 'NilOutput' }, NilOutput_MT )
 end
 
@@ -1985,7 +1999,7 @@ local LuaUnit_MT = { __index = M.LuaUnit }
             end
         end
 
-        local function set_arg( cmdArg, state )
+        local function set_arg(cmdArg)
             if state == 'SET_OUTPUT' then
                 result.output = cmdArg
             elseif state == 'SET_OUTPUT_FILENAME' then
@@ -2020,9 +2034,9 @@ local LuaUnit_MT = { __index = M.LuaUnit }
         end
 
 
-        for i, cmdArg in ipairs(cmdLine) do
+        for _, cmdArg in ipairs(cmdLine) do
             if state ~= nil then
-                set_arg( cmdArg, state, result )
+                set_arg(cmdArg)
                 state = nil
             else
                 if cmdArg:sub(1,1) == '-' then
@@ -2491,7 +2505,8 @@ local LuaUnit_MT = { __index = M.LuaUnit }
 
     function M.LuaUnit:expand_classes( listOfNameAndInst )
         --[[
-        -- expand all classes (provided as {className, classInstance}) to a list of {className.methodName, classInstance}
+        -- expand all classes (provided as {className, classInstance}) to a
+        -- list of {className.methodName, classInstance}
         -- functions and methods remain untouched
 
         Input: a list of { name, instance }
@@ -2503,19 +2518,21 @@ local LuaUnit_MT = { __index = M.LuaUnit }
         ]]
         local result = {}
 
-        for i,v in ipairs( listOfNameAndInst ) do
+        for _,v in ipairs( listOfNameAndInst ) do
             local name, instance = v[1], v[2]
             if M.LuaUnit.as_function(instance) then
                 table.insert( result, { name, instance } )
             else
                 if type(instance) ~= 'table' then
-                    error( 'Instance must be a table or a function, not a '..type(instance)..' with value '..prettystr(instance))
+                    error( 'Instance must be a table or a function, not a '..
+                        type(instance)..' with value '..prettystr(instance))
                 end
                 local className, methodName = M.LuaUnit.split_class_method( name )
                 if className then
                     local methodInstance = instance[methodName]
                     if methodInstance == nil then
-                        error( "Could not find method in class "..tostring(className).." for method "..tostring(methodName) )
+                        error( "Could not find method in class "..
+                            tostring(className).." for method "..tostring(methodName) )
                     end
                     table.insert( result, { name, instance } )
                 else
@@ -2532,7 +2549,7 @@ local LuaUnit_MT = { __index = M.LuaUnit }
 
     function M.LuaUnit.apply_pattern_filter( patternIncFilter, listOfNameAndInst )
         local included, excluded = {}, {}
-        for i, v in ipairs( listOfNameAndInst ) do
+        for _, v in ipairs( listOfNameAndInst ) do
             -- local name, instance = v[1], v[2]
             if  pattern_filter( patternIncFilter, v[1] ) then
                 table.insert( included, v )
@@ -2544,7 +2561,7 @@ local LuaUnit_MT = { __index = M.LuaUnit }
     end
 
     function M.LuaUnit:run_tests_list( filteredList )
-        for i,v in ipairs( filteredList ) do
+        for _,v in ipairs( filteredList ) do
             local name, instance = v[1], v[2]
             if M.LuaUnit.as_function(instance) then
                 self:exec_one_function( nil, name, nil, instance )
@@ -2607,7 +2624,7 @@ local LuaUnit_MT = { __index = M.LuaUnit }
         local listOfNameAndInst = {}
         local tests = M.LuaUnit.tests_container()
 
-        for i,name in ipairs( listOfName ) do
+        for _,name in ipairs( listOfName ) do
             local className, methodName = M.LuaUnit.split_class_method( name )
             if className then
                 instanceName = className
@@ -2623,7 +2640,7 @@ local LuaUnit_MT = { __index = M.LuaUnit }
 
                 local methodInstance = instance[methodName]
                 if methodInstance == nil then
-                    error( "Could not find method in class "..tostring(className).." for method "..tostring(methodName) )
+                    error("Could not find method in class "..tostring(className).." for method "..tostring(methodName))
                 end
 
             else
