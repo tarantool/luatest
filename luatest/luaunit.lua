@@ -20,7 +20,6 @@ M.VERSION='0.3.0'
 --[[ Some people like assert_equals( actual, expected ) and some people prefer
 assert_equals( expected, actual ).
 ]]--
-M.ORDER_ACTUAL_EXPECTED = true
 M.PRINT_TABLE_REF_IN_ERROR_MSG = false
 M.TABLE_EQUALS_KEYBYCONTENT = true
 M.LINE_LENGTH = 80
@@ -68,8 +67,6 @@ M.DISABLE_DEEP_ANALYSIS = false
 M.FAILURE_PREFIX = 'LuaUnit test FAILURE: ' -- prefix string for failed tests
 M.SUCCESS_PREFIX = 'LuaUnit test SUCCESS: ' -- prefix string for successful tests finished early
 M.SKIP_PREFIX    = 'LuaUnit test SKIP:    ' -- prefix string for skipped tests
-
-
 
 M.USAGE=[[Usage: luatest [options] [files or dirs...] [testname1 [testname2] ... ]
 Options:
@@ -623,12 +620,6 @@ local function try_mismatch_formatting( table_a, table_b, doDeepAnalysis )
 end
 M.private.try_mismatch_formatting = try_mismatch_formatting
 
-local function get_ta_tb_descr()
-    if not M.ORDER_ACTUAL_EXPECTED then
-        return 'expected', 'actual'
-    end
-    return 'actual', 'expected'
-end
 
 local function extend_with_str_fmt( res, ... )
     table.insert( res, string.format( ... ) )
@@ -644,7 +635,7 @@ local function mismatch_formatting_pure_list( table_a, table_b )
                in this case, just use standard assertion message
     * result: if success is true, a multi-line string with deep analysis of the two lists
     ]]
-    local result, descrTa, descrTb = {}, get_ta_tb_descr()
+    local result = {}
 
     local len_a, len_b, refa, refb = #table_a, #table_b, '', ''
     if M.PRINT_TABLE_REF_IN_ERROR_MSG then
@@ -673,10 +664,12 @@ local function mismatch_formatting_pure_list( table_a, table_b )
     table.insert( result, 'List difference analysis:' )
     if len_a == len_b then
         -- TODO: handle expected/actual naming
-        extend_with_str_fmt(result, '* lists %sA (%s) and %sB (%s) have the same size', refa, descrTa, refb, descrTb)
+        extend_with_str_fmt(result, '* lists %sA (actual) and %sB (expected) have the same size', refa, refb)
     else
-        extend_with_str_fmt(result, '* list sizes differ: list %sA (%s) has %d items, list %sB (%s) has %d items',
-            refa, descrTa, len_a, refb, descrTb, len_b)
+        extend_with_str_fmt(result,
+            '* list sizes differ: list %sA (actual) has %d items, list %sB (expected) has %d items',
+            refa, len_a, refb, len_b
+        )
     end
 
     extend_with_str_fmt( result, '* lists A and B start differing at index %d', commonUntil+1 )
@@ -1114,10 +1107,6 @@ end
 ----------------------------------------------------------------
 
 local function error_msg_equality(actual, expected, doDeepAnalysis)
-
-    if not M.ORDER_ACTUAL_EXPECTED then
-        expected, actual = actual, expected
-    end
     if type(expected) == 'string' or type(expected) == 'table' then
         local strExpected, strActual = prettystr_pairs(expected, actual)
         local result = string.format("expected: %s\nactual: %s", strExpected, strActual)
@@ -1217,9 +1206,6 @@ function M.assert_almost_equals( actual, expected, margin, extra_msg_or_nil )
     -- check that two floats are close by margin
     margin = margin or M.EPS
     if not M.almost_equals(actual, expected, margin) then
-        if not M.ORDER_ACTUAL_EXPECTED then
-            expected, actual = actual, expected
-        end
         local delta = math.abs(actual - expected)
         fail_fmt(2, extra_msg_or_nil, 'Values are not almost equal\n' ..
                     'Actual: %s, expected: %s, delta %s above margin of %s',
@@ -1246,9 +1232,6 @@ function M.assert_not_almost_equals( actual, expected, margin, extra_msg_or_nil 
     -- check that two floats are not close by margin
     margin = margin or M.EPS
     if M.almost_equals(actual, expected, margin) then
-        if not M.ORDER_ACTUAL_EXPECTED then
-            expected, actual = actual, expected
-        end
         local delta = math.abs(actual - expected)
         fail_fmt(2, extra_msg_or_nil, 'Values are almost equal\nActual: %s, expected: %s' ..
                     ', delta %s below margin of %s',
@@ -1432,9 +1415,6 @@ end
 
 function M.assert_is(actual, expected, extra_msg_or_nil)
     if actual ~= expected then
-        if not M.ORDER_ACTUAL_EXPECTED then
-            actual, expected = expected, actual
-        end
         expected, actual = prettystr_pairs(expected, actual, '\n', '')
         fail_fmt(2, extra_msg_or_nil, 'expected and actual object should not be different\nExpected: %s\nReceived: %s',
                  expected, actual)
@@ -1443,9 +1423,6 @@ end
 
 function M.assert_is_not(actual, expected, extra_msg_or_nil)
     if actual == expected then
-        if not M.ORDER_ACTUAL_EXPECTED then
-            expected = actual
-        end
         fail_fmt(2, extra_msg_or_nil, 'expected and actual object should be different: %s',
                  prettystr_pairs(expected))
     end
