@@ -28,30 +28,6 @@ luatest.assert = luatest.assert_eval_to_true
 -- @string[opt] message
 luatest.assert_not = luatest.assert_eval_to_false
 
---- Checks that map contains the other one.
--- @tab actual
--- @tab expected
--- @string[opt] message
-function luatest.assert_covers(actual, expected, message)
-    local sliced = {}
-    for k, _ in pairs(expected) do
-        sliced[k] = actual[k]
-    end
-    luatest.assert_equals(sliced, expected, message)
-end
-
---- Checks that map does not contain the other one.
--- @tab actual
--- @tab expected
--- @string[opt] message
-function luatest.assert_not_covers(actual, expected, message)
-    local sliced = {}
-    for k, _ in pairs(expected) do
-        sliced[k] = actual[k]
-    end
-    luatest.assert_not_equals(sliced, expected, message)
-end
-
 return luatest
 
 --- Add before suite hook.
@@ -80,6 +56,13 @@ return luatest
 -- @number actual
 -- @number expected
 -- @number margin
+-- @string[opt] message
+
+--- Checks that map contains the other one.
+--
+-- @function assert_covers
+-- @tab actual
+-- @tab expected
 -- @string[opt] message
 
 --- Check that two values are equal.
@@ -170,6 +153,13 @@ return luatest
 -- @number actual
 -- @number expected
 -- @number margin
+-- @string[opt] message
+
+--- Checks that map does not contain the other one.
+--
+-- @function assert_not_covers
+-- @tab actual
+-- @tab expected
 -- @string[opt] message
 
 --- Check that two values are not equal.

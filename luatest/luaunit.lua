@@ -1250,6 +1250,31 @@ function M.assert_items_equals(actual, expected, extra_msg_or_nil)
     end
 end
 
+local function table_covers(actual, expected)
+    if type(actual) ~= 'table' and type(expected) ~= 'table' then
+        error('Argument 1 and 2 must be tables')
+    end
+    local sliced = {}
+    for k, _ in pairs(expected) do
+        sliced[k] = actual[k]
+    end
+    return _is_table_equals(sliced, expected)
+end
+
+function M.assert_covers(actual, expected, message)
+    if not table_covers(actual, expected) then
+        local str_actual, str_expected = prettystr_pairs(actual, expected)
+        failure(string.format('expected %s to cover %s', str_actual, str_expected), message, 2)
+    end
+end
+
+function M.assert_not_covers(actual, expected, message)
+    if table_covers(actual, expected) then
+        local str_actual, str_expected = prettystr_pairs(actual, expected)
+        failure(string.format('expected %s to not cover %s', str_actual, str_expected), message, 2)
+    end
+end
+
 ------------------------------------------------------------------
 --                  String assertion
 ------------------------------------------------------------------
