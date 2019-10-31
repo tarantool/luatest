@@ -1,6 +1,7 @@
 # Unreleased
 
 - Fix not working `--exclude`, `--pattern` options
+- Fix error messages for `*_covers` matchers
 
 # 0.3.0
 
