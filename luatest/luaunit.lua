@@ -28,11 +28,13 @@ M.LIST_DIFF_ANALYSIS_THRESHOLD  = 10    -- display deep analysis for more than 1
 M.GLOBAL_TESTS = true -- Use either _G or M.tests as tests container
 M.tests = {}
 
-M.group = function( name )
-    -- Define named test group.
-    if not M.tests[name] then
-        M.tests[name] = {}
+--- Define named test group.
+M.group = function(name)
+    if M.tests[name] then
+        error('Test group already exists: ' .. name ..
+            '. To modify existing group use `luatest.tests[name]`.')
     end
+    M.tests[name] = {}
     return M.tests[name]
 end
 
