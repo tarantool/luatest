@@ -87,3 +87,12 @@ g.test_group_with_existing_name_fails = function()
     end)
     t.assert_equals(result, 0)
 end
+
+g.test_group_with_dot = function()
+    local run
+    local result = helper.run_suite(function(lu2)
+        lu2.group('asd.qwe').test_1 = function() run = true end
+    end)
+    t.assert_equals(result, 0)
+    t.assert(run)
+end

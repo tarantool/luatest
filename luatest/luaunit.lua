@@ -1916,7 +1916,13 @@ local LuaUnit_MT = { __index = M.LuaUnit }
         This convention thus also replaces the older isClassMethod() test:
         You just have to check for a non-nil className (return) value.
         ]]
-        local separator = string.find(someName, '.', 1, true)
+        local separator
+        for i = #someName, 1, -1 do
+            if someName:sub(i, i) == '.' then
+                separator = i
+                break
+            end
+        end
         if separator then
             return someName:sub(1, separator - 1), someName:sub(separator + 1)
         end
@@ -2385,13 +2391,7 @@ local LuaUnit_MT = { __index = M.LuaUnit }
             }
         end
 
-        local ok, err
-        if classInstance then
-            -- stupid Lua < 5.2 does not allow xpcall with arguments so let's use a workaround
-            ok, err = xpcall( function () methodInstance(classInstance) end, err_handler )
-        else
-            ok, err = xpcall( function () methodInstance() end, err_handler )
-        end
+        local ok, err = xpcall(function () methodInstance(classInstance) end, err_handler)
         if ok then
             return {status = NodeStatus.SUCCESS}
         end
@@ -2451,15 +2451,11 @@ local LuaUnit_MT = { __index = M.LuaUnit }
             end
             self.currentCount = iter_n
 
+            local func
             -- run setUp first (if any)
-            if classInstance then
-                local func = self.as_function( classInstance.setUp ) or
-                             self.as_function( classInstance.Setup ) or
-                             self.as_function( classInstance.setup ) or
-                             self.as_function( classInstance.SetUp )
-                if func then
-                    self:update_status(self:protected_call(classInstance, func, className..'.setUp'))
-                end
+            func = self.as_function(classInstance.setup)
+            if func then
+                self:update_status(self:protected_call(classInstance, func, className..'.setup'))
             end
 
             -- run testMethod()
@@ -2468,21 +2464,16 @@ local LuaUnit_MT = { __index = M.LuaUnit }
             end
 
             -- lastly, run tearDown (if any)
-            if classInstance then
-                local func = self.as_function( classInstance.tearDown ) or
-                             self.as_function( classInstance.TearDown ) or
-                             self.as_function( classInstance.teardown ) or
-                             self.as_function( classInstance.Teardown )
-                if func then
-                    self:update_status(self:protected_call(classInstance, func, className..'.tearDown'))
-                end
+            func = self.as_function(classInstance.teardown)
+            if func then
+                self:update_status(self:protected_call(classInstance, func, className..'.teardown'))
             end
         end
 
         self:end_test()
     end
 
-    function M.LuaUnit:expand_one_class( className, classInstance )
+    function M.LuaUnit.expand_one_class(className, classInstance)
         --[[
         Input: a class name, a class instance
         Ouptut: list of test method instances in the form:
@@ -2499,55 +2490,6 @@ local LuaUnit_MT = { __index = M.LuaUnit }
                  } )
             end
         end
-        if self.shuffle == 'group' then
-            randomize_table(result)
-        elseif self.shuffle == 'none' then
-            table.sort(result, function(a, b) return a.line < b.line end)
-        end
-        return result
-    end
-
-    function M.LuaUnit:expand_classes( listOfNameAndInst )
-        --[[
-        -- expand all classes (provided as {className, classInstance}) to a
-        -- list of {className.methodName, classInstance}
-        -- functions and methods remain untouched
-
-        Input: a list of { name, instance }
-
-        Output:
-        * { function name, function instance } : do nothing
-        * { class.method name, class instance }: do nothing
-        * { class name, class instance } : add all method names in the form of (className.methodName, classInstance)
-        ]]
-        local result = {}
-
-        for _,v in ipairs( listOfNameAndInst ) do
-            local name, instance = v[1], v[2]
-            if M.LuaUnit.as_function(instance) then
-                table.insert( result, { name, instance } )
-            else
-                if type(instance) ~= 'table' then
-                    error( 'Instance must be a table or a function, not a '..
-                        type(instance)..' with value '..prettystr(instance))
-                end
-                local className, methodName = M.LuaUnit.split_class_method( name )
-                if className then
-                    local methodInstance = instance[methodName]
-                    if methodInstance == nil then
-                        error( "Could not find method in class "..
-                            tostring(className).." for method "..tostring(methodName) )
-                    end
-                    table.insert( result, { name, instance } )
-                else
-                    local fns = self:expand_one_class( name, instance )
-                    for _, x in pairs(fns) do
-                        table.insert(result, x)
-                    end
-                end
-            end
-        end
-
         return result
     end
 
@@ -2567,17 +2509,13 @@ local LuaUnit_MT = { __index = M.LuaUnit }
     function M.LuaUnit:run_tests_list( filteredList )
         for _,v in ipairs( filteredList ) do
             local name, instance = v[1], v[2]
-            if M.LuaUnit.as_function(instance) then
-                self:exec_one_function( nil, name, nil, instance )
-            else
-                -- expand_classes() should have already taken care of sanitizing the input
-                assert( type(instance) == 'table' )
-                local className, methodName = M.LuaUnit.split_class_method( name )
-                assert( className ~= nil )
-                local methodInstance = instance[methodName]
-                assert(methodInstance ~= nil)
-                self:exec_one_function( className, methodName, instance, methodInstance )
-            end
+            -- expand_classes() should have already taken care of sanitizing the input
+            assert(type(instance) == 'table')
+            local class_name, method_name = M.LuaUnit.split_class_method(name)
+            assert(class_name ~= nil)
+            local method = instance[method_name]
+            assert(method ~= nil)
+            self:exec_one_function(class_name, method_name, instance, method)
             if self.result.aborted then
                 break -- "--error" or "--failure" option triggered
             end
@@ -2588,23 +2526,10 @@ local LuaUnit_MT = { __index = M.LuaUnit }
         end
     end
 
-    function M.LuaUnit:run_suite_by_instances( listOfNameAndInst )
-        --[[ Run an explicit list of tests. Each item of the list must be one of:
-        * { function name, function instance }
-        * { class name, class instance }
+    function M.LuaUnit:run_suite_by_instances(expandedList)
+        --[[ Run an explicit list of tests. Each item of the list must be:
         * { class.method name, class instance }
         ]]
-
-        -- Set seed to ordering.
-        if self.seed then
-            math.randomseed(self.seed)
-        end
-        local expandedList = self:expand_classes( listOfNameAndInst )
-        if self.shuffle == 'all' then
-            randomize_table( expandedList )
-        end
-        -- Make seed for ordering not affect other random numbers.
-        math.randomseed(os.time())
         local filteredList, filteredOutList = self.apply_pattern_filter(
             self.tests_pattern, expandedList )
 
@@ -2620,51 +2545,57 @@ local LuaUnit_MT = { __index = M.LuaUnit }
 
     function M.LuaUnit:run_suite_by_names( listOfName )
         --[[ Run LuaUnit with a list of generic names, coming either from command-line or from global
-            namespace analysis. Convert the list into a list of (name, valid instances (table or function))
+            namespace analysis. Convert the list into a list of (group_name.method_name, group)
             and calls run_suite_by_instances.
         ]]
 
-        local instanceName, instance
-        local listOfNameAndInst = {}
-        local tests = M.LuaUnit.tests_container()
-
-        for _,name in ipairs( listOfName ) do
-            local className, methodName = M.LuaUnit.split_class_method( name )
-            if className then
-                instanceName = className
-                instance = tests[instanceName]
-
-                if instance == nil then
-                    error( "No such name in tests container: "..instanceName )
-                end
-
-                if type(instance) ~= 'table' then
-                    error( 'Instance of '..instanceName..' must be a table, not '..type(instance))
-                end
-
-                local methodInstance = instance[methodName]
-                if methodInstance == nil then
-                    error("Could not find method in class "..tostring(className).." for method "..tostring(methodName))
-                end
-
-            else
-                -- for functions and classes
-                instanceName = name
-                instance = tests[instanceName]
-            end
-
-            if instance == nil then
-                error( "No such name in tests container: "..instanceName )
-            end
-
-            if (type(instance) ~= 'table' and type(instance) ~= 'function') then
-                error( 'Name must match a function or a table: '..instanceName )
-            end
-
-            table.insert( listOfNameAndInst, { name, instance } )
+        -- Set seed to ordering.
+        if self.seed then
+            math.randomseed(self.seed)
         end
 
-        self:run_suite_by_instances( listOfNameAndInst )
+        local result = {}
+        local tests = M.LuaUnit.tests_container()
+
+        for _,name in ipairs(listOfName) do
+            local group = tests[name]
+            if group then
+                local fns = self.expand_one_class(name, group)
+                if self.shuffle == 'group' then
+                    randomize_table(fns)
+                elseif self.shuffle == 'none' then
+                    table.sort(fns, function(a, b) return a.line < b.line end)
+                end
+                for _, x in pairs(fns) do
+                    table.insert(result, x)
+                end
+            else
+                local group_name, method_name = M.LuaUnit.split_class_method(name)
+                group = group_name and tests[group_name]
+                if not group then
+                    error('No such name in tests container: ' .. name)
+                end
+                if type(group) ~= 'table' then
+                    error('Instance of ' .. group_name .. ' must be a table')
+                end
+                local method = group[method_name]
+                if method == nil then
+                    error('Could not find method ' .. name)
+                elseif not M.LuaUnit.as_function(method) then
+                    error(name .. ' is not a function')
+                end
+                table.insert(result, {name, group})
+            end
+        end
+
+        if self.shuffle == 'all' then
+            randomize_table( result )
+        end
+
+        -- Make seed for ordering not affect other random numbers.
+        math.randomseed(os.time())
+
+        self:run_suite_by_instances(result)
     end
 
     -- Available options are:
