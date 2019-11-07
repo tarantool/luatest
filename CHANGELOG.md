@@ -4,6 +4,7 @@
 - Fix error messages for `*_covers` matchers
 - Raise error when `group()` is called with existing group name.
 - Allow dot in group name.
+- Prevent using `/` in group name.
 
 # 0.3.0
 
