@@ -96,3 +96,10 @@ g.test_group_with_dot = function()
     t.assert_equals(result, 0)
     t.assert(run)
 end
+
+g.test_group_with_slash_in_name_fails = function()
+    local result = helper.run_suite(function(lu2)
+        t.assert_error_msg_contains('Group name must not contain `/`: asd/qwe', lu2.group, 'asd/qwe')
+    end)
+    t.assert_equals(result, 0)
+end

@@ -34,6 +34,9 @@ M.group = function(name)
         error('Test group already exists: ' .. name ..
             '. To modify existing group use `luatest.tests[name]`.')
     end
+    if name:find('/') then
+        error('Group name must not contain `/`: ' .. name)
+    end
     M.tests[name] = {}
     return M.tests[name]
 end
