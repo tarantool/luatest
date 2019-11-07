@@ -1,5 +1,7 @@
 local t = require('luatest')
-local g = t.group('luaunit')
+local g = t.group('luatest')
+
+local helper = require('test.helper')
 
 g.test_assert_tnt_specific = function()
     t.assert(true)
@@ -75,4 +77,13 @@ g.test_assert_type = function()
 
     t.assert_error(subject, 1, 'string')
     t.assert_error(subject, '1', 'number')
+end
+
+g.test_group_with_existing_name_fails = function()
+    local result = helper.run_suite(function(lu2)
+        lu2.group('asd')
+        t.assert_error_msg_contains('Test group already exists: asd', lu2.group, 'asd')
+        lu2.group('qwe')
+    end)
+    t.assert_equals(result, 0)
 end
