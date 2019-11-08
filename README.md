@@ -73,6 +73,10 @@ luatest --help # list available options
 Luatest automatically requires `test/helper.lua` file if it's present.
 You can configure luatest or run any bootstrap code there.
 
+See test directory template in
+[cartridge-cli repo](https://github.com/tarantool/cartridge-cli/tree/master/templates/cartridge/test)
+or in its [getting-started example](https://github.com/tarantool/cartridge-cli/tree/master/examples/getting-started-app/test).
+
 ## Tests order
 
 Use the `--shuffle` option to tell luatest how to order the tests.
