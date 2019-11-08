@@ -235,7 +235,8 @@ return luatest
 --- Create group of tests.
 --
 -- @function group
--- @string name
+-- @string[opt] name Default name is inferred from caller filename when possible.
+--  For `test/a/b/c_d_test.lua` it will be `a.b.c_d`.
 -- @return @{TestGroup}
 
 --- Skip a running test.

@@ -30,6 +30,13 @@ M.tests = {}
 
 --- Define named test group.
 M.group = function(name)
+    if not name then
+        local test_filename = assert(
+            debug.getinfo(2, "S").source:match('.*/test/(.+)_test%.lua'),
+            'Can not guess test name from the source file name'
+        )
+        name = test_filename:gsub('/', '.')
+    end
     if M.tests[name] then
         error('Test group already exists: ' .. name ..
             '. To modify existing group use `luatest.tests[name]`.')
