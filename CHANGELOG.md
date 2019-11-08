@@ -9,6 +9,7 @@
 - `assert` returns input values.
 - `assert[_not]_equals` works for Tarantool's box.tuple.
 - Print tables in lua-compatible way in errors.
+- Fix performance issue with large errors messages.
 
 # 0.3.0
 

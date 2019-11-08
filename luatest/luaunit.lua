@@ -76,10 +76,6 @@ M.VERBOSITY_VERBOSE = 20
 M.FORCE_DEEP_ANALYSIS   = true
 M.DISABLE_DEEP_ANALYSIS = false
 
-M.FAILURE_PREFIX = 'LuaUnit test FAILURE: ' -- prefix string for failed tests
-M.SUCCESS_PREFIX = 'LuaUnit test SUCCESS: ' -- prefix string for successful tests finished early
-M.SKIP_PREFIX    = 'LuaUnit test SKIP:    ' -- prefix string for skipped tests
-
 M.USAGE=[[Usage: luatest [options] [files or dirs...] [testname1 [testname2] ... ]
 Options:
   -h, --help:             Print this help
@@ -502,73 +498,6 @@ local function prettystr( v )
     return s
 end
 M.prettystr = prettystr
-
-function M.adjust_err_msg_with_iter( err_msg, iter_msg )
-    --[[ Adjust the error message err_msg: trim the FAILURE_PREFIX or SUCCESS_PREFIX information if needed,
-    add the iteration message if any and return the result.
-
-    err_msg:  string, error message captured with pcall
-    iter_msg: a string describing the current iteration ("iteration N") or nil
-              if there is no iteration in this test.
-
-    Returns: (new_err_msg, test_status)
-        new_err_msg: string, adjusted error message, or nil in case of success
-        test_status: M.NodeStatus.FAIL, SUCCESS or ERROR according to the information
-                     contained in the error message.
-    ]]
-    if iter_msg then
-        iter_msg = iter_msg..', '
-    else
-        iter_msg = ''
-    end
-
-    local RE_FILE_LINE = '.*:%d+: '
-
-    -- error message is not necessarily a string,
-    -- so convert the value to string with prettystr()
-    if type( err_msg ) ~= 'string' then
-        err_msg = prettystr( err_msg )
-    end
-
-    if (err_msg:find(M.SUCCESS_PREFIX) == 1) or
-            err_msg:match('('..RE_FILE_LINE..')' .. M.SUCCESS_PREFIX .. ".*") then
-        -- test finished early with success()
-        return nil, M.NodeStatus.SUCCESS
-    end
-
-    if (err_msg:find(M.SKIP_PREFIX) == 1) or
-            (err_msg:match('('..RE_FILE_LINE..')' .. M.SKIP_PREFIX .. ".*") ~= nil) then
-        -- substitute prefix by iteration message
-        err_msg = err_msg:gsub('.*'..M.SKIP_PREFIX, iter_msg, 1)
-        -- print("failure detected")
-        return err_msg, M.NodeStatus.SKIP
-    end
-
-    if (err_msg:find(M.FAILURE_PREFIX) == 1) or
-            (err_msg:match('('..RE_FILE_LINE..')' .. M.FAILURE_PREFIX .. ".*") ~= nil) then
-        -- substitute prefix by iteration message
-        err_msg = err_msg:gsub(M.FAILURE_PREFIX, iter_msg, 1)
-        -- print("failure detected")
-        return err_msg, M.NodeStatus.FAIL
-    end
-
-
-
-    -- print("error detected")
-    -- regular error, not a failure
-    if iter_msg then
-        local match
-        -- "./test\\test_luaunit.lua:2241: some error msg
-        match = err_msg:match( '(.*:%d+: ).*' )
-        if match then
-            err_msg = err_msg:gsub( match, match .. iter_msg )
-        else
-            -- no file:line: infromation, just add the iteration info at the beginning of the line
-            err_msg = iter_msg .. err_msg
-        end
-    end
-    return err_msg, M.NodeStatus.ERROR
-end
 
 local function try_mismatch_formatting( table_a, table_b, doDeepAnalysis )
     --[[
@@ -1088,6 +1017,16 @@ end
 M.private._is_table_equals = _is_table_equals
 is_equal = _is_table_equals
 
+local function luaunit_error(status, message, level)
+    local _
+    _, message = pcall(error, message, (level or 1) + 2)
+    error({class = 'LuaUnitError', status = status, message = message})
+end
+
+local function is_luaunit_error(err)
+    return type(err) == 'table' and err.class == 'LuaUnitError'
+end
+
 local function failure(main_msg, extra_msg_or_nil, level)
     -- raise an error indicating a test failure
     -- for error() compatibility we adjust "level" here (by +1), to report the
@@ -1098,7 +1037,7 @@ local function failure(main_msg, extra_msg_or_nil, level)
     else
         msg = main_msg
     end
-    error(M.FAILURE_PREFIX .. msg, (level or 1) + 1)
+    luaunit_error(M.NodeStatus.FAIL, msg, (level or 1) + 1)
 end
 
 local function fail_fmt(level, extra_msg_or_nil, ...)
@@ -1134,13 +1073,16 @@ local function error_msg_equality(actual, expected, doDeepAnalysis)
     return string.format("expected: %s, actual: %s",
                          prettystr(expected), prettystr(actual))
 end
+M.private.error_msg_equality = error_msg_equality
 
 function M.assert_error(f, ...)
     -- assert that calling f with the arguments will raise an error
     -- example: assert_error( f, 1, 2 ) => f(1,2) should generate an error
-    if pcall( f, ... ) then
+    local ok, err = pcall( f, ... )
+    if ok then
         failure( "Expected an error when calling function but no error generated", nil, 2 )
     end
+    return err
 end
 
 function M.fail( msg )
@@ -1157,32 +1099,32 @@ end
 
 function M.skip(msg)
     -- skip a running test
-    error(M.SKIP_PREFIX .. msg, 2)
+    luaunit_error(M.NodeStatus.SKIP, msg, 2)
 end
 
 function M.skip_if( cond, msg )
     -- skip a running test if condition is met
     if cond and cond ~= nil then
-        error(M.SKIP_PREFIX .. msg, 2)
+        luaunit_error(M.NodeStatus.SKIP, msg, 2)
     end
 end
 
 function M.run_only_if( cond, msg )
     -- continue a running test if condition is met, else skip it
     if not (cond and cond ~= nil) then
-        error(M.SKIP_PREFIX .. prettystr(msg), 2)
+        luaunit_error(M.NodeStatus.SKIP, prettystr(msg), 2)
     end
 end
 
 function M.success()
     -- stops a test with a success
-    error(M.SUCCESS_PREFIX, 2)
+    luaunit_error(M.NodeStatus.SUCCESS, 2)
 end
 
 function M.success_if( cond )
     -- stops a test with a success if condition is met
     if cond and cond ~= nil then
-        error(M.SUCCESS_PREFIX, 2)
+        luaunit_error(M.NodeStatus.SUCCESS, 2)
     end
 end
 
@@ -2399,27 +2341,22 @@ local LuaUnit_MT = { __index = M.LuaUnit }
     --------------[[ Runner ]]-----------------
 
     function M.LuaUnit:protected_call(classInstance, methodInstance, prettyFuncName)
-        -- if classInstance is nil, this is just a function call
-        -- else, it's method of a class being called.
-
-        local function err_handler(e)
-            -- transform error into a table, adding the traceback information
-            return {
-                status = NodeStatus.ERROR,
-                msg = e,
-                trace = string.sub(debug.traceback("", 3), 2)
-            }
-        end
-
-        local ok, err = xpcall(function () methodInstance(classInstance) end, err_handler)
-        if ok then
+        local _, err = xpcall(function()
+            methodInstance(classInstance)
             return {status = NodeStatus.SUCCESS}
+        end, function(e)
+            -- transform error into a table, adding the traceback information
+            local trace = debug.traceback('', 3):sub(2)
+            if is_luaunit_error(e) then
+                return {status = e.status, msg = e.message, trace = trace}
+            else
+                return {status = NodeStatus.ERROR, msg = e, trace = trace}
+            end
+        end)
+
+        if self.currentCount > 1 then
+            err.msg = tostring(err.msg) .. '\nIteration ' .. self.currentCount
         end
-
-        local iter_msg
-        iter_msg = self.exe_repeat and 'iteration '..self.currentCount
-
-        err.msg, err.status = M.adjust_err_msg_with_iter( err.msg, iter_msg )
 
         if err.status == NodeStatus.SUCCESS or err.status == NodeStatus.SKIP then
             err.trace = nil

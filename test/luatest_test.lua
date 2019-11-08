@@ -42,14 +42,14 @@ end
 
 g.test_skip_if_tnt_specific = function()
     assert_any_error(t.skip_if, box.NULL, 'unexpected')
-    t.assert_error_msg_contains(t.SKIP_PREFIX, function() t.skip_if(true, 'expected') end)
-    t.assert_error_msg_contains(t.SKIP_PREFIX, function() t.skip_if({}, 'expected') end)
+    t.assert_equals(t.assert_error(t.skip_if, true, 'expected').status, t.NodeStatus.SKIP)
+    t.assert_equals(t.assert_error(t.skip_if, {}, 'expected').status, t.NodeStatus.SKIP)
 end
 
 g.test_success_if_tnt_specific = function()
     assert_any_error(t.success_if, box.NULL)
-    t.assert_error_msg_contains(t.SUCCESS_PREFIX, function() t.success_if(true) end)
-    t.assert_error_msg_contains(t.SUCCESS_PREFIX, function() t.success_if({}) end)
+    t.assert_equals(t.assert_error(t.success_if, true).status, t.NodeStatus.SUCCESS)
+    t.assert_equals(t.assert_error(t.success_if, {}).status, t.NodeStatus.SUCCESS)
 end
 
 g.test_assert_aliases = function ()
