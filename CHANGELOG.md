@@ -5,6 +5,7 @@
 - Raise error when `group()` is called with existing group name.
 - Allow dot in group name.
 - Prevent using `/` in group name.
+- Decide group name from filename for `group()` call without args.
 
 # 0.3.0
 

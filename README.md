@@ -32,6 +32,9 @@ Define tests.
 -- test/feature_test.lua
 local t = require('luatest')
 local g = t.group('feature')
+-- Default name is inferred from caller filename when possible.
+-- For `test/a/b/c_d_test.lua` it will be `a.b.c_d`.
+-- So `local g = t.group()` works the same way.
 
 -- Tests. All properties with name staring with `test` are treated as test cases.
 g.test_example_1 = function() ... end
