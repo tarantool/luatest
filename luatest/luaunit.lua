@@ -351,92 +351,26 @@ local function xml_c_data_escape( s )
 end
 M.private.xml_c_data_escape = xml_c_data_escape
 
-local function strip_luaunit_trace( stackTrace )
-    --[[
-    -- Example of  a traceback:
-    <<stack traceback:
-        example_with_luaunit.lua:130: in function 'test2_withFailure'
-        ./luaunit.lua:1449: in function <./luaunit.lua:1449>
-        [C]: in function 'xpcall'
-        ./luaunit.lua:1449: in function 'protected_call'
-        ./luaunit.lua:1508: in function 'exec_one_function'
-        ./luaunit.lua:1596: in function 'run_suite_by_instances'
-        ./luaunit.lua:1660: in function 'run_suite_by_names'
-        ./luaunit.lua:1736: in function 'run_suite'
-        example_with_luaunit.lua:140: in main chunk
-        [C]: in ?>>
+local function is_luaunit_internal_line(s)
+    -- return true if line of stack trace comes from inside luaunit
+    return s:find('[/\\]luatest[/\\]') or s:find('bin[/\\]luatest')
+end
 
-        Other example:
-    <<stack traceback:
-        ./luaunit.lua:545: in function 'assert_equals'
-        example_with_luaunit.lua:58: in function 'TestToto.test7'
-        ./luaunit.lua:1517: in function <./luaunit.lua:1517>
-        [C]: in function 'xpcall'
-        ./luaunit.lua:1517: in function 'protected_call'
-        ./luaunit.lua:1578: in function 'exec_one_function'
-        ./luaunit.lua:1677: in function 'run_suite_by_instances'
-        ./luaunit.lua:1730: in function 'run_suite_by_names'
-        ./luaunit.lua:1806: in function 'run_suite'
-        example_with_luaunit.lua:140: in main chunk
-        [C]: in ?>>
-
-    <<stack traceback:
-        luaunit2/example_with_luaunit.lua:124: in function 'test1_withFailure'
-        luaunit2/luaunit.lua:1532: in function <luaunit2/luaunit.lua:1532>
-        [C]: in function 'xpcall'
-        luaunit2/luaunit.lua:1532: in function 'protected_call'
-        luaunit2/luaunit.lua:1591: in function 'exec_one_function'
-        luaunit2/luaunit.lua:1679: in function 'run_suite_by_instances'
-        luaunit2/luaunit.lua:1743: in function 'run_suite_by_names'
-        luaunit2/luaunit.lua:1819: in function 'run_suite'
-        luaunit2/example_with_luaunit.lua:140: in main chunk
-        [C]: in ?>>
-
-
-    -- first line is "stack traceback": KEEP
-    -- next line may be luaunit line: REMOVE
-    -- next lines are call in the program under testOk: REMOVE
-    -- next lines are calls from luaunit to call the program under test: KEEP
-
-    -- Strategy:
-    -- keep first line
-    -- remove lines that are part of luaunit
-    -- kepp lines until we hit a luaunit line
-    ]]
-
-    local function is_luaunit_internal_line( s )
-        -- return true if line of stack trace comes from inside luaunit
-        return s:find('[/\\]luaunit%.lua:%d+: ') ~= nil
+local function strip_luaunit_trace(trace)
+    local lines = strsplit('\n', trace)
+    local result = {lines[1]} -- always keep 1st line
+    local keep = true
+    for i = 2, table.maxn(lines) do
+        local line = lines[i]
+        -- `[C]:` lines and `...` don't change context
+        if not line:find('^%s+%[C%]:') and not line:find('^%s+%.%.%.') then
+            keep = not is_luaunit_internal_line(line)
+        end
+        if keep then
+            table.insert(result, line)
+        end
     end
-
-    -- print( '<<'..stackTrace..'>>' )
-
-    local t = strsplit( '\n', stackTrace )
-    -- print( prettystr(t) )
-
-    local idx = 2
-
-    -- remove lines that are still part of luaunit
-    while t[idx] and is_luaunit_internal_line( t[idx] ) do
-        -- print('Removing : '..t[idx] )
-        table.remove(t, idx)
-    end
-
-    -- keep lines until we hit luaunit again
-    while t[idx] and (not is_luaunit_internal_line(t[idx])) do
-        -- print('Keeping : '..t[idx] )
-        idx = idx + 1
-    end
-
-    -- remove remaining luaunit lines
-    while t[idx] do
-        -- print('Removing : '..t[idx] )
-        table.remove(t, idx)
-    end
-
-    -- print( prettystr(t) )
-    return table.concat( t, '\n')
-
+    return table.concat(result, '\n')
 end
 M.private.strip_luaunit_trace = strip_luaunit_trace
 
