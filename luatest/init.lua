@@ -19,6 +19,8 @@ luatest.Server = require('luatest.server')
 -- @function assert
 -- @param value
 -- @string[opt] message
+-- @param[opt] ...
+-- @return input values
 luatest.assert = luatest.assert_eval_to_true
 
 --- Check that value is falsy.

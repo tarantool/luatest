@@ -3,6 +3,13 @@ local g = t.group('luatest')
 
 local helper = require('test.helper')
 
+g.test_assert_returns_velue = function()
+    t.assert_equals(t.assert(1), 1)
+    local obj = {a = 'a', b = 'b'}
+    t.assert_is(t.assert(obj, 'extra msg'), obj)
+    t.assert_equals({t.assert(obj, 'extra msg', 1, 2, 3)}, {obj, 'extra msg', 1, 2, 3})
+end
+
 g.test_assert_tnt_specific = function()
     t.assert(true)
     t.assert({})

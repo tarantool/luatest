@@ -1431,10 +1431,11 @@ end
 --              Type assertions
 ------------------------------------------------------------------
 
-function M.assert_eval_to_true(value, extra_msg_or_nil)
+function M.assert_eval_to_true(value, extra_msg_or_nil, ...)
     if not value or value == nil then
         failure("expected: a value evaluating to true, actual: " ..prettystr(value), extra_msg_or_nil, 2)
     end
+    return value, extra_msg_or_nil, ...
 end
 
 function M.assert_eval_to_false(value, extra_msg_or_nil)
