@@ -1191,7 +1191,16 @@ end
 --                  Equality assertions
 ------------------------------------------------------------------
 
+local function cast_value_for_equals(value)
+    if type(value) == 'cdata' and value.totable then
+        return value:totable()
+    end
+    return value
+end
+
 function M.assert_equals(actual, expected, extra_msg_or_nil, doDeepAnalysis)
+    actual = cast_value_for_equals(actual)
+    expected = cast_value_for_equals(expected)
     if type(actual) == 'table' and type(expected) == 'table' then
         if not _is_table_equals(actual, expected) then
             failure( error_msg_equality(actual, expected, doDeepAnalysis), extra_msg_or_nil, 2 )

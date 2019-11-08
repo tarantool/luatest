@@ -19,6 +19,16 @@ g.test_assert_tnt_specific = function()
     t.assert_error(function() t.assert_not({}) end)
 end
 
+g.test_assert_equals_tnt_tuples = function()
+    t.assert_equals(box.tuple.new(1), box.tuple.new(1))
+    t.assert_equals(box.tuple.new(1, 'a', box.NULL), box.tuple.new(1, 'a', box.NULL))
+    t.assert_equals(box.tuple.new(1, {'a'}), box.tuple.new(1, {'a'}))
+
+    t.assert_not_equals(box.tuple.new(1), box.tuple.new(2))
+    t.assert_not_equals(box.tuple.new(1, 'a', box.NULL), box.tuple.new(1, 'a'))
+    t.assert_not_equals(box.tuple.new(1, {'a'}), box.tuple.new(1, {'b'}))
+end
+
 g.test_fail_if_tnt_specific = function()
     t.fail_if(box.NULL, 'unexpected')
     t.assert_error(function() t.fail_if(true, 'expected') end)
