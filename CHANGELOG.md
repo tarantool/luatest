@@ -6,6 +6,7 @@
 - Allow dot in group name.
 - Prevent using `/` in group name.
 - Decide group name from filename for `group()` call without args.
+- `assert` returns input values.
 
 # 0.3.0
 
