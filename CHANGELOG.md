@@ -8,6 +8,7 @@
 - Decide group name from filename for `group()` call without args.
 - `assert` returns input values.
 - `assert[_not]_equals` works for Tarantool's box.tuple.
+- Print tables in lua-compatible way in errors.
 
 # 0.3.0
 

@@ -800,7 +800,7 @@ local function _table_tostring( tbl, indentLevel, printTableRefs, recursionTable
         if "string" == type(k) and k:match("^[_%a][_%w]*$") then
             return k
         end
-        return prettystr_sub(k, indentLevel+1, printTableRefs, recursionTable)
+        return '[' .. prettystr_sub(k, indentLevel+1, printTableRefs, recursionTable) .. ']'
     end
 
     local mt = getmetatable( tbl )
@@ -832,7 +832,7 @@ local function _table_tostring( tbl, indentLevel, printTableRefs, recursionTable
                 recursionTable.recursionDetected = true
                 entry = "<".._table_raw_tostring(k)..">="
             else
-                entry = keytostring(k) .. "="
+                entry = keytostring(k) .. " = "
             end
 
             -- value part
@@ -895,7 +895,7 @@ local function _table_tostring_format_result( tbl, result, indentLevel, printTab
                     "{\n    ",
                     indentString,
                     table.concat(result, ",\n    " .. indentString),
-                    "\n",
+                    ",\n",
                     indentString,
                     "}"
                 }
