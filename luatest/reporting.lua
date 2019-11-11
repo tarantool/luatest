@@ -8,7 +8,7 @@ return function(lu)
     utils.patch(TextOutput, 'end_suite', function(super) return function(self)
         super(self)
         local list = fun.chain(self.result.failedTests, self.result.errorTests):
-            map(function(x) return x.testName end):
+            map(function(x) return x.test_name end):
             totable()
         if #list > 0 then
             table.sort(list)

@@ -12,8 +12,6 @@ local runner = {
 
 -- Adds functions to luatest which can be patched in `hooks` or `capturing` module.
 local function patch_luatest(lu)
-    lu.GLOBAL_TESTS = false
-
     function lu.load_tests(options)
         if package.search(runner.HELPER_MODULE) then
             require(runner.HELPER_MODULE)

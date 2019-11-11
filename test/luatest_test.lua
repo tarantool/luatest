@@ -124,7 +124,7 @@ end
 g.test_group_sets_default_group_name_from_filename = function()
     local result = helper.run_suite(function(lu2)
         local g2 = lu2.group()
-        t.assert_is(lu2.tests.luatest, g2)
+        t.assert_is(lu2.groups.luatest, g2)
     end)
     t.assert_equals(result, 0)
 end

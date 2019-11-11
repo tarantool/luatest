@@ -25,8 +25,7 @@ M.TABLE_EQUALS_KEYBYCONTENT = true
 M.LINE_LENGTH = 80
 M.LIST_DIFF_ANALYSIS_THRESHOLD  = 10    -- display deep analysis for more than 10 items
 
-M.GLOBAL_TESTS = true -- Use either _G or M.tests as tests container
-M.tests = {}
+M.groups = {}
 
 local function find_closest_matching_frame(pattern)
     local level = 2
@@ -54,15 +53,15 @@ M.group = function(name)
         local test_filename = info.source:match(pattern)
         name = test_filename:gsub('/', '.')
     end
-    if M.tests[name] then
+    if M.groups[name] then
         error('Test group already exists: ' .. name ..
-            '. To modify existing group use `luatest.tests[name]`.')
+            '. To modify existing group use `luatest.groups[name]`.')
     end
     if name:find('/') then
         error('Group name must not contain `/`: ' .. name)
     end
-    M.tests[name] = {name = name}
-    return M.tests[name]
+    M.groups[name] = {name = name}
+    return M.groups[name]
 end
 
 --[[ EPS is meant to help with Lua's floating point math in simple corner
@@ -1494,11 +1493,11 @@ function genericOutput:start_suite()
     -- Called once, when the suite is started
 end
 
-function genericOutput:start_class(className)
+function genericOutput:start_group(group_name)
     -- Called each time a new test class is started
 end
 
-function genericOutput:start_test(testName)
+function genericOutput:start_test(test_name)
     -- called each time a new test is started, right before the setUp()
     -- the current test status node is already created and available in: self.result.currentNode
 end
@@ -1513,7 +1512,7 @@ function genericOutput:end_test(node)
     -- called when the test is finished, after the tearDown() method
 end
 
-function genericOutput:end_class()
+function genericOutput:end_group()
     -- called when executing the class is finished, before moving on to the next class
     -- of at the end of the test execution
 end
@@ -1542,9 +1541,9 @@ TapOutput.__class__ = 'TapOutput'
         print("1.."..self.result.selectedCount)
         print('# Started on '..self.result.startDate)
     end
-    function TapOutput:start_class(className) -- luacheck: no unused
-        if className ~= '[TestFunctions]' then
-            print('# Starting class: '..className)
+    function TapOutput:start_group(group_name) -- luacheck: no unused
+        if group_name ~= '[TestFunctions]' then
+            print('# Starting class: '..group_name)
         end
     end
 
@@ -1554,7 +1553,7 @@ TapOutput.__class__ = 'TapOutput'
             return
         end
 
-        io.stdout:write("not ok ", self.result.currentTestNumber, "\t", node.testName, "\n")
+        io.stdout:write("not ok ", self.result.currentTestNumber, "\t", node.test_name, "\n")
         if self.verbosity > M.VERBOSITY_LOW then
            print( prefix_string( '#   ', node.msg ) )
         end
@@ -1565,7 +1564,7 @@ TapOutput.__class__ = 'TapOutput'
 
     function TapOutput:end_test( node )
         if node:is_success() then
-            io.stdout:write("ok     ", self.result.currentTestNumber, "\t", node.testName, "\n")
+            io.stdout:write("ok     ", self.result.currentTestNumber, "\t", node.test_name, "\n")
         end
     end
 
@@ -1608,13 +1607,13 @@ JUnitOutput.__class__ = 'JUnitOutput'
         print('# XML output to '..self.output_file_name)
         print('# Started on '..self.result.startDate)
     end
-    function JUnitOutput:start_class(className) -- luacheck: no unused
-        if className ~= '[TestFunctions]' then
-            print('# Starting class: '..className)
+    function JUnitOutput:start_group(group_name) -- luacheck: no unused
+        if group_name ~= '[TestFunctions]' then
+            print('# Starting class: '..group_name)
         end
     end
-    function JUnitOutput:start_test(testName) -- luacheck: no unused
-        print('# Starting test: '..testName)
+    function JUnitOutput:start_test(test_name) -- luacheck: no unused
+        print('# Starting test: '..test_name)
     end
 
     function JUnitOutput:update_status( node ) -- luacheck: no unused
@@ -1647,7 +1646,7 @@ JUnitOutput.__class__ = 'JUnitOutput'
 
         for _,node in ipairs(self.result.allTests) do
             self.fd:write(string.format('        <testcase classname="%s" name="%s" time="%0.3f">\n',
-                node.className, node.testName, node.duration ) )
+                node.group_name or '', node.test_name, node.duration ) )
             if node:is_not_success() then
                 self.fd:write(node:status_xml())
             end
@@ -1692,9 +1691,9 @@ TextOutput.RESET_TERM = '\x1B[0m'
         end
     end
 
-    function TextOutput:start_test(testName) -- luacheck: no unused
+    function TextOutput:start_test(test_name) -- luacheck: no unused
         if self.verbosity > M.VERBOSITY_DEFAULT then
-            io.stdout:write( "    ", self.result.currentNode.testName, " ... " )
+            io.stdout:write( "    ", test_name, " ... " )
         end
     end
 
@@ -1725,7 +1724,7 @@ TextOutput.RESET_TERM = '\x1B[0m'
     end
 
     function TextOutput:display_one_failed_test( index, fail ) -- luacheck: no unused
-        print(index..") "..fail.testName .. TextOutput.ERROR_COLOR_CODE )
+        print(index..") "..fail.test_name .. TextOutput.ERROR_COLOR_CODE )
         print( fail.msg .. TextOutput.RESET_TERM )
         print( fail.stackTrace )
         print()
@@ -1808,7 +1807,9 @@ local LuaUnit_MT = { __index = M.LuaUnit }
 
 
     function M.LuaUnit.new(object)
-        return setmetatable( object or {}, LuaUnit_MT )
+        object = setmetatable(object or {}, LuaUnit_MT)
+        object:initialize()
+        return object
     end
 
     -----------------[[ Utility methods ]]---------------------
@@ -1820,14 +1821,14 @@ local LuaUnit_MT = { __index = M.LuaUnit }
         end
     end
 
-    function M.LuaUnit.split_class_method(someName)
+    function M.LuaUnit.split_test_method_name(someName)
         --[[
-        Return a pair of className, methodName strings for a name in the form
+        Return a pair of group_name, method_name strings for a name in the form
         "class.method". If no class part (or separator) is found, will return
         nil, someName instead (the latter being unchanged).
 
         This convention thus also replaces the older isClassMethod() test:
-        You just have to check for a non-nil className (return) value.
+        You just have to check for a non-nil group_name (return) value.
         ]]
         local separator
         for i = #someName, 1, -1 do
@@ -1852,29 +1853,6 @@ local LuaUnit_MT = { __index = M.LuaUnit }
         -- return true is the name matches the name of a test
         -- default rule is that is starts with 'Test' or with 'test'
         return string.sub(s, 1, 4):lower() == 'test'
-    end
-
-    function M.LuaUnit.tests_container()
-        if M.GLOBAL_TESTS then
-            return _G
-        else
-            return M.tests
-        end
-    end
-
-    function M.LuaUnit.collect_tests()
-        -- return a list of all test names.
-        -- When M.GLOBAL_TESTS is enabled it returns names
-        -- from the global namespace matching LuaUnit.is_test_name.
-        -- Otherwise returns all keys from M.tests table.
-
-        local test_names = {}
-        for k, _ in sorted_pairs(M.LuaUnit.tests_container()) do
-            if type(k) == "string" and ( M.LuaUnit.is_test_name( k ) or not M.GLOBAL_TESTS ) then
-                table.insert( test_names , k )
-            end
-        end
-        return test_names
     end
 
     function M.LuaUnit.parse_cmd_line( cmdLine )
@@ -2008,10 +1986,10 @@ local LuaUnit_MT = { __index = M.LuaUnit }
     NodeStatus.FAIL     = 'FAIL'
     NodeStatus.ERROR    = 'ERROR'
 
-    function NodeStatus.new( number, testName, className )
+    function NodeStatus.new(number, test_name, group_name)
         -- default constructor, test are PASS by default
-        local t = { number = number, testName = testName, className = className }
-        setmetatable( t, NodeStatus_MT )
+        local t = {number = number, test_name = test_name, group_name = group_name}
+        setmetatable(t, NodeStatus_MT)
         t:success()
         return t
     end
@@ -2128,7 +2106,7 @@ local LuaUnit_MT = { __index = M.LuaUnit }
             successCount = 0,
             runCount = 0,
             currentTestNumber = 0,
-            currentClassName = "",
+            current_group = nil,
             currentNode = nil,
             suiteStarted = true,
             startTime = clock.time(),
@@ -2153,22 +2131,22 @@ local LuaUnit_MT = { __index = M.LuaUnit }
         self.output:start_suite()
     end
 
-    function M.LuaUnit:start_class( className )
-        self.result.currentClassName = className
-        self.output:start_class( className )
+    function M.LuaUnit:start_group(group)
+        self.result.current_group = group
+        self.output:start_group(group.name)
     end
 
-    function M.LuaUnit:start_test( testName  )
+    function M.LuaUnit:start_test(test_name)
         self.result.currentTestNumber = self.result.currentTestNumber + 1
         self.result.runCount = self.result.runCount + 1
         self.result.currentNode = NodeStatus.new(
             self.result.currentTestNumber,
-            testName,
-            self.result.currentClassName
+            test_name,
+            self.result.current_group.name
         )
         self.result.currentNode.startTime = clock.time()
         table.insert( self.result.allTests, self.result.currentNode )
-        self.output:start_test( testName )
+        self.output:start_test(test_name)
     end
 
     function M.LuaUnit:update_status( err )
@@ -2244,8 +2222,8 @@ local LuaUnit_MT = { __index = M.LuaUnit }
         self.result.currentNode = nil
     end
 
-    function M.LuaUnit:end_class()
-        self.output:end_class()
+    function M.LuaUnit:end_group()
+        self.output:end_group()
     end
 
     function M.LuaUnit:end_suite()
@@ -2290,9 +2268,9 @@ local LuaUnit_MT = { __index = M.LuaUnit }
 
     --------------[[ Runner ]]-----------------
 
-    function M.LuaUnit:protected_call(classInstance, methodInstance, prettyFuncName)
+    function M.LuaUnit:protected_call(instance, method, pretty_name)
         local _, err = xpcall(function()
-            methodInstance(classInstance)
+            method(instance)
             return {status = NodeStatus.SUCCESS}
         end, function(e)
             -- transform error into a table, adding the traceback information
@@ -2318,8 +2296,8 @@ local LuaUnit_MT = { __index = M.LuaUnit }
         end
 
         -- reformat / improve the stack trace
-        if prettyFuncName then -- we do have the real method name
-            err.trace = err.trace:gsub("in (%a+) 'methodInstance'", "in %1 '"..prettyFuncName.."'")
+        if pretty_name then -- we do have the real method name
+            err.trace = err.trace:gsub("in (%a+) 'method'", "in %1 '" .. pretty_name .. "'")
         end
         if STRIP_LUAUNIT_FROM_STACKTRACE then
             err.trace = strip_luaunit_trace(err.trace)
@@ -2328,136 +2306,97 @@ local LuaUnit_MT = { __index = M.LuaUnit }
         return err -- return the error "object" (table)
     end
 
-    function M.LuaUnit:invoke_test_function(group, method, name)
-        self:update_status(self:protected_call(group, method, name))
+    function M.LuaUnit:invoke_test_function(test)
+        self:update_status(self:protected_call(test.group, test.method, test.name))
     end
 
-    function M.LuaUnit:exec_one_function(className, methodName, classInstance, methodInstance)
-        -- When executing a test function, className and classInstance must be nil
-        -- When executing a class method, all parameters must be set
-
-        if type(methodInstance) ~= 'function' then
-            error( tostring(methodName)..' must be a function, not '..type(methodInstance))
-        end
-
-        local prettyFuncName
-        if className == nil then
-            className = '[TestFunctions]'
-            prettyFuncName = methodName
-        else
-            prettyFuncName = className..'.'..methodName
-        end
-
-        if self.lastClassName ~= className then
-            if self.lastClassName ~= nil then
-                self:end_class()
-            end
-            self:start_class( className )
-            self.lastClassName = className
-        end
-
-        self:start_test(prettyFuncName)
-
-        local node = self.result.currentNode
+    function M.LuaUnit:run_test(test)
+        self:start_test(test.name)
         for iter_n = 1, self.exe_repeat or 1 do
-            if node:is_not_success() then
+            if self.result.currentNode:is_not_success() then
                 break
             end
             self.currentCount = iter_n
-            self:invoke_test_function(classInstance, methodInstance, prettyFuncName)
+            self:invoke_test_function(test)
         end
-
         self:end_test()
     end
 
-    function M.LuaUnit.expand_one_class(className, classInstance)
-        --[[
-        Input: a class name, a class instance
-        Ouptut: list of test method instances in the form:
-        { className.methodName, classInstance }
-        ]]
+    function M.LuaUnit:run_tests(tests_list)
+        -- Make seed for ordering not affect other random numbers.
+        math.randomseed(os.time())
+        for _, test in ipairs(tests_list) do
+            if self.result.current_group ~= test.group then
+                if self.result.current_group then
+                    self:end_group()
+                end
+                self:start_group(test.group)
+            end
+            self:run_test(test)
+            if self.result.aborted then
+                break -- "--error" or "--failure" option triggered
+            end
+        end
+        if self.result.current_group then
+            self:end_group()
+        end
+    end
+
+    function M.LuaUnit.build_test(group, method_name)
+        local name = group.name .. '.' .. method_name
+        local method = assert(group[method_name], 'Could not find method ' .. name)
+        assert(M.LuaUnit.as_function(method), name .. ' is not a function')
+        return {
+            name = name,
+            group = group,
+            method_name = method_name,
+            method = method,
+            line = debug.getinfo(method).linedefined or 0,
+        }
+    end
+
+    -- Exrtact all test methods from group.
+    function M.LuaUnit:expand_group(group)
         local result = {}
-        for methodName, methodInstance in sorted_pairs(classInstance) do
-            if M.LuaUnit.as_function(methodInstance) and M.LuaUnit.is_method_test_name( methodName ) then
-                table.insert( result, {
-                    className..'.'..methodName,
-                    classInstance,
-                    func = methodInstance,
-                    line = debug.getinfo(methodInstance).linedefined or 0,
-                 } )
+        for method_name in sorted_pairs(group) do
+            if M.LuaUnit.is_method_test_name(method_name) then
+                table.insert(result, self.build_test(group, method_name))
             end
         end
         return result
     end
 
-    function M.LuaUnit.apply_pattern_filter( patternIncFilter, listOfNameAndInst )
+    function M.LuaUnit:find_test(groups, name)
+        local group_name, method_name = M.LuaUnit.split_test_method_name(name)
+        assert(group_name and method_name, 'Invalid test name: ' .. name)
+        local group = assert(groups[group_name], 'Group not found: ' .. group_name)
+        return self.build_test(group, method_name)
+    end
+
+    function M.LuaUnit.filter_tests(tests_list, patterns)
         local included, excluded = {}, {}
-        for _, v in ipairs( listOfNameAndInst ) do
-            -- local name, instance = v[1], v[2]
-            if  pattern_filter( patternIncFilter, v[1] ) then
-                table.insert( included, v )
+        for _, test in ipairs(tests_list) do
+            if  pattern_filter(patterns, test.name) then
+                table.insert(included, test)
             else
-                table.insert( excluded, v )
+                table.insert(excluded, test)
             end
         end
         return included, excluded
     end
 
-    function M.LuaUnit:run_tests_list( filteredList )
-        for _,v in ipairs( filteredList ) do
-            local name, instance = v[1], v[2]
-            -- expand_classes() should have already taken care of sanitizing the input
-            assert(type(instance) == 'table')
-            local class_name, method_name = M.LuaUnit.split_class_method(name)
-            assert(class_name ~= nil)
-            local method = instance[method_name]
-            assert(method ~= nil)
-            self:exec_one_function(class_name, method_name, instance, method)
-            if self.result.aborted then
-                break -- "--error" or "--failure" option triggered
-            end
-        end
-
-        if self.lastClassName ~= nil then
-            self:end_class()
-        end
-    end
-
-    function M.LuaUnit:run_suite_by_instances(expandedList)
-        --[[ Run an explicit list of tests. Each item of the list must be:
-        * { class.method name, class instance }
-        ]]
-        local filteredList, filteredOutList = self.apply_pattern_filter(
-            self.tests_pattern, expandedList )
-
-        self:start_suite( #filteredList, #filteredOutList )
-        self:run_tests_list(filteredList)
-        self:end_suite()
-
-        if self.result.aborted then
-            print("LuaUnit ABORTED (as requested by --error or --failure option)")
-            os_exit(-2)
-        end
-    end
-
-    function M.LuaUnit:run_suite_by_names( listOfName )
-        --[[ Run LuaUnit with a list of generic names, coming either from command-line or from global
-            namespace analysis. Convert the list into a list of (group_name.method_name, group)
-            and calls run_suite_by_instances.
-        ]]
-
+    function M.LuaUnit:find_tests()
         -- Set seed to ordering.
         if self.seed then
             math.randomseed(self.seed)
         end
 
+        local groups = M.groups
         local result = {}
-        local tests = M.LuaUnit.tests_container()
-
-        for _,name in ipairs(listOfName) do
-            local group = tests[name]
+        for _, name in ipairs(self.test_names) do
+            local group = groups[name]
             if group then
-                local fns = self.expand_one_class(name, group)
+                local fns = self:expand_group(group)
                 if self.shuffle == 'group' then
                     randomize_table(fns)
                 elseif self.shuffle == 'none' then
@@ -2467,32 +2406,15 @@ local LuaUnit_MT = { __index = M.LuaUnit }
                     table.insert(result, x)
                 end
             else
-                local group_name, method_name = M.LuaUnit.split_class_method(name)
-                group = group_name and tests[group_name]
-                if not group then
-                    error('No such name in tests container: ' .. name)
-                end
-                if type(group) ~= 'table' then
-                    error('Instance of ' .. group_name .. ' must be a table')
-                end
-                local method = group[method_name]
-                if method == nil then
-                    error('Could not find method ' .. name)
-                elseif not M.LuaUnit.as_function(method) then
-                    error(name .. ' is not a function')
-                end
-                table.insert(result, {name, group})
+                table.insert(result, self:find_test(groups, name))
             end
         end
 
         if self.shuffle == 'all' then
-            randomize_table( result )
+            randomize_table(result)
         end
 
-        -- Make seed for ordering not affect other random numbers.
-        math.randomseed(os.time())
-
-        self:run_suite_by_instances(result)
+        return result
     end
 
     -- Available options are:
@@ -2506,22 +2428,10 @@ local LuaUnit_MT = { __index = M.LuaUnit }
     --   - shuffle
     --   - seed
     function M.LuaUnit.run(options)
-        -- Run some specific test classes.
-        -- If no arguments are passed, run the class names specified on the
-        -- command line. If no class name is specified on the command line
-        -- run all classes whose name starts with 'Test'
-        --
-        -- If arguments are passed, they must be strings of the class names
-        -- that you want to run or generic command line arguments (-o, -p, -v, ...)
-
-        local runner = M.LuaUnit.new(options)
-
-        os.time()
-
-        return runner:run_suite()
+        return M.LuaUnit.new(options):run_suite()
     end
 
-    function M.LuaUnit:run_suite()
+    function M.LuaUnit:initialize()
         if self.shuffle == 'group' or self.shuffle == 'all' then
             if not self.seed then
                 math.randomseed(os.time())
@@ -2531,6 +2441,13 @@ local LuaUnit_MT = { __index = M.LuaUnit }
             error('Invalid shuffle value')
         end
 
+        if not self.test_names then
+            self.test_names = {}
+            for name in sorted_pairs(M.groups) do
+                table.insert(self.test_names, name)
+            end
+        end
+
         if self.output then
             if self.output:lower() == 'junit' and self.output_file_name == nil then
                 print('With junit output, a filename must be supplied with -n or --name')
@@ -2538,9 +2455,18 @@ local LuaUnit_MT = { __index = M.LuaUnit }
             end
             pcall_or_abort(self.set_output_type, self, self.output)
         end
+    end
 
-        self:run_suite_by_names( self.test_names or M.LuaUnit.collect_tests() )
-
+    function M.LuaUnit:run_suite()
+        local tests = self:find_tests()
+        local filtered_list, filtered_out_list = self.filter_tests(tests, self.tests_pattern)
+        self:start_suite(#filtered_list, #filtered_out_list)
+        self:run_tests(filtered_list)
+        self:end_suite()
+        if self.result.aborted then
+            print("LuaUnit ABORTED (as requested by --error or --failure option)")
+            os_exit(-2)
+        end
         return self.result.notSuccessCount
     end
 -- class LuaUnit

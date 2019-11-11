@@ -10,8 +10,7 @@ local utils = {}
 --       super(...)
 --     end end)
 function utils.patch(object, name, fn)
-    local super = object[name]
-    assert(super)
+    local super = assert(object[name], 'Original function is not defined: ' .. name)
     object[name] = fn(super)
 end
 

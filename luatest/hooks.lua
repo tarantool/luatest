@@ -17,17 +17,13 @@ local function define_hooks(object, type)
     end
 end
 
-local function run_group_hooks(runner, group_name, type)
-    local group = runner.tests_container()[group_name]
-    if not group then
-        return
-    end
-    local hook = group['run_' .. type]
+local function run_group_hooks(group, type)
+    local hook = group and group['run_' .. type]
     -- If _original_%hook_name% is not equal to %hook_name%, it means
     -- that this method was assigned by user (legacy API).
     if hook and group[type] == group['_original_' .. type] then
         hook()
-    elseif group[type] then
+    elseif group and group[type] then
         group[type]()
     end
 end
@@ -59,25 +55,26 @@ return function(lu)
         return group
     end end)
 
-    utils.patch(lu.LuaUnit, 'invoke_test_function', function(super) return function(self, group, method, name)
-        run_test_hooks(self, group, 'before_each', 'setup')
+    utils.patch(lu.LuaUnit, 'invoke_test_function', function(super) return function(self, test)
+        run_test_hooks(self, test.group, 'before_each', 'setup')
         if self.result.currentNode:is_success() then
-            super(self, group, method, name)
+            super(self, test)
         end
-        run_test_hooks(self, group, 'after_each', 'teardown')
+        run_test_hooks(self, test.group, 'after_each', 'teardown')
     end end)
 
-    utils.patch(lu.LuaUnit, 'start_class', function(super) return function(self, className)
-        super(self, className)
-        run_group_hooks(self, className, 'before_all')
+
+    utils.patch(lu.LuaUnit, 'start_group', function(super) return function(self, ...)
+        super(self, ...)
+        run_group_hooks(self.result.current_group, 'before_all')
     end end)
 
-    utils.patch(lu.LuaUnit, 'end_class', function(super) return function(self)
-        run_group_hooks(self, self.lastClassName, 'after_all')
+    utils.patch(lu.LuaUnit, 'end_group', function(super) return function(self)
+        run_group_hooks(self.result.current_group, 'after_all')
         super(self)
     end end)
 
-    utils.patch(lu.LuaUnit, 'run_tests_list', function(super) return function(self, tests)
+    utils.patch(lu.LuaUnit, 'run_tests', function(super) return function(self, tests)
         if #tests == 0 then
             return
         end
