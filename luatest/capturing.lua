@@ -58,10 +58,10 @@ return function(lu, capture)
     end end)
 
     -- Main capturing wrapper.
-    wrap_methods(capture, true, lu.LuaUnit, 'run_tests_list')
+    wrap_methods(capture, true, lu.LuaUnit, 'run_tests')
 
     -- Disable capture in case of failure because `end_suite` is not called.
-    for _, name in pairs({'start_class', 'end_class'}) do
+    for _, name in pairs({'start_group', 'end_group'}) do
         utils.patch(lu.LuaUnit, name, function(super) return function(...)
             local args = {...}
             utils.reraise_and_ensure(function()
