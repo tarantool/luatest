@@ -10,6 +10,7 @@
 - `assert[_not]_equals` works for Tarantool's box.tuple.
 - Print tables in lua-compatible way in errors.
 - Fix performance issue with large errors messages.
+- Unify hooks definition: group hooks are defined via function calls.
 
 # 0.3.0
 

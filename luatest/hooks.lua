@@ -1,40 +1,79 @@
 local utils = require('luatest.utils')
 
 -- suite hooks
-local function define_suite_hooks(lu, type)
+local function define_hooks(object, type)
     local hooks = {}
-    lu[type .. '_hooks'] = hooks
+    object[type .. '_hooks'] = hooks
 
-    lu[type] = function(fn)
+    object[type] = function(fn)
         table.insert(hooks, fn)
     end
+    object['_original_' .. type] = object[type] -- for leagacy hooks support
 
-    lu['run_' .. type] = function()
+    object['run_' .. type] = function()
         for _, fn in ipairs(hooks) do
             fn()
         end
     end
 end
 
--- test group (class) hooks
-local function run_class_callback(runner, className, type)
-    local classInstance = runner.tests_container()[className]
-    local func = classInstance and classInstance[type]
-    return func and func()
+local function run_group_hooks(runner, group_name, type)
+    local group = runner.tests_container()[group_name]
+    if not group then
+        return
+    end
+    local hook = group['run_' .. type]
+    -- If _original_%hook_name% is not equal to %hook_name%, it means
+    -- that this method was assigned by user (legacy API).
+    if hook and group[type] == group['_original_' .. type] then
+        hook()
+    elseif group[type] then
+        group[type]()
+    end
+end
+
+local function run_test_hooks(self, group, type, legacy_name)
+    local hook
+    -- Support for group.setup/teardown methods (legacy API)
+    hook = self.as_function(group[legacy_name])
+    if hook then
+        self:update_status(self:protected_call(group, hook, group.name .. '.' .. legacy_name))
+    end
+    hook = group['run_' .. type]
+    if hook then
+        self:update_status(self:protected_call(group, hook))
+    end
 end
 
 -- Adds suite and test group hooks.
 return function(lu)
-    define_suite_hooks(lu, 'before_suite')
-    define_suite_hooks(lu, 'after_suite')
+    define_hooks(lu, 'before_suite')
+    define_hooks(lu, 'after_suite')
+
+    utils.patch(lu, 'group', function(super) return function(...)
+        local group = super(...)
+        define_hooks(group, 'before_each')
+        define_hooks(group, 'after_each')
+        define_hooks(group, 'before_all')
+        define_hooks(group, 'after_all')
+        return group
+    end end)
+
+    utils.patch(lu.LuaUnit, 'invoke_test_function', function(super) return function(self, group, method, name)
+        run_test_hooks(self, group, 'before_each', 'setup')
+        if self.result.currentNode:is_success() then
+            super(self, group, method, name)
+        end
+        run_test_hooks(self, group, 'after_each', 'teardown')
+    end end)
 
     utils.patch(lu.LuaUnit, 'start_class', function(super) return function(self, className)
         super(self, className)
-        run_class_callback(self, className, 'before_all')
+        run_group_hooks(self, className, 'before_all')
     end end)
 
     utils.patch(lu.LuaUnit, 'end_class', function(super) return function(self)
-        run_class_callback(self, self.lastClassName, 'after_all')
+        run_group_hooks(self, self.lastClassName, 'after_all')
         super(self)
     end end)
 

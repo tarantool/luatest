@@ -47,7 +47,7 @@ function Process:start(path, args, env, options)
         fio.chdir(options.chdir)
     end
     ffi.C.execve(path, argv, envp)
-    io.stderr:write('execve failed: ' .. errno.strerror() .. '\n')
+    io.stderr:write('execve failed (' .. path ..  '): ' .. errno.strerror() .. '\n')
     os.exit(1)
 end
 

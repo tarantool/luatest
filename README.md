@@ -40,17 +40,17 @@ local g = t.group('feature')
 g.test_example_1 = function() ... end
 g.test_example_n = function() ... end
 
--- Define suite hooks. can be called multiple times to define hooks from different files
+-- Define suite hooks
 t.before_suite(function() ... end)
 t.before_suite(function() ... end)
 
 -- Hooks to run once for tests group
-g.before_all = function() ... end
-g.after_all = function() ... end
+g.before_all(function() ... end)
+g.after_all(function() ... end)
 
 -- Hooks to run for each test in group
-g.setup = function() ... end
-g.teardown = function() ... end
+g.before_each(function() ... end)
+g.after_each(function() ... end)
 
 -- test/other_test.lua
 local t = require('luatest')
