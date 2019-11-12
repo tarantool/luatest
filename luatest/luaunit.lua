@@ -28,13 +28,30 @@ M.LIST_DIFF_ANALYSIS_THRESHOLD  = 10    -- display deep analysis for more than 1
 M.GLOBAL_TESTS = true -- Use either _G or M.tests as tests container
 M.tests = {}
 
+local function find_closest_matching_frame(pattern)
+    local level = 2
+    while true do
+        local info = debug.getinfo(level, 'S')
+        if not info then
+            return
+        end
+        local source = info.source
+        if source:match(pattern) then
+            return info
+        end
+        level = level + 1
+    end
+end
+
 --- Define named test group.
 M.group = function(name)
     if not name then
-        local test_filename = assert(
-            debug.getinfo(2, "S").source:match('.*/test/(.+)_test%.lua'),
+        local pattern = '.*/test/(.+)_test%.lua'
+        local info = assert(
+            find_closest_matching_frame(pattern),
             'Can not guess test name from the source file name'
         )
+        local test_filename = info.source:match(pattern)
         name = test_filename:gsub('/', '.')
     end
     if M.tests[name] then
@@ -44,7 +61,7 @@ M.group = function(name)
     if name:find('/') then
         error('Group name must not contain `/`: ' .. name)
     end
-    M.tests[name] = {}
+    M.tests[name] = {name = name}
     return M.tests[name]
 end
 
@@ -1852,12 +1869,11 @@ local LuaUnit_MT = { __index = M.LuaUnit }
         -- Otherwise returns all keys from M.tests table.
 
         local test_names = {}
-        for k, _ in pairs(M.LuaUnit.tests_container()) do
+        for k, _ in sorted_pairs(M.LuaUnit.tests_container()) do
             if type(k) == "string" and ( M.LuaUnit.is_test_name( k ) or not M.GLOBAL_TESTS ) then
                 table.insert( test_names , k )
             end
         end
-        table.sort( test_names )
         return test_names
     end
 
@@ -2308,6 +2324,9 @@ local LuaUnit_MT = { __index = M.LuaUnit }
         return err -- return the error "object" (table)
     end
 
+    function M.LuaUnit:invoke_test_function(group, method, name)
+        self:update_status(self:protected_call(group, method, name))
+    end
 
     function M.LuaUnit:exec_one_function(className, methodName, classInstance, methodInstance)
         -- When executing a test function, className and classInstance must be nil
@@ -2341,24 +2360,7 @@ local LuaUnit_MT = { __index = M.LuaUnit }
                 break
             end
             self.currentCount = iter_n
-
-            local func
-            -- run setUp first (if any)
-            func = self.as_function(classInstance.setup)
-            if func then
-                self:update_status(self:protected_call(classInstance, func, className..'.setup'))
-            end
-
-            -- run testMethod()
-            if node:is_success() then
-                self:update_status(self:protected_call(classInstance, methodInstance, prettyFuncName))
-            end
-
-            -- lastly, run tearDown (if any)
-            func = self.as_function(classInstance.teardown)
-            if func then
-                self:update_status(self:protected_call(classInstance, func, className..'.teardown'))
-            end
+            self:invoke_test_function(classInstance, methodInstance, prettyFuncName)
         end
 
         self:end_test()
@@ -2371,7 +2373,7 @@ local LuaUnit_MT = { __index = M.LuaUnit }
         { className.methodName, classInstance }
         ]]
         local result = {}
-        for methodName, methodInstance in pairs(classInstance) do
+        for methodName, methodInstance in sorted_pairs(classInstance) do
             if M.LuaUnit.as_function(methodInstance) and M.LuaUnit.is_method_test_name( methodName ) then
                 table.insert( result, {
                     className..'.'..methodName,

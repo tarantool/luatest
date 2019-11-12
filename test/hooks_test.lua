@@ -20,6 +20,57 @@ g.test_hooks = function()
         for _, v in ipairs({'_t1', '_t2'}) do
             local t2 = lu2.group(v)
 
+            t2.before_all(function() table.insert(hooks, 'before_all' .. v) end)
+            t2.after_all(function() table.insert(hooks, 'after_all' .. v) end)
+            t2.before_each(function() table.insert(hooks, 'before_each' .. v) end)
+            t2.after_each(function() table.insert(hooks, 'after_each' .. v) end)
+            t2.before_all(function() table.insert(hooks, 'before_all2_' .. v) end)
+            t2.after_all(function() table.insert(hooks, 'after_all2_' .. v) end)
+            t2.before_each(function() table.insert(hooks, 'before_each2_' .. v) end)
+            t2.after_each(function() table.insert(hooks, 'after_each2_' .. v) end)
+            t2.test_1 = function() table.insert(hooks, 'test_1' .. v) end
+            t2.test_2 = function() table.insert(hooks, 'test_2' .. v) end
+            table.insert(expected, 'before_all' .. v)
+            table.insert(expected, 'before_all2_' .. v)
+            table.insert(expected, 'before_each' .. v)
+            table.insert(expected, 'before_each2_' .. v)
+            table.insert(expected, 'test_1' .. v)
+            table.insert(expected, 'after_each' .. v)
+            table.insert(expected, 'after_each2_' .. v)
+            table.insert(expected, 'before_each' .. v)
+            table.insert(expected, 'before_each2_' .. v)
+            table.insert(expected, 'test_2' .. v)
+            table.insert(expected, 'after_each' .. v)
+            table.insert(expected, 'after_each2_' .. v)
+            table.insert(expected, 'after_all' .. v)
+            table.insert(expected, 'after_all2_' .. v)
+        end
+
+        table.insert(expected, 'after_suite_1')
+        table.insert(expected, 'after_suite_2')
+    end, {'--shuffle', 'none'})
+
+    t.assert_equals(result, 0)
+    t.assert_equals(hooks, expected)
+end
+
+g.test_hooks_legacy = function()
+    local hooks = {}
+    local expected = {}
+
+    local result = helper.run_suite(function(lu2)
+        lu2.before_suite(function() table.insert(hooks, 'before_suite_1') end)
+        lu2.after_suite(function() table.insert(hooks, 'after_suite_1') end)
+
+        lu2.before_suite(function() table.insert(hooks, 'before_suite_2') end)
+        lu2.after_suite(function() table.insert(hooks, 'after_suite_2') end)
+
+        table.insert(expected, 'before_suite_1')
+        table.insert(expected, 'before_suite_2')
+
+        for _, v in ipairs({'_t1', '_t2'}) do
+            local t2 = lu2.group(v)
+
             t2.before_all = function() table.insert(hooks, 'before_all' .. v) end
             t2.after_all = function() table.insert(hooks, 'after_all' .. v) end
             t2.setup = function() table.insert(hooks, 'setup' .. v) end
