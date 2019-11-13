@@ -54,7 +54,7 @@ helpers.RETRYING_DELAY = 0.1
 --
 -- @tab config
 -- @number config.timeout
--- @number config.dalay
+-- @number config.delay
 -- @func fn
 -- @param ... args
 function helpers.retrying(config, fn, ...)
