@@ -133,23 +133,6 @@ local function os_exit(code)
     error({type = 'LUAUNIT_EXIT', code = code})
 end
 
-local function pcall_or_abort(func, ...)
-    -- unpack is a global function for Lua 5.1, otherwise use table.unpack
-    local unpack = rawget(_G, "unpack") or rawget(table, 'unpack')
-    local result = {pcall(func, ...)}
-    if not result[1] then
-        if result[2].type == 'LUAUNIT_EXIT' then
-            error(result[2])
-        end
-        -- an error occurred
-        print(result[2]) -- error message
-        print()
-        print(M.USAGE)
-        os_exit(-1)
-    end
-    return unpack(result, 2)
-end
-
 local crossTypeOrdering = {
     number = 1, boolean = 2, string = 3, table = 4, other = 5
 }
@@ -403,9 +386,6 @@ local function prettystr_sub(v, indentLevel, printTableRefs, recursionTable )
         return '"' .. v:gsub('"', '\\"') .. '"'
 
     elseif "table" == type_v then
-        --if v.__class__ then
-        --    return string.gsub( tostring(v), 'table', v.__class__ )
-        --end
         return M.private._table_tostring(v, indentLevel, printTableRefs, recursionTable)
 
     elseif "number" == type_v then
@@ -987,7 +967,7 @@ local function failure(main_msg, extra_msg_or_nil, level)
     else
         msg = main_msg
     end
-    luaunit_error(M.NodeStatus.FAIL, msg, (level or 1) + 1)
+    luaunit_error('fail', msg, (level or 1) + 1)
 end
 
 local function fail_fmt(level, extra_msg_or_nil, ...)
@@ -1049,32 +1029,32 @@ end
 
 function M.skip(msg)
     -- skip a running test
-    luaunit_error(M.NodeStatus.SKIP, msg, 2)
+    luaunit_error('skip', msg, 2)
 end
 
 function M.skip_if( cond, msg )
     -- skip a running test if condition is met
     if cond and cond ~= nil then
-        luaunit_error(M.NodeStatus.SKIP, msg, 2)
+        luaunit_error('skip', msg, 2)
     end
 end
 
 function M.run_only_if( cond, msg )
     -- continue a running test if condition is met, else skip it
     if not (cond and cond ~= nil) then
-        luaunit_error(M.NodeStatus.SKIP, prettystr(msg), 2)
+        luaunit_error('skip', prettystr(msg), 2)
     end
 end
 
 function M.success()
     -- stops a test with a success
-    luaunit_error(M.NodeStatus.SUCCESS, 2)
+    luaunit_error('success', 2)
 end
 
 function M.success_if( cond )
     -- stops a test with a success if condition is met
     if cond and cond ~= nil then
-        luaunit_error(M.NodeStatus.SUCCESS, 2)
+        luaunit_error('success', 2)
     end
 end
 
@@ -1470,21 +1450,26 @@ end
 -- A common "base" class for outputters
 -- For concepts involved (class inheritance) see http://www.lua.org/pil/16.2.html
 
-local genericOutput = { __class__ = 'genericOutput' } -- class
-local genericOutput_MT = { __index = genericOutput } -- metatable
+M.OutputTypes = {}
+
+local genericOutput = {__class__ = 'genericOutput'} -- class
+genericOutput.MT = {__index = genericOutput} -- metatable
 M.genericOutput = genericOutput -- publish, so that custom classes may derive from it
 
-function genericOutput.new(runner, default_verbosity)
-    -- runner is the "parent" object controlling the output, usually a LuaUnit instance
-    local t = { runner = runner }
-    if runner then
-        t.result = runner.result
-        t.verbosity = runner.verbosity or default_verbosity
-        t.output_file_name = runner.output_file_name
-    else
-        t.verbosity = default_verbosity
-    end
-    return setmetatable( t, genericOutput_MT)
+function genericOutput.new_class(name)
+    local output = setmetatable({__class__ = name}, genericOutput.MT)
+    output.MT = {__index = output}
+    M.OutputTypes[name:lower():gsub('output$', '')] = output
+    return output
+end
+
+function genericOutput:new(runner)
+    local object = {
+        runner = runner,
+        result = runner.result,
+        verbosity = runner.verbosity,
+    }
+    return setmetatable(object, self.MT)
 end
 
 -- luacheck: push no unused
@@ -1499,7 +1484,7 @@ end
 
 function genericOutput:start_test(test_name)
     -- called each time a new test is started, right before the setUp()
-    -- the current test status node is already created and available in: self.result.currentNode
+    -- the current test status node is already created and available in: self.result.current_node
 end
 
 function genericOutput:update_status(node)
@@ -1527,19 +1512,12 @@ end
 --                     class TapOutput
 ----------------------------------------------------------------
 
-local TapOutput = genericOutput.new() -- derived class
-local TapOutput_MT = { __index = TapOutput } -- metatable
-TapOutput.__class__ = 'TapOutput'
-
+local TapOutput = genericOutput.new_class('TapOutput')
     -- For a good reference for TAP format, check: http://testanything.org/tap-specification.html
 
-    function TapOutput.new(runner)
-        local t = genericOutput.new(runner, M.VERBOSITY_LOW)
-        return setmetatable( t, TapOutput_MT)
-    end
     function TapOutput:start_suite()
-        print("1.."..self.result.selectedCount)
-        print('# Started on '..self.result.startDate)
+        print("1.."..self.result.selected_count)
+        print('# Started on ' .. os.date(nil, self.result.start_time))
     end
     function TapOutput:start_group(group_name) -- luacheck: no unused
         if group_name ~= '[TestFunctions]' then
@@ -1547,30 +1525,29 @@ TapOutput.__class__ = 'TapOutput'
         end
     end
 
-    function TapOutput:update_status( node )
-        if node:is_skipped() then
-            io.stdout:write("ok ", self.result.currentTestNumber, "\t# SKIP ", node.msg, "\n" )
+    function TapOutput:update_status(node)
+        if node:is('skip') then
+            io.stdout:write("ok ", node.serial_number, "\t# SKIP ", node.message or '', "\n")
             return
         end
 
-        io.stdout:write("not ok ", self.result.currentTestNumber, "\t", node.test_name, "\n")
+        io.stdout:write("not ok ", node.serial_number, "\t", node.name, "\n")
         if self.verbosity > M.VERBOSITY_LOW then
-           print( prefix_string( '#   ', node.msg ) )
+           print(prefix_string( '#   ', node.message))
         end
-        if (node:is_failure() or node:is_error()) and self.verbosity > M.VERBOSITY_DEFAULT then
-           print( prefix_string( '#   ', node.stackTrace ) )
+        if (node:is('fail') or node:is('error')) and self.verbosity > M.VERBOSITY_DEFAULT then
+           print(prefix_string('#   ', node.trace))
         end
     end
 
-    function TapOutput:end_test( node )
-        if node:is_success() then
-            io.stdout:write("ok     ", self.result.currentTestNumber, "\t", node.test_name, "\n")
+    function TapOutput:end_test(node) -- luacheck: no unused
+        if node:is('success') then
+            io.stdout:write("ok     ", node.serial_number, "\t", node.name, "\n")
         end
     end
 
     function TapOutput:end_suite()
         print( '# '..M.LuaUnit.status_line( self.result ) )
-        return self.result.notSuccessCount
     end
 
 
@@ -1581,21 +1558,11 @@ TapOutput.__class__ = 'TapOutput'
 ----------------------------------------------------------------
 
 -- See directory junitxml for more information about the junit format
-local JUnitOutput = genericOutput.new() -- derived class
-local JUnitOutput_MT = { __index = JUnitOutput } -- metatable
-JUnitOutput.__class__ = 'JUnitOutput'
-
-    function JUnitOutput.new(runner)
-        local t = genericOutput.new(runner, M.VERBOSITY_LOW)
-        t.testList = {}
-        return setmetatable( t, JUnitOutput_MT )
-    end
+local JUnitOutput = genericOutput.new_class('JUnitOutput')
 
     function JUnitOutput:start_suite()
+        self.output_file_name = assert(self.runner.output_file_name)
         -- open xml file early to deal with errors
-        if self.output_file_name == nil then
-            error('With Junit, an output filename must be supplied with --name!')
-        end
         if string.sub(self.output_file_name,-4) ~= '.xml' then
             self.output_file_name = self.output_file_name..'.xml'
         end
@@ -1605,7 +1572,7 @@ JUnitOutput.__class__ = 'JUnitOutput'
         end
 
         print('# XML output to '..self.output_file_name)
-        print('# Started on '..self.result.startDate)
+        print('# Started on ' .. os.date(nil, self.result.start_time))
     end
     function JUnitOutput:start_group(group_name) -- luacheck: no unused
         if group_name ~= '[TestFunctions]' then
@@ -1617,12 +1584,12 @@ JUnitOutput.__class__ = 'JUnitOutput'
     end
 
     function JUnitOutput:update_status( node ) -- luacheck: no unused
-        if node:is_failure() then
-            print( '#   Failure: ' .. prefix_string( '#   ', node.msg ):sub(4, nil) )
-            -- print('# ' .. node.stackTrace)
-        elseif node:is_error() then
-            print( '#   Error: ' .. prefix_string( '#   '  , node.msg ):sub(4, nil) )
-            -- print('# ' .. node.stackTrace)
+        if node:is('fail') then
+            print('#   Failure: ' .. prefix_string('#   ', node.message):sub(4, nil))
+            -- print('# ' .. node.trace)
+        elseif node:is('error') then
+            print('#   Error: ' .. prefix_string('#   ', node.message):sub(4, nil))
+            -- print('# ' .. node.trace)
         end
     end
 
@@ -1633,22 +1600,22 @@ JUnitOutput.__class__ = 'JUnitOutput'
         self.fd:write('<?xml version="1.0" encoding="UTF-8" ?>\n')
         self.fd:write('<testsuites>\n')
         self.fd:write(string.format(
-            '    <testsuite name="LuaUnit" id="00001" package="" hostname="localhost" tests="%d" timestamp="%s" ' ..
+            '    <testsuite name="luatest" id="00001" package="" hostname="localhost" tests="%d" timestamp="%s" ' ..
             'time="%0.3f" errors="%d" failures="%d" skipped="%d">\n',
-            self.result.runCount, self.result.startIsodate,
-            self.result.duration, self.result.errorCount, self.result.failureCount, self.result.skippedCount
+            #self.result.tests.all - #self.result.tests.skip, os.date('%Y-%m-%dT%H:%M:%S', self.result.start_time),
+            self.result.duration, #self.result.tests.error, #self.result.tests.fail, #self.result.tests.skip
         ))
         self.fd:write("        <properties>\n")
         self.fd:write(string.format('            <property name="Lua Version" value="%s"/>\n', _VERSION ) )
-        self.fd:write(string.format('            <property name="LuaUnit Version" value="%s"/>\n', M.VERSION) )
+        self.fd:write(string.format('            <property name="luatest Version" value="%s"/>\n', M.VERSION) )
         -- XXX please include system name and version if possible
         self.fd:write("        </properties>\n")
 
-        for _,node in ipairs(self.result.allTests) do
+        for _, node in ipairs(self.result.tests.all) do
             self.fd:write(string.format('        <testcase classname="%s" name="%s" time="%0.3f">\n',
-                node.group_name or '', node.test_name, node.duration ) )
-            if node:is_not_success() then
-                self.fd:write(node:status_xml())
+                node.group.name or '', node.name, node.duration))
+            if not node:is('success') then
+                self.fd:write(JUnitOutput.node_status_xml(node))
             end
             self.fd:write('        </testcase>\n')
         end
@@ -1660,34 +1627,42 @@ JUnitOutput.__class__ = 'JUnitOutput'
         self.fd:write('    </testsuite>\n')
         self.fd:write('</testsuites>\n')
         self.fd:close()
-        return self.result.notSuccessCount
+    end
+
+    function JUnitOutput.node_status_xml(node)
+        if node:is('error') then
+            return table.concat(
+                {'            <error type="', xml_escape(node.message), '">\n',
+                 '                <![CDATA[', xml_c_data_escape(node.trace),
+                 ']]></error>\n'})
+        elseif node:is('fail') then
+            return table.concat(
+                {'            <failure type="', xml_escape(node.message), '">\n',
+                 '                <![CDATA[', xml_c_data_escape(node.trace),
+                 ']]></failure>\n'})
+        elseif node:is('skip') then
+            return table.concat({'            <skipped>', xml_escape(node.message or ''),'</skipped>\n' } )
+        end
+        return '            <passed/>\n' -- (not XSD-compliant! normally shouldn't get here)
     end
 
 
 -- class JUnitOutput end
 
 
-local TextOutput = genericOutput.new() -- derived class
-local TextOutput_MT = { __index = TextOutput } -- metatable
-TextOutput.__class__ = 'TextOutput'
+local TextOutput = genericOutput.new_class('TextOutput')
 
 TextOutput.BOLD_CODE = '\x1B[1m'
 TextOutput.ERROR_COLOR_CODE = TextOutput.BOLD_CODE .. '\x1B[31m' -- red
 TextOutput.SUCCESS_COLOR_CODE = TextOutput.BOLD_CODE .. '\x1B[32m' -- green
 TextOutput.RESET_TERM = '\x1B[0m'
 
-    function TextOutput.new(runner)
-        local t = genericOutput.new(runner, M.VERBOSITY_DEFAULT)
-        t.errorList = {}
-        return setmetatable( t, TextOutput_MT )
-    end
-
     function TextOutput:start_suite()
         if self.runner.seed then
             print('Running with --shuffle ' .. self.runner.shuffle .. ':' .. self.runner.seed)
         end
         if self.verbosity > M.VERBOSITY_DEFAULT then
-            print( 'Started on '.. self.result.startDate )
+            print('Started on '.. os.date(nil, self.result.start_time))
         end
     end
 
@@ -1698,7 +1673,7 @@ TextOutput.RESET_TERM = '\x1B[0m'
     end
 
     function TextOutput:end_test( node )
-        if node:is_success() then
+        if node:is('success') then
             if self.verbosity > M.VERBOSITY_DEFAULT then
                 io.stdout:write("Ok\n")
             else
@@ -1707,48 +1682,42 @@ TextOutput.RESET_TERM = '\x1B[0m'
             end
         else
             if self.verbosity > M.VERBOSITY_DEFAULT then
-                print( node.status )
-                print( node.msg )
-                --[[
-                -- find out when to do this:
-                if self.verbosity > M.VERBOSITY_DEFAULT then
-                    print( node.stackTrace )
-                end
-                ]]
+                print(node.status)
+                print(node.message)
             else
                 -- write only the first character of status E, F or S
-                io.stdout:write(string.sub(node.status, 1, 1))
+                io.stdout:write(string.sub(node.status, 1, 1):upper())
                 io.stdout:flush()
             end
         end
     end
 
-    function TextOutput:display_one_failed_test( index, fail ) -- luacheck: no unused
-        print(index..") "..fail.test_name .. TextOutput.ERROR_COLOR_CODE )
-        print( fail.msg .. TextOutput.RESET_TERM )
-        print( fail.stackTrace )
+    function TextOutput:display_one_failed_test(index, fail) -- luacheck: no unused
+        print(index..") " .. fail.name .. TextOutput.ERROR_COLOR_CODE)
+        print(fail.message .. TextOutput.RESET_TERM)
+        print(fail.trace)
         print()
     end
 
     function TextOutput:display_errored_tests()
-        if #self.result.errorTests ~= 0 then
+        if #self.result.tests.error > 0 then
             print(TextOutput.BOLD_CODE)
             print("Tests with errors:")
             print("------------------")
             print(TextOutput.RESET_TERM)
-            for i, v in ipairs(self.result.errorTests) do
+            for i, v in ipairs(self.result.tests.error) do
                 self:display_one_failed_test(i, v)
             end
         end
     end
 
     function TextOutput:display_failed_tests()
-        if #self.result.failedTests ~= 0 then
+        if #self.result.tests.fail > 0 then
             print(TextOutput.BOLD_CODE)
             print("Failed tests:")
             print("-------------")
             print(TextOutput.RESET_TERM)
-            for i, v in ipairs(self.result.failedTests) do
+            for i, v in ipairs(self.result.tests.fail) do
                 self:display_one_failed_test(i, v)
             end
         end
@@ -1779,17 +1748,11 @@ TextOutput.RESET_TERM = '\x1B[0m'
 --                     class NilOutput
 ----------------------------------------------------------------
 
-local function nop_callable()
-    --print(42)
-    return nop_callable
-end
-
-local NilOutput = { __class__ = 'NilOuptut' } -- class
-local NilOutput_MT = { __index = nop_callable } -- metatable
-
-function NilOutput.new()
-    return setmetatable( { __class__ = 'NilOutput' }, NilOutput_MT )
-end
+local NilOutput = genericOutput.new_class('NilOutput')
+NilOutput.MT = {__index = function(self, key)
+    self[key] = function() end
+    return self.key
+end}
 
 ----------------------------------------------------------------
 --
@@ -1798,7 +1761,7 @@ end
 ----------------------------------------------------------------
 
 M.LuaUnit = {
-    outputType = TextOutput,
+    output_type = TextOutput,
     verbosity = M.VERBOSITY_DEFAULT,
     shuffle = 'none',
     __class__ = 'LuaUnit'
@@ -1814,22 +1777,9 @@ local LuaUnit_MT = { __index = M.LuaUnit }
 
     -----------------[[ Utility methods ]]---------------------
 
-    function M.LuaUnit.as_function(aObject)
-        -- return "aObject" if it is a function, and nil otherwise
-        if 'function' == type(aObject) then
-            return aObject
-        end
-    end
-
+    -- Split `some.class.name.method` into `some.class.name` and `method`.
+    -- Returns `nil, input` if input value does not have a dot.
     function M.LuaUnit.split_test_method_name(someName)
-        --[[
-        Return a pair of group_name, method_name strings for a name in the form
-        "class.method". If no class part (or separator) is found, will return
-        nil, someName instead (the latter being unchanged).
-
-        This convention thus also replaces the older isClassMethod() test:
-        You just have to check for a non-nil group_name (return) value.
-        ]]
         local separator
         for i = #someName, 1, -1 do
             if someName:sub(i, i) == '.' then
@@ -1845,12 +1795,6 @@ local LuaUnit_MT = { __index = M.LuaUnit }
 
     function M.LuaUnit.is_method_test_name( s )
         -- return true is the name matches the name of a test method
-        -- default rule is that is starts with 'Test' or with 'test'
-        return string.sub(s, 1, 4):lower() == 'test'
-    end
-
-    function M.LuaUnit.is_test_name( s )
-        -- return true is the name matches the name of a test
         -- default rule is that is starts with 'Test' or with 'test'
         return string.sub(s, 1, 4):lower() == 'test'
     end
@@ -1976,85 +1920,27 @@ local LuaUnit_MT = { __index = M.LuaUnit }
 --                     class NodeStatus
 ----------------------------------------------------------------
 
-    local NodeStatus = { __class__ = 'NodeStatus' } -- class
-    local NodeStatus_MT = { __index = NodeStatus } -- metatable
-    M.NodeStatus = NodeStatus
+    local NodeStatus = {
+        __class__ = 'NodeStatus',
+        MT = {},
+        STATUSES = {'success', 'skip', 'fail', 'error'},
+    }
+    NodeStatus.MT = {__index = NodeStatus} -- metatable
 
-    -- values of status
-    NodeStatus.SUCCESS  = 'SUCCESS'
-    NodeStatus.SKIP     = 'SKIP'
-    NodeStatus.FAIL     = 'FAIL'
-    NodeStatus.ERROR    = 'ERROR'
-
-    function NodeStatus.new(number, test_name, group_name)
-        -- default constructor, test are PASS by default
-        local t = {number = number, test_name = test_name, group_name = group_name}
-        setmetatable(t, NodeStatus_MT)
-        t:success()
-        return t
+    -- default constructor, test are PASS by default
+    function NodeStatus:new(object)
+        object.status = 'success'
+        return setmetatable(object, self.MT)
     end
 
-    function NodeStatus:success()
-        self.status = self.SUCCESS
-        -- useless because lua does this for us, but it helps me remembering the relevant field names
-        self.msg = nil
-        self.stackTrace = nil
+    function NodeStatus:update_status(status, message, trace)
+        self.status = status
+        self.message = message
+        self.trace = trace
     end
 
-    function NodeStatus:skip(msg)
-        self.status = self.SKIP
-        self.msg = msg
-        self.stackTrace = nil
-    end
-
-    function NodeStatus:fail(msg, stackTrace)
-        self.status = self.FAIL
-        self.msg = msg
-        self.stackTrace = stackTrace
-    end
-
-    function NodeStatus:error(msg, stackTrace)
-        self.status = self.ERROR
-        self.msg = msg
-        self.stackTrace = stackTrace
-    end
-
-    function NodeStatus:is_success()
-        return self.status == NodeStatus.SUCCESS
-    end
-
-    function NodeStatus:is_not_success()
-        -- Return true if node is either failure or error or skip
-        return (self.status == NodeStatus.FAIL or self.status == NodeStatus.ERROR or self.status == NodeStatus.SKIP)
-    end
-
-    function NodeStatus:is_skipped()
-        return self.status == NodeStatus.SKIP
-    end
-
-    function NodeStatus:is_failure()
-        return self.status == NodeStatus.FAIL
-    end
-
-    function NodeStatus:is_error()
-        return self.status == NodeStatus.ERROR
-    end
-
-    function NodeStatus:status_xml()
-        if self:is_error() then
-            return table.concat(
-                {'            <error type="', xml_escape(self.msg), '">\n',
-                 '                <![CDATA[', xml_c_data_escape(self.stackTrace),
-                 ']]></error>\n'})
-        elseif self:is_failure() then
-            return table.concat(
-                {'            <failure type="', xml_escape(self.msg), '">\n',
-                 '                <![CDATA[', xml_c_data_escape(self.stackTrace),
-                 ']]></failure>\n'})
-        elseif self:is_skipped() then
-            return table.concat({'            <skipped>', xml_escape(self.msg),'</skipped>\n' } )
-        end
-        return '            <passed/>\n' -- (not XSD-compliant! normally shouldn't get here)
+    function NodeStatus:is(status)
+        return self.status == status
     end
 
     --------------[[ Output methods ]]-------------------------
@@ -2071,63 +1957,43 @@ local LuaUnit_MT = { __index = M.LuaUnit }
     function M.LuaUnit.status_line(result, colors)
         colors = colors or {success = '', failure = '', reset = ''}
         -- return status line string according to results
+        local tests = result.tests
         local s = {
-            string.format('Ran %d tests in %0.3f seconds',
-                          result.runCount, result.duration),
-            colors.success .. conditional_plural(result.successCount, 'success') .. colors.reset,
+            string.format('Ran %d tests in %0.3f seconds', #tests.all - #tests.skip, result.duration),
+            colors.success .. conditional_plural(#tests.success, 'success') .. colors.reset,
         }
-        if result.notSuccessCount > 0 then
-            if result.failureCount > 0 then
-                table.insert(s,
-                    colors.failure .. conditional_plural(result.failureCount, 'failure') .. colors.reset
-                )
-            end
-            if result.errorCount > 0 then
-                table.insert(s,
-                    colors.failure .. conditional_plural(result.errorCount, 'error') .. colors.reset
-                )
-            end
-        else
+        if #tests.fail > 0 then
+            table.insert(s, colors.failure .. conditional_plural(#tests.fail, 'fail') .. colors.reset)
+        end
+        if #tests.error > 0 then
+            table.insert(s, colors.failure .. conditional_plural(#tests.error, 'error') .. colors.reset)
+        end
+        if #tests.fail == 0 and #tests.error == 0 then
             table.insert(s, '0 failures')
         end
-        if result.skippedCount > 0 then
-            table.insert(s, string.format("%d skipped", result.skippedCount))
+        if #tests.skip > 0 then
+            table.insert(s, string.format("%d skipped", #tests.skip))
         end
-        if result.nonSelectedCount > 0 then
-            table.insert(s, string.format("%d non-selected", result.nonSelectedCount))
+        if result.not_selected_count > 0 then
+            table.insert(s, string.format("%d not-selected", result.not_selected_count))
         end
         return table.concat(s, ', ')
     end
 
-    function M.LuaUnit:start_suite(selectedCount, nonSelectedCount)
+    function M.LuaUnit:start_suite(selected_count, not_selected_count)
         self.result = {
-            selectedCount = selectedCount,
-            nonSelectedCount = nonSelectedCount,
-            successCount = 0,
-            runCount = 0,
-            currentTestNumber = 0,
-            current_group = nil,
-            currentNode = nil,
-            suiteStarted = true,
-            startTime = clock.time(),
-            startDate = os.date(os.getenv('LUAUNIT_DATEFMT')),
-            startIsodate = os.date('%Y-%m-%dT%H:%M:%S'),
-            tests_pattern = self.tests_pattern,
-
-            -- list of test node status
-            allTests = {},
-            failedTests = {},
-            errorTests = {},
-            skippedTests = {},
-
-            failureCount = 0,
-            errorCount = 0,
-            notSuccessCount = 0,
-            skippedCount = 0,
+            selected_count = selected_count,
+            not_selected_count = not_selected_count,
+            start_time = clock.time(),
+            tests = {
+                all = {},
+                success = {},
+                fail = {},
+                error = {},
+                skip = {},
+            },
         }
-
-        self.outputType = self.outputType or TextOutput
-        self.output = self.outputType.new(self)
+        self.output = self.output_type:new(self)
         self.output:start_suite()
     end
 
@@ -2136,90 +2002,46 @@ local LuaUnit_MT = { __index = M.LuaUnit }
         self.output:start_group(group.name)
     end
 
-    function M.LuaUnit:start_test(test_name)
-        self.result.currentTestNumber = self.result.currentTestNumber + 1
-        self.result.runCount = self.result.runCount + 1
-        self.result.currentNode = NodeStatus.new(
-            self.result.currentTestNumber,
-            test_name,
-            self.result.current_group.name
-        )
-        self.result.currentNode.startTime = clock.time()
-        table.insert( self.result.allTests, self.result.currentNode )
-        self.output:start_test(test_name)
+    function M.LuaUnit:start_test(test)
+        test = table.copy(test)
+        test.serial_number = #self.result.tests.all + 1
+        test.start_time = clock.time()
+        self.result.current_node = NodeStatus:new(test)
+        table.insert(self.result.tests.all, self.result.current_node)
+        self.output:start_test(test.name)
     end
 
-    function M.LuaUnit:update_status( err )
+    function M.LuaUnit:update_status(err)
+        local node = self.result.current_node
         -- "err" is expected to be a table / result from protected_call()
-        if err.status == NodeStatus.SUCCESS then
+        if err.status == 'success' then
             return
-        end
-
-        local node = self.result.currentNode
-
-        --[[ As a first approach, we will report only one error or one failure for one test.
-
-        However, we can have the case where the test is in failure, and the teardown is in error.
-        In such case, it's a good idea to report both a failure and an error in the test suite. This is
-        what Python unittest does for example. However, it mixes up counts so need to be handled carefully: for
-        example, there could be more (failures + errors) count that tests. What happens to the current node ?
-
-        We will do this more intelligent version later.
-        ]]
-
         -- if the node is already in failure/error, just don't report the new error (see above)
-        if node.status ~= NodeStatus.SUCCESS then
+        elseif not node:is('success') then
             return
-        end
-
-        if err.status == NodeStatus.FAIL then
-            node:fail( err.msg, err.trace )
-            table.insert( self.result.failedTests, node )
-        elseif err.status == NodeStatus.ERROR then
-            node:error( err.msg, err.trace )
-            table.insert( self.result.errorTests, node )
-        elseif err.status == NodeStatus.SKIP then
-            node:skip( err.msg )
-            table.insert( self.result.skippedTests, node )
+        elseif err.status == 'fail' or err.status == 'error' or err.status == 'skip' then
+            node:update_status(err.status, err.message, err.trace)
         else
             error('No such status: ' .. prettystr(err.status))
         end
-
-        self.output:update_status( node )
+        self.output:update_status(node)
     end
 
     function M.LuaUnit:end_test()
-        local node = self.result.currentNode
-        -- print( 'end_test() '..prettystr(node))
-        -- print( 'end_test() '..prettystr(node:is_not_success()))
-        node.duration = clock.time() - node.startTime
-        node.startTime = nil
-        self.output:end_test( node )
+        local node = self.result.current_node
+        node.duration = clock.time() - node.start_time
+        node.start_time = nil
+        self.output:end_test(node)
+        self.result.current_node = nil
 
-        if node:is_success() then
-            self.result.successCount = self.result.successCount + 1
-        elseif node:is_error() then
-            if self.quit_on_error or self.quit_on_failure then
-                -- Runtime error - abort test execution as requested by
-                -- "--error" option. This is done by setting a special
-                -- flag that gets handled in run_suite_by_instances().
-                print("\nERROR during LuaUnit test execution:\n" .. node.msg)
-                self.result.aborted = true
-            end
-        elseif node:is_failure() then
-            if self.quit_on_failure then
-                -- Failure - abort test execution as requested by
-                -- "--failure" option. This is done by setting a special
-                -- flag that gets handled in run_suite_by_instances().
-                print("\nFailure during LuaUnit test execution:\n" .. node.msg)
-                self.result.aborted = true
-            end
-        elseif node:is_skipped() then
-            self.result.runCount = self.result.runCount - 1
-        else
+        if node:is('error') then
+            self.result.aborted = self.quit_on_error or self.quit_on_failure
+        elseif node:is('fail') then
+            self.result.aborted = self.quit_on_failure
+        elseif not node:is('success') and not node:is('skip') then
             error('No such node status: ' .. prettystr(node.status))
         end
-        self.result.currentNode = nil
+        table.insert(self.result.tests[node.status], node)
     end
 
     function M.LuaUnit:end_group()
@@ -2227,43 +2049,12 @@ local LuaUnit_MT = { __index = M.LuaUnit }
     end
 
     function M.LuaUnit:end_suite()
-        if self.result.suiteStarted == false then
-            error('LuaUnit:end_suite() -- suite was already ended' )
+        if self.result.duration then
+            error('Suite was already ended' )
         end
-        self.result.duration = clock.time()-self.result.startTime
-        self.result.suiteStarted = false
-
-        -- Expose test counts for outputter's end_suite(). This could be managed
-        -- internally instead by using the length of the lists of failed tests
-        -- but unit tests rely on these fields being present.
-        self.result.failureCount = #self.result.failedTests
-        self.result.errorCount = #self.result.errorTests
-        self.result.notSuccessCount = self.result.failureCount + self.result.errorCount
-        self.result.skippedCount = #self.result.skippedTests
-
+        self.result.duration = clock.time() - self.result.start_time
+        self.result.failures_count = #self.result.tests.fail + #self.result.tests.error
         self.output:end_suite()
-    end
-
-    function M.LuaUnit:set_output_type(outputType)
-        -- default to text
-        -- tap produces results according to TAP format
-        if outputType:upper() == "NIL" then
-            self.outputType = NilOutput
-            return
-        end
-        if outputType:upper() == "TAP" then
-            self.outputType = TapOutput
-            return
-        end
-        if outputType:upper() == "JUNIT" then
-            self.outputType = JUnitOutput
-            return
-        end
-        if outputType:upper() == "TEXT" then
-            self.outputType = TextOutput
-            return
-        end
-        error( 'No such format: '..outputType,2)
     end
 
     --------------[[ Runner ]]-----------------
@@ -2271,26 +2062,26 @@ local LuaUnit_MT = { __index = M.LuaUnit }
     function M.LuaUnit:protected_call(instance, method, pretty_name)
         local _, err = xpcall(function()
             method(instance)
-            return {status = NodeStatus.SUCCESS}
+            return {status = 'success'}
         end, function(e)
             -- transform error into a table, adding the traceback information
             local trace = debug.traceback('', 3):sub(2)
             if is_luaunit_error(e) then
-                return {status = e.status, msg = e.message, trace = trace}
+                return {status = e.status, message = e.message, trace = trace}
             else
-                return {status = NodeStatus.ERROR, msg = e, trace = trace}
+                return {status = 'error', message = e, trace = trace}
             end
         end)
 
-        if type(err.msg) ~= 'string' then
-            err.msg = prettystr(err.msg)
+        if type(err.message) ~= 'string' then
+            err.message = prettystr(err.message)
         end
 
-        if self.currentCount > 1 then
-            err.msg = tostring(err.msg) .. '\nIteration ' .. self.currentCount
+        if self.test_iteration > 1 then
+            err.message = tostring(err.message) .. '\nIteration ' .. self.test_iteration
         end
 
-        if err.status == NodeStatus.SUCCESS or err.status == NodeStatus.SKIP then
+        if err.status == 'success' or err.status == 'skip' then
             err.trace = nil
             return err
         end
@@ -2311,12 +2102,12 @@ local LuaUnit_MT = { __index = M.LuaUnit }
     end
 
     function M.LuaUnit:run_test(test)
-        self:start_test(test.name)
+        self:start_test(test)
         for iter_n = 1, self.exe_repeat or 1 do
-            if self.result.currentNode:is_not_success() then
+            if not self.result.current_node:is('success') then
                 break
             end
-            self.currentCount = iter_n
+            self.test_iteration = iter_n
             self:invoke_test_function(test)
         end
         self:end_test()
@@ -2345,7 +2136,7 @@ local LuaUnit_MT = { __index = M.LuaUnit }
     function M.LuaUnit.build_test(group, method_name)
         local name = group.name .. '.' .. method_name
         local method = assert(group[method_name], 'Could not find method ' .. name)
-        assert(M.LuaUnit.as_function(method), name .. ' is not a function')
+        assert(type(method) == 'function', name .. ' is not a function')
         return {
             name = name,
             group = group,
@@ -2449,11 +2240,12 @@ local LuaUnit_MT = { __index = M.LuaUnit }
         end
 
         if self.output then
-            if self.output:lower() == 'junit' and self.output_file_name == nil then
+            self.output = self.output:lower()
+            if self.output == 'junit' and self.output_file_name == nil then
                 print('With junit output, a filename must be supplied with -n or --name')
                 os_exit(-1)
             end
-            pcall_or_abort(self.set_output_type, self, self.output)
+            self.output_type = assert(M.OutputTypes[self.output], 'No such format: ' .. self.output)
         end
     end
 
@@ -2464,10 +2256,10 @@ local LuaUnit_MT = { __index = M.LuaUnit }
         self:run_tests(filtered_list)
         self:end_suite()
         if self.result.aborted then
-            print("LuaUnit ABORTED (as requested by --error or --failure option)")
+            print("Test suite ABORTED (as requested by --error or --failure option)")
             os_exit(-2)
         end
-        return self.result.notSuccessCount
+        return self.result.failures_count
     end
 -- class LuaUnit
 

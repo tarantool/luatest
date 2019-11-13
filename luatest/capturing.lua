@@ -79,14 +79,14 @@ return function(lu, capture)
 
     -- Save captured output into the current test.
     utils.patch(lu.LuaUnit, 'end_test', function(super) return function(self, ...)
-        local node = self.result.currentNode
+        local node = self.result.current_node
         if capture.enabled then
             node.capture = capture:flush()
         end
         super(self, ...)
     end end)
 
-    local TextOutput = lu.LuaUnit.outputType
+    local TextOutput = lu.OutputTypes.text
 
     -- Print captured output for failed test.
     utils.patch(TextOutput, 'display_one_failed_test', function(super) return function(self, index, node)
