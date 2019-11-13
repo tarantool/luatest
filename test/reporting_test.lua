@@ -40,3 +40,31 @@ group-name.test_3
     t.assert_not_str_contains(captured.stdout, 'group-name.test_2')
     t.assert_not_str_contains(captured.stdout, 'group-name.test_4')
 end
+
+for output_type in pairs(t.OutputTypes) do
+    g['test_' .. output_type .. '_output'] = function()
+        capture:disable()
+        local options = {'-o', output_type, '-n', 'tmp/test_junit'}
+        t.assert_equals(helper.run_suite(function(lu2)
+            local g2 = lu2.group('group-name')
+            g2.test_1 = function() error('custom') end
+            g2.test_2 = function() end
+            g2.test_3 = function() lu2.assert_equals(1, 2) end
+            g2.test_4 = function() lu2.skip() end
+            g2.test_5 = function() lu2.skip('skip-msg') end
+            g2.test_6 = function() lu2.success() end
+            g2.test_7 = function() lu2.success('success-msg') end
+            g2.test_8 = function() end
+        end, options), 2)
+
+        t.assert_equals(helper.run_suite(function(lu2)
+            local g2 = lu2.group('group-name')
+            g2.test_2 = function() end
+            g2.test_4 = function() lu2.skip() end
+            g2.test_5 = function() lu2.skip('skip-msg') end
+            g2.test_6 = function() lu2.success() end
+            g2.test_7 = function() lu2.success('success-msg') end
+            g2.test_8 = function() end
+        end, options), 0)
+    end
+end

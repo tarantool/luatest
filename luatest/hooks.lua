@@ -1,41 +1,41 @@
 local utils = require('luatest.utils')
 
 -- suite hooks
-local function define_hooks(object, type)
+local function define_hooks(object, hooks_type)
     local hooks = {}
-    object[type .. '_hooks'] = hooks
+    object[hooks_type .. '_hooks'] = hooks
 
-    object[type] = function(fn)
+    object[hooks_type] = function(fn)
         table.insert(hooks, fn)
     end
-    object['_original_' .. type] = object[type] -- for leagacy hooks support
+    object['_original_' .. hooks_type] = object[hooks_type] -- for leagacy hooks support
 
-    object['run_' .. type] = function()
+    object['run_' .. hooks_type] = function()
         for _, fn in ipairs(hooks) do
             fn()
         end
     end
 end
 
-local function run_group_hooks(group, type)
-    local hook = group and group['run_' .. type]
+local function run_group_hooks(group, hooks_type)
+    local hook = group and group['run_' .. hooks_type]
     -- If _original_%hook_name% is not equal to %hook_name%, it means
     -- that this method was assigned by user (legacy API).
-    if hook and group[type] == group['_original_' .. type] then
+    if hook and group[hooks_type] == group['_original_' .. hooks_type] then
         hook()
-    elseif group and group[type] then
-        group[type]()
+    elseif group and group[hooks_type] then
+        group[hooks_type]()
     end
 end
 
-local function run_test_hooks(self, group, type, legacy_name)
+local function run_test_hooks(self, group, hooks_type, legacy_name)
     local hook
     -- Support for group.setup/teardown methods (legacy API)
-    hook = self.as_function(group[legacy_name])
-    if hook then
+    hook = group[legacy_name]
+    if hook and type(hook) == 'function' then
         self:update_status(self:protected_call(group, hook, group.name .. '.' .. legacy_name))
     end
-    hook = group['run_' .. type]
+    hook = group['run_' .. hooks_type]
     if hook then
         self:update_status(self:protected_call(group, hook))
     end
@@ -57,7 +57,7 @@ return function(lu)
 
     utils.patch(lu.LuaUnit, 'invoke_test_function', function(super) return function(self, test)
         run_test_hooks(self, test.group, 'before_each', 'setup')
-        if self.result.currentNode:is_success() then
+        if self.result.current_node:is('success') then
             super(self, test)
         end
         run_test_hooks(self, test.group, 'after_each', 'teardown')

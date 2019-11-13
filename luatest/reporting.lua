@@ -3,12 +3,12 @@ local fun = require('fun')
 local utils = require('luatest.utils')
 
 return function(lu)
-    local TextOutput = lu.LuaUnit.outputType
+    local TextOutput = lu.OutputTypes.text
 
     utils.patch(TextOutput, 'end_suite', function(super) return function(self)
         super(self)
-        local list = fun.chain(self.result.failedTests, self.result.errorTests):
-            map(function(x) return x.test_name end):
+        local list = fun.chain(self.result.tests.fail, self.result.tests.error):
+            map(function(x) return x.name end):
             totable()
         if #list > 0 then
             table.sort(list)
