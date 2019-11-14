@@ -1739,6 +1739,24 @@ TextOutput.RESET_TERM = '\x1B[0m'
         if self.result.notSuccessCount == 0 then
             print('OK')
         end
+
+        local list = table.copy(self.result.tests.fail)
+        for _, x in pairs(self.result.tests.error) do
+            table.insert(list, x)
+        end
+        if #list > 0 then
+            table.sort(list, function(a, b) return a.name < b.name end)
+            if self.verbosity > M.VERBOSITY_DEFAULT then
+                print("\n=========================================================")
+            else
+                print()
+            end
+            print(TextOutput.BOLD_CODE .. 'Failed tests:\n' .. TextOutput.ERROR_COLOR_CODE)
+            for _, x in pairs(list) do
+                print(x.name)
+            end
+            io.stdout:write(TextOutput.RESET_TERM)
+        end
     end
 
 -- class TextOutput end

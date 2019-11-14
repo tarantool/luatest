@@ -26,7 +26,6 @@ build = {
             ['luatest.loader'] = 'luatest/loader.lua',
             ['luatest.luaunit'] = 'luatest/luaunit.lua',
             ['luatest.process'] = 'luatest/process.lua',
-            ['luatest.reporting'] = 'luatest/reporting.lua',
             ['luatest.runner'] = 'luatest/runner.lua',
             ['luatest.sandboxed_runner'] = 'luatest/sandboxed_runner.lua',
             ['luatest.server'] = 'luatest/server.lua',
