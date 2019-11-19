@@ -2304,6 +2304,10 @@ local LuaUnit_MT = { __index = M.LuaUnit }
             end
         end)
 
+        if type(err.msg) ~= 'string' then
+            err.msg = prettystr(err.msg)
+        end
+
         if self.currentCount > 1 then
             err.msg = tostring(err.msg) .. '\nIteration ' .. self.currentCount
         end

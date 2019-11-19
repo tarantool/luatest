@@ -29,3 +29,14 @@ g.test_pretystr_huge_table = function()
     t.assert_equals(result, 0)
     t.assert_almost_equals(clock.time() - start, 0, 0.5)
 end
+
+g.test_custom_errors = function()
+    local function assert_no_exception(fn)
+        local result = helper.run_suite(function(lu2)
+            lu2.group().test = fn
+        end)
+        t.assert_equals(result, 1)
+    end
+    assert_no_exception(function() error(123ULL) end)
+    assert_no_exception(function() error({a = 1}) end)
+end
