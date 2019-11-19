@@ -78,12 +78,11 @@ return function(lu, capture)
     wrap_methods(capture, false, lu.LuaUnit, 'end_test')
 
     -- Save captured output into the current test.
-    utils.patch(lu.LuaUnit, 'end_test', function(super) return function(self, ...)
-        local node = self.result.current_node
+    utils.patch(lu.LuaUnit, 'end_test', function(super) return function(self, test)
         if capture.enabled then
-            node.capture = capture:flush()
+            test.capture = capture:flush()
         end
-        super(self, ...)
+        super(self, test)
     end end)
 
     local TextOutput = lu.OutputTypes.text
