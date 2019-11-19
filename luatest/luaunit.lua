@@ -1478,13 +1478,12 @@ function genericOutput:start_suite()
     -- Called once, when the suite is started
 end
 
-function genericOutput:start_group(group_name)
+function genericOutput:start_group(group)
     -- Called each time a new test class is started
 end
 
-function genericOutput:start_test(test_name)
+function genericOutput:start_test(test)
     -- called each time a new test is started, right before the setUp()
-    -- the current test status node is already created and available in: self.result.current_node
 end
 
 function genericOutput:update_status(node)
@@ -1497,7 +1496,7 @@ function genericOutput:end_test(node)
     -- called when the test is finished, after the tearDown() method
 end
 
-function genericOutput:end_group()
+function genericOutput:end_group(group)
     -- called when executing the class is finished, before moving on to the next class
     -- of at the end of the test execution
 end
@@ -1519,10 +1518,8 @@ local TapOutput = genericOutput.new_class('TapOutput')
         print("1.."..self.result.selected_count)
         print('# Started on ' .. os.date(nil, self.result.start_time))
     end
-    function TapOutput:start_group(group_name) -- luacheck: no unused
-        if group_name ~= '[TestFunctions]' then
-            print('# Starting class: '..group_name)
-        end
+    function TapOutput:start_group(group) -- luacheck: no unused
+        print('# Starting class: ' .. group.name)
     end
 
     function TapOutput:update_status(node)
@@ -1574,13 +1571,11 @@ local JUnitOutput = genericOutput.new_class('JUnitOutput')
         print('# XML output to '..self.output_file_name)
         print('# Started on ' .. os.date(nil, self.result.start_time))
     end
-    function JUnitOutput:start_group(group_name) -- luacheck: no unused
-        if group_name ~= '[TestFunctions]' then
-            print('# Starting class: '..group_name)
-        end
+    function JUnitOutput:start_group(group) -- luacheck: no unused
+        print('# Starting class: ' .. group.name)
     end
-    function JUnitOutput:start_test(test_name) -- luacheck: no unused
-        print('# Starting test: '..test_name)
+    function JUnitOutput:start_test(test) -- luacheck: no unused
+        print('# Starting test: ' .. test.name)
     end
 
     function JUnitOutput:update_status( node ) -- luacheck: no unused
@@ -1666,9 +1661,9 @@ TextOutput.RESET_TERM = '\x1B[0m'
         end
     end
 
-    function TextOutput:start_test(test_name) -- luacheck: no unused
+    function TextOutput:start_test(test) -- luacheck: no unused
         if self.verbosity > M.VERBOSITY_DEFAULT then
-            io.stdout:write( "    ", test_name, " ... " )
+            io.stdout:write("    ", test.name, " ... ")
         end
     end
 
@@ -2016,21 +2011,17 @@ local LuaUnit_MT = { __index = M.LuaUnit }
     end
 
     function M.LuaUnit:start_group(group)
-        self.result.current_group = group
-        self.output:start_group(group.name)
+        self.output:start_group(group)
     end
 
     function M.LuaUnit:start_test(test)
-        test = table.copy(test)
         test.serial_number = #self.result.tests.all + 1
         test.start_time = clock.time()
-        self.result.current_node = NodeStatus:new(test)
-        table.insert(self.result.tests.all, self.result.current_node)
-        self.output:start_test(test.name)
+        table.insert(self.result.tests.all, test)
+        self.output:start_test(test)
     end
 
-    function M.LuaUnit:update_status(err)
-        local node = self.result.current_node
+    function M.LuaUnit:update_status(node, err)
         -- "err" is expected to be a table / result from protected_call()
         if err.status == 'success' then
             return
@@ -2045,12 +2036,10 @@ local LuaUnit_MT = { __index = M.LuaUnit }
         self.output:update_status(node)
     end
 
-    function M.LuaUnit:end_test()
-        local node = self.result.current_node
+    function M.LuaUnit:end_test(node)
         node.duration = clock.time() - node.start_time
         node.start_time = nil
         self.output:end_test(node)
-        self.result.current_node = nil
 
         if node:is('error') then
             self.result.aborted = self.quit_on_error or self.quit_on_failure
@@ -2062,8 +2051,8 @@ local LuaUnit_MT = { __index = M.LuaUnit }
         table.insert(self.result.tests[node.status], node)
     end
 
-    function M.LuaUnit:end_group()
-        self.output:end_group()
+    function M.LuaUnit:end_group(group)
+        self.output:end_group(group)
     end
 
     function M.LuaUnit:end_suite()
@@ -2116,38 +2105,40 @@ local LuaUnit_MT = { __index = M.LuaUnit }
     end
 
     function M.LuaUnit:invoke_test_function(test)
-        self:update_status(self:protected_call(test.group, test.method, test.name))
+        self:update_status(test, self:protected_call(test.group, test.method, test.name))
     end
 
     function M.LuaUnit:run_test(test)
         self:start_test(test)
         for iter_n = 1, self.exe_repeat or 1 do
-            if not self.result.current_node:is('success') then
+            if not test:is('success') then
                 break
             end
             self.test_iteration = iter_n
             self:invoke_test_function(test)
         end
-        self:end_test()
+        self:end_test(test)
     end
 
     function M.LuaUnit:run_tests(tests_list)
         -- Make seed for ordering not affect other random numbers.
         math.randomseed(os.time())
+        local last_group
         for _, test in ipairs(tests_list) do
-            if self.result.current_group ~= test.group then
-                if self.result.current_group then
-                    self:end_group()
+            if last_group ~= test.group then
+                if last_group then
+                    self:end_group(last_group)
                 end
                 self:start_group(test.group)
+                last_group = test.group
             end
             self:run_test(test)
             if self.result.aborted then
                 break -- "--error" or "--failure" option triggered
             end
         end
-        if self.result.current_group then
-            self:end_group()
+        if last_group then
+            self:end_group(last_group)
         end
     end
 
@@ -2155,13 +2146,13 @@ local LuaUnit_MT = { __index = M.LuaUnit }
         local name = group.name .. '.' .. method_name
         local method = assert(group[method_name], 'Could not find method ' .. name)
         assert(type(method) == 'function', name .. ' is not a function')
-        return {
+        return NodeStatus:new({
             name = name,
             group = group,
             method_name = method_name,
             method = method,
             line = debug.getinfo(method).linedefined or 0,
-        }
+        })
     end
 
     -- Exrtact all test methods from group.

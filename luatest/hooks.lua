@@ -28,16 +28,17 @@ local function run_group_hooks(group, hooks_type)
     end
 end
 
-local function run_test_hooks(self, group, hooks_type, legacy_name)
+local function run_test_hooks(self, test, hooks_type, legacy_name)
+    local group = test.group
     local hook
     -- Support for group.setup/teardown methods (legacy API)
     hook = group[legacy_name]
     if hook and type(hook) == 'function' then
-        self:update_status(self:protected_call(group, hook, group.name .. '.' .. legacy_name))
+        self:update_status(test, self:protected_call(group, hook, group.name .. '.' .. legacy_name))
     end
     hook = group['run_' .. hooks_type]
     if hook then
-        self:update_status(self:protected_call(group, hook))
+        self:update_status(test, self:protected_call(group, hook))
     end
 end
 
@@ -56,22 +57,22 @@ return function(lu)
     end end)
 
     utils.patch(lu.LuaUnit, 'invoke_test_function', function(super) return function(self, test)
-        run_test_hooks(self, test.group, 'before_each', 'setup')
-        if self.result.current_node:is('success') then
+        run_test_hooks(self, test, 'before_each', 'setup')
+        if test:is('success') then
             super(self, test)
         end
-        run_test_hooks(self, test.group, 'after_each', 'teardown')
+        run_test_hooks(self, test, 'after_each', 'teardown')
     end end)
 
 
-    utils.patch(lu.LuaUnit, 'start_group', function(super) return function(self, ...)
-        super(self, ...)
-        run_group_hooks(self.result.current_group, 'before_all')
+    utils.patch(lu.LuaUnit, 'start_group', function(super) return function(self, group)
+        super(self, group)
+        run_group_hooks(group, 'before_all')
     end end)
 
-    utils.patch(lu.LuaUnit, 'end_group', function(super) return function(self)
-        run_group_hooks(self.result.current_group, 'after_all')
-        super(self)
+    utils.patch(lu.LuaUnit, 'end_group', function(super) return function(self, group)
+        run_group_hooks(group, 'after_all')
+        super(self, group)
     end end)
 
     utils.patch(lu.LuaUnit, 'run_tests', function(super) return function(self, tests)
