@@ -27,6 +27,9 @@ g.test_assert_equals_tnt_tuples = function()
     t.assert_not_equals(box.tuple.new(1), box.tuple.new(2))
     t.assert_not_equals(box.tuple.new(1, 'a', box.NULL), box.tuple.new(1, 'a'))
     t.assert_not_equals(box.tuple.new(1, {'a'}), box.tuple.new(1, {'b'}))
+
+    -- Check that other cdata values works fine.
+    t.assert_equals(1ULL, 0ULL + 1)
 end
 
 g.test_fail_if_tnt_specific = function()

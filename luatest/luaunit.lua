@@ -1063,8 +1063,11 @@ end
 ------------------------------------------------------------------
 
 local function cast_value_for_equals(value)
-    if type(value) == 'cdata' and value.totable then
-        return value:totable()
+    if type(value) == 'cdata' then
+        local ok, table_value = pcall(function() return value:totable() end)
+        if ok then
+            return table_value
+        end
     end
     return value
 end
