@@ -85,7 +85,7 @@ The available ordering schemes are `group`, `all` and `none`.
 `group` shuffles tests within the groups.
 
 `all` randomizes execution order across all available tests.
-Be careful: `before_all/after_all` hooks run always when test class is changed,
+Be careful: `before_all/after_all` hooks run always when test group is changed,
 so it may run multiple time.
 
 `none` is the default, which executes examples within the group in the order they
@@ -212,7 +212,7 @@ luatest.helpers.retrying({}, function() server:http_request('get', '/status') en
 
 ## Known issues
 
-- When `before_all/after_all` hook fails with error, all other tests even from other classes
+- When `before_all/after_all` hook fails with error, all other tests even from other groups
 are not executed.
 
 ## Development

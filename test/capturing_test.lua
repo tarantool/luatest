@@ -119,7 +119,7 @@ g.test_load_tests_failed = function()
     end)
 end
 
-g.test_class_hook = function()
+g.test_group_hook = function()
     assert_captured(function(lu2)
         local group = lu2.group('test')
         group.before_all = function()
@@ -139,7 +139,7 @@ g.test_class_hook = function()
     end)
 end
 
-g.test_class_hook_failed = function()
+g.test_group_hook_failed = function()
     assert_error(function(lu2)
         local group = lu2.group('test')
         group.before_all = function()
