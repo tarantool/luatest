@@ -1,35 +1,42 @@
 language: minimal
 dist: xenial
 
-before_install:
-  - curl http://download.tarantool.org/tarantool/$TARANTOOL_VERSION/gpgkey | sudo apt-key add -
-  - echo "deb http://download.tarantool.org/tarantool/$TARANTOOL_VERSION/ubuntu/ xenial main" |
-    sudo tee /etc/apt/sources.list.d/tarantool.list
-  - sudo apt-get -y update
-  - sudo apt-get install -y tarantool tarantool-dev
-
 env:
   global:
     - ROCK_NAME=luatest
-  jobs:
-    - TARANTOOL_VERSION=1.10
-    - TARANTOOL_VERSION=2x
 
-script:
-  - make lint test
+_test: &test
+  before_install:
+    - curl http://download.tarantool.org/tarantool/$TARANTOOL_VERSION/gpgkey | sudo apt-key add -
+    - echo "deb http://download.tarantool.org/tarantool/$TARANTOOL_VERSION/ubuntu/ xenial main" |
+      sudo tee /etc/apt/sources.list.d/tarantool.list
+    - sudo apt-get -y update
+    - sudo apt-get install -y tarantool tarantool-dev
+  script:
+    - make lint test
 
-deploy:
-  - script: curl -X PUT -F rockspec=@$ROCK_NAME-scm-1.rockspec \
-      https://$ROCKS_USERNAME:$ROCKS_PASSWORD@$ROCKS_SERVER
-  - on:
-      tags: true
-    script: |
-      cat $ROCK_NAME-scm-1.rockspec |
-      sed -E \
-        -e "s/branch = '.+'/tag = '$TRAVIS_TAG'/g" \
-        -e "s/version = '.+'/version = '$TRAVIS_TAG-1'/g" |
-      curl -X PUT -F "rockspec=@-;filename=$ROCK_NAME-$TRAVIS_TAG-1.rockspec"
-        https://$ROCKS_USERNAME:$ROCKS_PASSWORD@$ROCKS_SERVER
+jobs:
+  include:
+    - <<: *test
+      env: TARANTOOL_VERSION=1.10
+    - <<: *test
+      env: TARANTOOL_VERSION=2x
+    - stage: deploy
+      script: skip
+      deploy:
+        - provider: script
+          script: curl -X PUT -F rockspec=@$ROCK_NAME-scm-1.rockspec \
+            https://$ROCKS_USERNAME:$ROCKS_PASSWORD@$ROCKS_SERVER
+        - on:
+            tags: true
+          provider: script
+          script: |
+            cat $ROCK_NAME-scm-1.rockspec |
+            sed -E \
+              -e "s/branch = '.+'/tag = '$TRAVIS_TAG'/g" \
+              -e "s/version = '.+'/version = '$TRAVIS_TAG-1'/g" |
+            curl -X PUT -F "rockspec=@-;filename=$ROCK_NAME-$TRAVIS_TAG-1.rockspec"
+              https://$ROCKS_USERNAME:$ROCKS_PASSWORD@$ROCKS_SERVER
 
 notifications:
   email: false
