@@ -133,7 +133,7 @@ g.test_after_suite_failed = function()
     t.assert_equals(hooks, {'before_suite', 'before_all', 'test', 'after_all', 'after_suite_1'})
 end
 
-g.test_before_class_failed = function()
+g.test_before_group_failed = function()
     local hooks = {}
 
     local result = helper.run_suite(function(lu2)
@@ -166,7 +166,7 @@ g.test_before_class_failed = function()
     })
 end
 
-g.test_after_class_failed = function()
+g.test_after_group_failed = function()
     local hooks = {}
 
     local result = helper.run_suite(function(lu2)

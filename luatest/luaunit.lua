@@ -116,8 +116,7 @@ Options:
   -x, --exclude PATTERN:  Exclude all test names matching the Lua PATTERN
                           May be repeated to exclude several patterns
                           Make sure you escape magic chars like +? with %
-  testname1, testname2, ... : tests to run in the form of testFunction,
-                              TestClass or TestClass.testMethod
+  test_name, ...:         Tests to run in the form of group_name or group_name.test_name
 ]]
 
 local is_equal -- defined here to allow calling from mismatch_formatting_pure_list
@@ -1448,7 +1447,6 @@ end
 ----------------------------------------------------------------
 
 -- A common "base" class for outputters
--- For concepts involved (class inheritance) see http://www.lua.org/pil/16.2.html
 
 M.OutputTypes = {}
 
@@ -1479,7 +1477,7 @@ function genericOutput:start_suite()
 end
 
 function genericOutput:start_group(group)
-    -- Called each time a new test class is started
+    -- Called each time a new test group is started
 end
 
 function genericOutput:start_test(test)
@@ -1497,7 +1495,7 @@ function genericOutput:end_test(node)
 end
 
 function genericOutput:end_group(group)
-    -- called when executing the class is finished, before moving on to the next class
+    -- called when executing the group is finished, before moving on to the next group
     -- of at the end of the test execution
 end
 
@@ -1519,7 +1517,7 @@ local TapOutput = genericOutput.new_class('TapOutput')
         print('# Started on ' .. os.date(nil, self.result.start_time))
     end
     function TapOutput:start_group(group) -- luacheck: no unused
-        print('# Starting class: ' .. group.name)
+        print('# Starting group: ' .. group.name)
     end
 
     function TapOutput:update_status(node)
@@ -1572,7 +1570,7 @@ local JUnitOutput = genericOutput.new_class('JUnitOutput')
         print('# Started on ' .. os.date(nil, self.result.start_time))
     end
     function JUnitOutput:start_group(group) -- luacheck: no unused
-        print('# Starting class: ' .. group.name)
+        print('# Starting group: ' .. group.name)
     end
     function JUnitOutput:start_test(test) -- luacheck: no unused
         print('# Starting test: ' .. test.name)
@@ -1607,7 +1605,7 @@ local JUnitOutput = genericOutput.new_class('JUnitOutput')
         self.fd:write("        </properties>\n")
 
         for _, node in ipairs(self.result.tests.all) do
-            self.fd:write(string.format('        <testcase classname="%s" name="%s" time="%0.3f">\n',
+            self.fd:write(string.format('        <testcase group="%s" name="%s" time="%0.3f">\n',
                 node.group.name or '', node.name, node.duration))
             if not node:is('success') then
                 self.fd:write(JUnitOutput.node_status_xml(node))
@@ -1790,7 +1788,7 @@ local LuaUnit_MT = { __index = M.LuaUnit }
 
     -----------------[[ Utility methods ]]---------------------
 
-    -- Split `some.class.name.method` into `some.class.name` and `method`.
+    -- Split `some.group.name.method` into `some.group.name` and `method`.
     -- Returns `nil, input` if input value does not have a dot.
     function M.LuaUnit.split_test_method_name(someName)
         local separator
