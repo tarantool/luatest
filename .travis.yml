@@ -25,7 +25,7 @@ jobs:
       script: skip
       deploy:
         - provider: script
-          script: curl -X PUT -F rockspec=@$ROCK_NAME-scm-1.rockspec
+          script: curl --fail -X PUT -F rockspec=@$ROCK_NAME-scm-1.rockspec
             https://$ROCKS_USERNAME:$ROCKS_PASSWORD@$ROCKS_SERVER
         - on:
             tags: true
@@ -34,7 +34,7 @@ jobs:
             sed -E
               -e "s/branch = '.+'/tag = '$TRAVIS_TAG'/g"
               -e "s/version = '.+'/version = '$TRAVIS_TAG-1'/g" |
-            curl -X PUT -F "rockspec=@-;filename=$ROCK_NAME-$TRAVIS_TAG-1.rockspec"
+            curl --fail -X PUT -F "rockspec=@-;filename=$ROCK_NAME-$TRAVIS_TAG-1.rockspec"
               https://$ROCKS_USERNAME:$ROCKS_PASSWORD@$ROCKS_SERVER
 
 notifications:
