@@ -49,18 +49,14 @@ end
 
 g.test_example = function()
     assert_captured(function(lu2)
-        lu2.group('test').test = function()
-            io.stdout:write('-test-')
-            io.stderr:write('-test-')
-        end
+        lu2.group('test').test = write_to_io
     end)
 end
 
 g.test_example_failed = function()
     assert_shown(function(lu2)
         lu2.group('test').test = function()
-            io.stdout:write('test-out')
-            io.stderr:write('test-err')
+            write_to_io()
             error('test')
         end
     end)
@@ -84,10 +80,7 @@ end
 g.test_example_hook = function()
     assert_captured(function(lu2)
         local group = lu2.group('test')
-        group.setup = function()
-            io.stdout:write('-test-')
-            io.stderr:write('-test-')
-        end
+        group.setup = write_to_io
         group.teardown = group.setup
         group.test = function() end
     end)
@@ -97,8 +90,7 @@ g.test_example_hook_failed = function()
     assert_shown(function(lu2)
         local group = lu2.group('test')
         group.setup = function()
-            io.stdout:write('test-out')
-            io.stderr:write('test-err')
+            write_to_io()
             error('test')
         end
         group.test = function() end
@@ -107,8 +99,7 @@ g.test_example_hook_failed = function()
     assert_shown(function(lu2)
         local group = lu2.group('test')
         group.teardown = function()
-            io.stdout:write('test-out')
-            io.stderr:write('test-err')
+            write_to_io()
             error('test')
         end
         group.test = function() end
@@ -116,25 +107,18 @@ g.test_example_hook_failed = function()
 
     assert_shown(function(lu2)
         local group = lu2.group('test')
-        group.setup = function()
-            io.stdout:write('test-out')
-            io.stderr:write('test-err')
-        end
+        group.setup = write_to_io
         group.test = function() error('test') end
     end)
 end
 
 g.test_load_tests = function()
-    assert_captured(function()
-        io.stdout:write('-test-')
-        io.stderr:write('-test-')
-    end)
+    assert_captured(write_to_io)
 end
 
 g.test_load_tests_failed = function()
     assert_error(function()
-        io.stdout:write('test-out')
-        io.stderr:write('test-err')
+        write_to_io()
         error('custom-error')
     end)
 end
@@ -142,18 +126,12 @@ end
 g.test_group_hook = function()
     assert_captured(function(lu2)
         local group = lu2.group('test')
-        group.before_all = function()
-            io.stdout:write('-test-')
-            io.stderr:write('-test-')
-        end
+        group.before_all = write_to_io
         group.after_all = group.before_all
         group.test = function() end
 
         local group2 = lu2.group('test2')
-        group2.before_all = function()
-            io.stdout:write('-test-')
-            io.stderr:write('-test-')
-        end
+        group2.before_all = write_to_io
         group2.after_all = group2.before_all
         group2.test = function() end
     end)
@@ -163,8 +141,7 @@ g.test_group_hook_failed = function()
     assert_shown(function(lu2)
         local group = lu2.group('test')
         group.before_all = function()
-            io.stdout:write('test-out')
-            io.stderr:write('test-err')
+            write_to_io()
             error('custom-error')
         end
         group.test = function() end
@@ -173,8 +150,7 @@ g.test_group_hook_failed = function()
     assert_shown(function(lu2)
         local group = lu2.group('test')
         group.after_all = function()
-            io.stdout:write('test-out')
-            io.stderr:write('test-err')
+            write_to_io()
             error('custom-error')
         end
         group.test = function() end
@@ -184,10 +160,7 @@ end
 g.test_suite_hook = function()
     assert_captured(function(lu2)
         local group = lu2.group('test')
-        local hook = function()
-            io.stdout:write('-test-')
-            io.stderr:write('-test-')
-        end
+        local hook = write_to_io
         lu2.before_suite(hook)
         lu2.after_all(hook)
         group.test = function() end
@@ -198,8 +171,7 @@ g.test_suite_hook_failed = function()
     assert_error(function(lu2)
         lu2.group('test').test = function() end
         lu2.before_suite(function()
-            io.stdout:write('test-out')
-            io.stderr:write('test-err')
+            write_to_io()
             error('custom-error')
         end)
     end)
@@ -207,8 +179,7 @@ g.test_suite_hook_failed = function()
     assert_error(function(lu2)
         lu2.group('test').test = function() end
         lu2.after_suite(function()
-            io.stdout:write('test-out')
-            io.stderr:write('test-err')
+            write_to_io()
             error('custom-error')
         end)
     end)
