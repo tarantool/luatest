@@ -19,8 +19,8 @@ end
 local function assert_captured(fn)
     helper.run_suite(fn)
     local captured = capture:flush()
-    t.assert_not_str_contains(captured.stdout, '-test-')
-    t.assert_not_str_contains(captured.stderr, '-test-')
+    t.assert_not_str_contains(captured.stdout, 'test-')
+    t.assert_not_str_contains(captured.stderr, 'test-')
     assert_capture_restored()
 end
 
@@ -42,6 +42,11 @@ local function assert_error(fn)
     assert_capture_restored()
 end
 
+local function write_to_io()
+    io.stdout:write('test-out')
+    io.stderr:write('test-err')
+end
+
 g.test_example = function()
     assert_captured(function(lu2)
         lu2.group('test').test = function()
@@ -58,6 +63,21 @@ g.test_example_failed = function()
             io.stderr:write('test-err')
             error('test')
         end
+    end)
+
+    -- Don't show captures from group hooks when test failed.
+    assert_captured(function(lu2)
+        local group = lu2.group('test')
+        group.before_all = write_to_io
+        group.after_all = write_to_io
+        group.test = function() error('custom-error') end
+    end)
+
+    assert_shown(function(lu2)
+        local group = lu2.group('test')
+        group.before_each(write_to_io)
+        group.after_each(write_to_io)
+        group.test = function() error('custom-error') end
     end)
 end
 
@@ -140,7 +160,7 @@ g.test_group_hook = function()
 end
 
 g.test_group_hook_failed = function()
-    assert_error(function(lu2)
+    assert_shown(function(lu2)
         local group = lu2.group('test')
         group.before_all = function()
             io.stdout:write('test-out')
@@ -150,7 +170,7 @@ g.test_group_hook_failed = function()
         group.test = function() end
     end)
 
-    assert_error(function(lu2)
+    assert_shown(function(lu2)
         local group = lu2.group('test')
         group.after_all = function()
             io.stdout:write('test-out')

@@ -11,6 +11,7 @@
 - Print tables in lua-compatible way in errors.
 - Fix performance issue with large errors messages.
 - Unify hooks definition: group hooks are defined via function calls.
+- Keep running other groups when group hook failed.
 
 # 0.3.0
 

@@ -2049,7 +2049,6 @@ local LuaUnit_MT = { __index = M.LuaUnit }
         elseif not node:is('success') and not node:is('skip') then
             error('No such node status: ' .. prettystr(node.status))
         end
-        table.insert(self.result.tests[node.status], node)
     end
 
     function M.LuaUnit:end_group(group)
@@ -2061,13 +2060,16 @@ local LuaUnit_MT = { __index = M.LuaUnit }
             error('Suite was already ended' )
         end
         self.result.duration = clock.time() - self.result.start_time
+        for _, test in pairs(self.result.tests.all) do
+            table.insert(self.result.tests[test.status], test)
+        end
         self.result.failures_count = #self.result.tests.fail + #self.result.tests.error
         self.output:end_suite()
     end
 
     --------------[[ Runner ]]-----------------
 
-    function M.LuaUnit:protected_call(instance, method, pretty_name)
+    function M.LuaUnit:protected_call(instance, method, pretty_name) -- luacheck: no unused
         local _, err = xpcall(function()
             method(instance)
             return {status = 'success'}
@@ -2083,10 +2085,6 @@ local LuaUnit_MT = { __index = M.LuaUnit }
 
         if type(err.message) ~= 'string' then
             err.message = prettystr(err.message)
-        end
-
-        if self.test_iteration > 1 then
-            err.message = tostring(err.message) .. '\nIteration ' .. self.test_iteration
         end
 
         if err.status == 'success' or err.status == 'skip' then
@@ -2105,18 +2103,21 @@ local LuaUnit_MT = { __index = M.LuaUnit }
         return err -- return the error "object" (table)
     end
 
-    function M.LuaUnit:invoke_test_function(test)
-        self:update_status(test, self:protected_call(test.group, test.method, test.name))
+    function M.LuaUnit:invoke_test_function(test, iteration)
+        local err = self:protected_call(test.group, test.method, test.name)
+        if iteration > 1 and err.status ~= 'success' then
+            err.message = tostring(err.message) .. '\nIteration ' .. self.test_iteration
+        end
+        self:update_status(test, err)
     end
 
     function M.LuaUnit:run_test(test)
         self:start_test(test)
-        for iter_n = 1, self.exe_repeat or 1 do
+        for iteration = 1, self.exe_repeat or 1 do
             if not test:is('success') then
                 break
             end
-            self.test_iteration = iter_n
-            self:invoke_test_function(test)
+            self:invoke_test_function(test, iteration)
         end
         self:end_test(test)
     end
