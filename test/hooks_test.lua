@@ -146,9 +146,13 @@ g.test_before_group_failed = function()
         t_0.test = function() table.insert(hooks, 'test_0') end
 
         local t_1 = lu2.group('test_1')
-        t_1.before_all = function() error('custom-error') end
+        t_1.before_all = function()
+            table.insert(hooks, 'before_all_1')
+            error('custom-error')
+        end
         t_1.after_all = function() table.insert(hooks, 'after_all_1') end
-        t_1.test_1 = function() table.insert(hooks, 'test_1') end
+        t_1.test_1 = function() table.insert(hooks, 'test_1_1') end
+        t_1.test_2 = function() table.insert(hooks, 'test_1_2') end
 
         local t_2 = lu2.group('test_2')
         t_2.before_all = function() table.insert(hooks, 'before_all_2') end
@@ -156,12 +160,17 @@ g.test_before_group_failed = function()
         t_2.test = function() table.insert(hooks, 'test_2') end
     end)
 
-    t.assert_equals(result, -1)
+    t.assert_equals(result, 2)
     t.assert_equals(hooks, {
         'before_suite',
         'before_all_0',
         'test_0',
         'after_all_0',
+        'before_all_1',
+        'after_all_1',
+        'before_all_2',
+        'test_2',
+        'after_all_2',
         'after_suite',
     })
 end
@@ -185,12 +194,15 @@ g.test_after_group_failed = function()
         t_2.test = function() table.insert(hooks, 'test_2') end
     end, {'--shuffle', 'none'})
 
-    t.assert_equals(result, -1)
+    t.assert_equals(result, 1)
     t.assert_equals(hooks, {
         'before_suite',
         'before_all_1',
         'test_1_1',
         'test_1_2',
+        'before_all_2',
+        'test_2',
+        'after_all_2',
         'after_suite',
     })
 end

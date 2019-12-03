@@ -60,29 +60,32 @@ return function(lu, capture)
     -- Main capturing wrapper.
     wrap_methods(capture, true, lu.LuaUnit, 'run_tests')
 
-    -- Disable capture in case of failure because `end_suite` is not called.
-    for _, name in pairs({'start_group', 'end_group'}) do
-        utils.patch(lu.LuaUnit, name, function(super) return function(...)
-            local args = {...}
-            utils.reraise_and_ensure(function()
-                -- Wrap error with capture to save original traceback.
-                return capture:wrap(true, function() return super(unpack(args)) end)
-            end, function(err)
-                capture:disable()
-                return err
-            end)
-        end end)
-    end
-
     -- Disable capturing to print possible notices.
     wrap_methods(capture, false, lu.LuaUnit, 'end_test')
 
-    -- Save captured output into the current test.
-    utils.patch(lu.LuaUnit, 'end_test', function(super) return function(self, test)
-        if capture.enabled then
-            test.capture = capture:flush()
+    -- Save captured output into result in the case of failure.
+    utils.patch(lu.LuaUnit, 'protected_call', function(super) return function(...)
+        local result = super(...)
+        if capture.enabled and result and result.status ~= 'success' then
+            result.capture = capture:flush()
         end
-        super(self, test)
+        return result
+    end end)
+
+    -- Copy captured output from result to the test node.
+    utils.patch(lu.LuaUnit, 'update_status', function(super) return function(self, node, result)
+        if result.capture then
+            node.capture = result.capture
+        end
+        return super(self, node, result)
+    end end)
+
+    -- Flush capture before and after running a test.
+    utils.patch(lu.LuaUnit, 'run_test', function(super) return function(...)
+        capture:flush()
+        local result = super(...)
+        capture:flush()
+        return result
     end end)
 
     local TextOutput = lu.OutputTypes.text

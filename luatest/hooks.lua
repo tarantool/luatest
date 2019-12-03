@@ -17,14 +17,18 @@ local function define_hooks(object, hooks_type)
     end
 end
 
-local function run_group_hooks(group, hooks_type)
+local function run_group_hooks(runner, group, hooks_type)
+    local result
     local hook = group and group['run_' .. hooks_type]
     -- If _original_%hook_name% is not equal to %hook_name%, it means
     -- that this method was assigned by user (legacy API).
     if hook and group[hooks_type] == group['_original_' .. hooks_type] then
-        hook()
+        result = runner:protected_call(group, hook, group.name .. '.run_before_all_hooks')
     elseif group and group[hooks_type] then
-        group[hooks_type]()
+        result = runner:protected_call(group, group[hooks_type], group.name .. '.before_all')
+    end
+    if result and result.status ~= 'success' then
+        return result
     end
 end
 
@@ -56,22 +60,37 @@ return function(lu)
         return group
     end end)
 
-    utils.patch(lu.LuaUnit, 'invoke_test_function', function(super) return function(self, test)
+    -- Last run test to set error for when group.after_all hook fails.
+    local last_test = nil
+
+    -- Run test hooks.
+    -- If test's group hook failed with error, then test does not run and
+    -- hook's error is copied for the test.
+    utils.patch(lu.LuaUnit, 'invoke_test_function', function(super) return function(self, test, ...)
+        last_test = test
+        if test.group._before_all_hook_error then
+            return self:update_status(test, test.group._before_all_hook_error)
+        end
         run_test_hooks(self, test, 'before_each', 'setup')
         if test:is('success') then
-            super(self, test)
+            super(self, test, ...)
         end
         run_test_hooks(self, test, 'after_each', 'teardown')
     end end)
 
-
+    -- Run group hook and save possible error to the group object.
     utils.patch(lu.LuaUnit, 'start_group', function(super) return function(self, group)
         super(self, group)
-        run_group_hooks(group, 'before_all')
+        group._before_all_hook_error = run_group_hooks(self, group, 'before_all')
     end end)
 
+    -- Run group hook and save possible error to the `last_test`.
     utils.patch(lu.LuaUnit, 'end_group', function(super) return function(self, group)
-        run_group_hooks(group, 'after_all')
+        local err = run_group_hooks(self, group, 'after_all')
+        if err then
+            err.message = 'Failure in after_all hook: ' .. tostring(err.message)
+            self:update_status(last_test, err)
+        end
         super(self, group)
     end end)
 

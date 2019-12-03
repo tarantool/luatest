@@ -210,11 +210,6 @@ luatest.helpers.retrying({timeout = 1, delay = 0.1}, failing_function, arg1, arg
 luatest.helpers.retrying({}, function() server:http_request('get', '/status') end)
 ```
 
-## Known issues
-
-- When `before_all/after_all` hook fails with error, all other tests even from other groups
-are not executed.
-
 ## Development
 
 - Install dependencies with `make bootstrap`.
