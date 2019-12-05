@@ -1,5 +1,5 @@
 Name: luatest
-Version: 0.2.2
+Version: 0.3.0
 Release: 1%{?dist}
 Summary: Tarantool test framework
 Group: Applications/Databases
@@ -7,20 +7,18 @@ License: MIT
 URL: https://github.com/tarantool/luatest
 Source0: https://github.com/tarantool/luatest/archive/%{version}/luatest-%{version}.tar.gz
 BuildArch: noarch
-BuildRequires: tarantool-devel >= 1.6.8.0
-BuildRequires: tarantool-luacheck
-BuildRequires: tarantool-http
+BuildRequires: tarantool-devel >= 1.9.0
 BuildRequires: tarantool-checks
-Requires: tarantool >= 1.6.8.0
+Requires: tarantool >= 1.9.0
 Requires: tarantool-checks
 %description
-A simple Tarantool test framework for both unit and integration testing.
+Simple Tarantool test framework for both unit and integration testing.
 
 %prep
 %setup -q -n %{name}-%{version}
 
 %build
-%cmake . -DCMAKE_BUILD_TYPE=RelWithDebInfo
+%cmake . -DCMAKE_BUILD_TYPE=RelWithDebInfo -DVERSION=%{version}
 make %{?_smp_mflags}
 
 %check
@@ -38,5 +36,5 @@ ctest -VV
 %license LICENSE
 
 %changelog
-* Wed Oct 2 2019 Konstantin Nazarov <mail@knazarov.com> 0.2.2-1
+* Wed Oct 2 2019 Konstantin Nazarov <mail@knazarov.com> 0.3.0-1
 - Initial release

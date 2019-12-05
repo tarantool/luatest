@@ -5,10 +5,13 @@
 
 /tmp/*
 !/tmp/.keep
+
+Makefile
 CMakeCache.txt
 cmake_install.cmake
 CMakeFiles
 CTestTestfile.cmake
 packpack
 build
+build.luarocks
 Testing

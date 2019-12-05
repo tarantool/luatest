@@ -1,4 +1,3 @@
 #!/usr/bin/env tarantool
 
-local result = require('luatest.sandboxed_runner').run()
-os.exit(result)
+require('luatest.cli_entrypoint')()

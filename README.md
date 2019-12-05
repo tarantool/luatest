@@ -212,9 +212,11 @@ luatest.helpers.retrying({}, function() server:http_request('get', '/status') en
 
 ## Development
 
+- Check out the repo.
+- Prepare makefile with `cmake .`.
 - Install dependencies with `make bootstrap`.
 - Run it with `make lint` before commiting changes.
-- Run tests with `make test` or `bin/luatest`.
+- Run tests with `make selftest` or `bin/luatest`.
 
 ## Contributing
 
