@@ -15,7 +15,7 @@ local M={}
 -- private exported functions (for testing)
 M.private = {}
 
-M.VERSION='0.3.0'
+M.VERSION = require('luatest.VERSION')
 
 --[[ Some people like assert_equals( actual, expected ) and some people prefer
 assert_equals( expected, actual ).
