@@ -12,6 +12,7 @@
 - Fix performance issue with large errors messages.
 - Unify hooks definition: group hooks are defined via function calls.
 - Keep running other groups when group hook failed.
+- Prefix and colorize captured output.
 
 # 0.3.0
 

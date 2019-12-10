@@ -22,6 +22,8 @@ local Server = {
         http_port = '?number',
         net_box_port = '?number',
         net_box_credentials = '?table',
+
+        alias = '?string',
     },
 }
 
@@ -41,6 +43,7 @@ end
 -- @int[opt] object.http_port Value to be passed in `TARANTOOL_HTTP_PORT` and used to perform HTTP requests.
 -- @int[opt] object.net_box_port Value to be passed in `TARANTOOL_LISTEN` and used for net_box connection.
 -- @tab[opt] object.net_box_credentials Override default net_box credentials.
+-- @string[opt] object.alias Instance alias. Used to prefix output.
 -- @return input object.
 function Server:new(object)
     checks('table', self.constructor_checks)
@@ -82,7 +85,10 @@ function Server:start()
     log_cmd = log_cmd .. self.command
     log.debug(log_cmd)
 
-    self.process = Process:start(self.command, self.args, env, {chdir = self.chdir})
+    self.process = Process:start(self.command, self.args, env, {
+        chdir = self.chdir,
+        output_prefix = self.alias,
+    })
     log.debug('Started server PID: ' .. self.process.pid)
 end
 

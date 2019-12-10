@@ -70,10 +70,10 @@ end
 
 -- Stop reader fiber and read available data from pipe after fiber was stopped.
 function Capture:stop_reader_fibers()
+    io.flush()
     if not self.reader_fibers then
         return false
     end
-    io.flush()
     for name, item in pairs(self.reader_fibers) do
         item:cancel()
         item:join()

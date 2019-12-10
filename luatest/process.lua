@@ -5,6 +5,8 @@ local ffi = require('ffi')
 local fio = require('fio')
 local log = require('log')
 
+local OutputBeautifier = require('luatest.output_beautifier')
+
 ffi.cdef([[
     pid_t fork(void);
     int execve(const char *pathname, char *const argv[], char *const envp[]);
@@ -27,12 +29,20 @@ end
 -- @param[opt] options.chdir Directory to chdir into before starting process.
 -- @param[opt] options.ignore_gc Don't install handler which kills GC'ed processes.
 function Process:start(path, args, env, options)
-    checks('table', 'string', '?table', '?table', {chdir = '?string', ignore_gc = '?boolean'})
+    checks('table', 'string', '?table', '?table', {
+        chdir = '?string',
+        ignore_gc = '?boolean',
+        output_prefix = '?string',
+    })
     args = args or {}
     env = env or {}
     options = options or {}
 
     table.insert(args, 1, path)
+
+    local output_beautifier = options.output_prefix and OutputBeautifier:new({
+        prefix = options.output_prefix,
+    })
 
     local argv = to_const_char(args)
     local env_list = fun.iter(env):map(function(k, v) return k .. '=' .. v end):totable()
@@ -41,10 +51,16 @@ function Process:start(path, args, env, options)
     if pid == -1 then
         error('fork failed: ' .. pid)
     elseif pid > 0 then
-        return self:new({pid = pid, ignore_gc = options.ignore_gc})
+        if output_beautifier then
+            output_beautifier:enable({track_pid = pid})
+        end
+        return self:new({pid = pid, ignore_gc = options.ignore_gc, output_beautifier = output_beautifier})
     end
     if options.chdir then
         fio.chdir(options.chdir)
+    end
+    if output_beautifier then
+        output_beautifier:hijack_output()
     end
     ffi.C.execve(path, argv, envp)
     io.stderr:write('execve failed (' .. path ..  '): ' .. errno.strerror() .. '\n')
