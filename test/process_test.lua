@@ -1,9 +1,12 @@
 local t = require('luatest')
 local g = t.group('process')
+
 local fiber = require('fiber')
 local fio = require('fio')
+local fun = require('fun')
 
 local Process = t.Process
+local Capture = require('luatest.capture')
 
 local process, kill_after_test
 
@@ -27,6 +30,42 @@ g.test_start = function()
     kill_after_test = false
 end
 
+g.test_start_with_output_prefix = function()
+    local capture = Capture:new()
+    capture:wrap(true, function()
+        process = Process:start('/bin/echo', {'test content'}, nil, {output_prefix = 'test_prefix'})
+        t.helpers.retrying({timeout = 0.5}, function()
+            t.assert_not(process:is_alive())
+        end)
+        process.output_beautifier.class:synchronize(function() end)
+        process = nil
+    end)
+    local captured = capture:flush()
+    -- Split on 2 assertions, because of color codes
+    t.assert_str_contains(captured.stdout, 'test_prefix |')
+    t.assert_str_contains(captured.stdout, 'test content')
+    _G.collectgarbage()
+end
+
+g.test_start_with_output_prefix_and_large_output = function()
+    local capture = Capture:new()
+    local count = 8000
+    capture:wrap(true, function()
+        process = Process:start('/bin/bash', {'-c', "printf 'Hello\n%.0s' {1.." .. count .. "}"},
+            nil, {output_prefix = 'test_prefix'})
+        t.helpers.retrying({timeout = 0.5, delay = 0.01}, function()
+            t.assert_not(process:is_alive())
+        end)
+        process.output_beautifier.class:synchronize(function() end)
+        process = nil
+    end)
+    local captured = capture:flush()
+    -- Split on 2 assertions, because of color codes
+    t.assert_str_contains(captured.stdout, 'test_prefix |')
+    t.assert_str_contains(captured.stdout, 'Hello')
+    t.assert_equals(fun.wrap(captured.stdout:gmatch('Hello')):length(), count)
+end
+
 g.test_start_with_ignore_gc = function()
     local process1 = Process:start('/bin/sleep', {'5'})
     local pid1 = process1.pid
@@ -42,6 +81,16 @@ g.test_start_with_ignore_gc = function()
         t.assert(Process.is_pid_alive(pid2))
     end)
     Process.kill_pid(pid2)
+end
+
+g.test_autokill_gced_process_with_output_prefix = function()
+    local process1 = Process:start('/bin/sleep', {'5'}, {}, {output_prefix = 'test_prefix'})
+    local pid1 = process1.pid
+    process1 = nil -- luacheck: no unused
+    _G.collectgarbage()
+    t.helpers.retrying({timeout = 0.5}, function()
+        t.assert_not(Process.is_pid_alive(pid1))
+    end)
 end
 
 g.test_kill_non_posix = function()

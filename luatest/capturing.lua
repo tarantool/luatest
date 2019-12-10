@@ -1,4 +1,5 @@
 local utils = require('luatest.utils')
+local OutputBeautifier = require('luatest.output_beautifier')
 
 local function format_captured(name, text)
     if text and text:len() > 0 then
@@ -13,7 +14,14 @@ local function wrap_methods(capture, enabled, object, ...)
     for _, name in pairs({...}) do
         utils.patch(object, name, function(super) return function(...)
             local args = {...}
-            return capture:wrap(enabled, function() return super(unpack(args)) end)
+            if enabled then
+                return capture:wrap(enabled, function() return super(unpack(args)) end)
+            end
+            -- Pause OutputBeautifier when capturing is disabled because
+            -- yields inside can make beautified output bypass the capture.
+            return OutputBeautifier:synchronize(function()
+                return capture:wrap(enabled, function() return super(unpack(args)) end)
+            end)
         end end)
     end
 end
