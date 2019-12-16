@@ -1146,7 +1146,7 @@ function M.assert_items_equals(actual, expected, extra_msg_or_nil)
 end
 
 local function table_covers(actual, expected)
-    if type(actual) ~= 'table' and type(expected) ~= 'table' then
+    if type(actual) ~= 'table' or type(expected) ~= 'table' then
         error('Argument 1 and 2 must be tables')
     end
     local sliced = {}

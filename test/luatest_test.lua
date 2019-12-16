@@ -73,6 +73,8 @@ g.test_assert_covers = function()
     t.assert_error(subject, {a = 1, b = 2, c = 3}, {a = 1, b = 2, c = 3, d = 4})
     t.assert_error(subject, {a = 1, b = 2, c = 3}, {d = 1})
     t.assert_error(subject, {a = nil}, {a = box.NULL})
+    t.assert_error_msg_contains('Argument 1 and 2 must be tables',
+        subject, {a = 1, b = 2, c = 3}, nil)
 end
 
 g.test_assert_not_covers = function()
@@ -88,6 +90,8 @@ g.test_assert_not_covers = function()
     t.assert_error(subject, {a = 1, b = 2, c = 3}, {a = 1, c = 3})
     t.assert_error(subject, {a = 1, b = 2, c = 3}, {a = 1, b = 2, c = 3})
     t.assert_error(subject, {a = box.NULL}, {a = box.NULL})
+    t.assert_error_msg_contains('Argument 1 and 2 must be tables',
+        subject, {a = 1, b = 2, c = 3}, nil)
 end
 
 g.test_assert_type = function()
