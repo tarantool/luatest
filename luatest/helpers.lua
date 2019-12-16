@@ -66,11 +66,11 @@ function helpers.retrying(config, fn, ...)
         if ok then
             return result
         end
+        if (clock.time() - started_at) > timeout then
+            return fn(...)
+        end
         log.debug('Retrying in ' .. delay .. ' sec. due to error:')
         log.debug(result)
-        if (clock.time() - started_at) > timeout then
-            error(result)
-        end
         fiber.sleep(delay)
     end
 end
