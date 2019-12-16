@@ -28,12 +28,12 @@ end
 
 g.test_rescuing_failure = function()
     local retry = 0
-    t.assert_error_msg_contains('test-error', function()
+    t.assert_error_msg_equals('test-error', function()
         helpers.retrying({delay = 0.1, timeout = 0.5}, function(a, b)
             t.assert_equals(a, 1)
             t.assert_equals(b, 2)
             retry = retry + 1
-            error('test-error')
+            error('test-error', 0)
         end, 1, 2)
     end)
     t.assert_almost_equals(retry, 6, 1)
