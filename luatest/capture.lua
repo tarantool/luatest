@@ -3,28 +3,14 @@
 
 local ffi = require('ffi')
 local fiber = require('fiber')
-local socket = require('socket')
 
+local ffi_io = require('luatest.ffi_io')
 local utils = require('luatest.utils')
 
 ffi.cdef([[
-    int pipe(int fildes[2]);
-
     int dup(int oldfd);
-    int dup2(int oldfd, int newfd);
-
     int fileno(struct FILE *stream);
-
-    ssize_t read(int fd, void *buf, size_t count);
 ]])
-
-local function create_pipe()
-    local fildes = ffi.new('int[?]', 2)
-    if ffi.C.pipe(fildes) ~= 0 then
-        error('pipe call failed')
-    end
-    return fildes
-end
 
 -- Duplicate lua's io object to new fd.
 local function dup_io(file)
@@ -33,23 +19,6 @@ local function dup_io(file)
         error('dup call failed')
     end
     return newfd
-end
-
-local READ_BUFFER_SIZE = 4096
-
--- Read fd into chunks array while it's readable.
-local function read_fd(fd, chunks)
-    chunks = chunks or {}
-    local buffer = nil
-    while socket.iowait(fd, 'R', 0) ~= '' do
-        buffer = buffer or ffi.new('char[?]', READ_BUFFER_SIZE)
-        local count = ffi.C.read(fd, buffer, READ_BUFFER_SIZE)
-        if count < 0 then
-            error('read pipe failed')
-        end
-        table.insert(chunks, ffi.string(buffer, count))
-    end
-    return chunks
 end
 
 local Capture = {
@@ -75,46 +44,43 @@ function Capture:enable(raise)
         return
     end
     if not self.pipes then
-        self.pipes = {stdout = create_pipe(), stderr = create_pipe()}
+        self.pipes = {stdout = ffi_io.create_pipe(), stderr = ffi_io.create_pipe()}
         self.original_fds = {stdout = dup_io(io.stdout), stderr = dup_io(io.stderr)}
     end
     io.flush()
-    ffi.C.dup2(self.pipes.stdout[1], ffi.C.fileno(io.stdout))
-    ffi.C.dup2(self.pipes.stderr[1], ffi.C.fileno(io.stderr))
-    self:start_reader_fiber()
+    ffi_io.dup2_io(self.pipes.stdout[1], io.stdout)
+    ffi_io.dup2_io(self.pipes.stderr[1], io.stderr)
+    self:start_reader_fibers()
     self.enabled = true
 end
 
 -- Start the fiber that reads from pipes to the buffer.
-function Capture:start_reader_fiber()
-    assert(not self.reader_fiber, 'reader_fiber is already running')
-    self.reader_fiber = fiber.new(function()
-        while true do
-            self:read_pipes()
-            fiber.testcancel()
-            fiber.sleep(0.5)
-        end
-    end)
-    self.reader_fiber:set_joinable(true)
+function Capture:start_reader_fibers()
+    assert(not self.reader_fibers, 'reader_fibers are already running')
+    self.reader_fibers = {}
+    for name, pipe in pairs(self.pipes) do
+        self.reader_fibers[name] = fiber.new(function()
+            while fiber.testcancel() or true do
+                ffi_io.read_fd(pipe[0], self.buffer[name])
+            end
+        end)
+        self.reader_fibers[name]:set_joinable(true)
+    end
 end
 
 -- Stop reader fiber and read available data from pipe after fiber was stopped.
-function Capture:stop_reader_fiber()
-    if not self.reader_fiber then
+function Capture:stop_reader_fibers()
+    if not self.reader_fibers then
         return false
     end
-    self.reader_fiber:cancel()
-    self.reader_fiber:join()
-    self:read_pipes()
-    self.reader_fiber = nil
-    return true
-end
-
--- Read from pipes to buffer.
-function Capture:read_pipes()
-    for _, name in pairs({'stdout', 'stderr'}) do
-        read_fd(self.pipes[name][0], self.buffer[name])
+    io.flush()
+    for name, item in pairs(self.reader_fibers) do
+        item:cancel()
+        item:join()
+        ffi_io.read_fd(self.pipes[name][0], self.buffer[name], {timeout = 0})
     end
+    self.reader_fibers = nil
+    return true
 end
 
 -- Restore original fds for stdout and stderr.
@@ -125,10 +91,9 @@ function Capture:disable(raise)
         end
         return
     end
-    io.flush()
-    self:stop_reader_fiber()
-    ffi.C.dup2(self.original_fds.stdout, ffi.C.fileno(io.stdout))
-    ffi.C.dup2(self.original_fds.stderr, ffi.C.fileno(io.stderr))
+    self:stop_reader_fibers()
+    ffi_io.dup2_io(self.original_fds.stdout, io.stdout)
+    ffi_io.dup2_io(self.original_fds.stderr, io.stderr)
     self.enabled = false
 end
 
@@ -146,15 +111,14 @@ function Capture:flush()
     if not self.pipes then
         return {stdout = '', stderr = ''}
     end
-    io.flush()
-    local restart_reader_fiber = self:stop_reader_fiber()
+    local restart_reader_fibers = self:stop_reader_fibers()
     local result = {
         stdout = table.concat(self.buffer.stdout),
         stderr = table.concat(self.buffer.stderr),
     }
     self.buffer = {stdout = {}, stderr = {}}
-    if restart_reader_fiber then
-        self:start_reader_fiber()
+    if restart_reader_fibers then
+        self:start_reader_fibers()
     end
     return result
 end
