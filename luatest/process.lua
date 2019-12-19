@@ -7,8 +7,8 @@ local log = require('log')
 
 ffi.cdef([[
     pid_t fork(void);
-
     int execve(const char *pathname, char *const argv[], char *const envp[]);
+    int kill(pid_t pid, int sig);
 ]])
 
 local Process = {}
@@ -69,6 +69,10 @@ function Process:kill(signal, options)
     self.kill_pid(self.pid, signal, options)
 end
 
+function Process:is_alive()
+    return self.pid ~= nil and Process.is_pid_alive(self.pid)
+end
+
 function Process.kill_pid(pid, signal, options)
     checks('number|string', '?number|string', {quiet = '?boolean'})
     -- Signal values are platform-dependent so we can not use ffi here
@@ -77,6 +81,10 @@ function Process.kill_pid(pid, signal, options)
     if exit_code ~= 0 and not (options and options.quiet) then
         error('kill failed: ' .. exit_code)
     end
+end
+
+function Process.is_pid_alive(pid)
+    return ffi.C.kill(tonumber(pid), 0) == 0
 end
 
 return Process
