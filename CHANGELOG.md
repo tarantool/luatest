@@ -13,6 +13,7 @@
 - Unify hooks definition: group hooks are defined via function calls.
 - Keep running other groups when group hook failed.
 - Prefix and colorize captured output.
+- Fix numeric assertions for cdata values.
 
 # 0.3.0
 
