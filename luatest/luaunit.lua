@@ -1079,29 +1079,27 @@ function M.assert_equals(actual, expected, extra_msg_or_nil, doDeepAnalysis)
         if not _is_table_equals(actual, expected) then
             failure( error_msg_equality(actual, expected, doDeepAnalysis), extra_msg_or_nil, 2 )
         end
-    elseif type(actual) ~= type(expected) then
-        failure( error_msg_equality(actual, expected), extra_msg_or_nil, 2 )
     elseif actual ~= expected then
         failure( error_msg_equality(actual, expected), extra_msg_or_nil, 2 )
     end
 end
 
-function M.almost_equals( actual, expected, margin )
-    if type(actual) ~= 'number' or type(expected) ~= 'number' or type(margin) ~= 'number' then
+function M.almost_equals(actual, expected, margin)
+    if not tonumber(actual) or not tonumber(expected) or not tonumber(margin) then
         error_fmt(3, 'almost_equals: must supply only number arguments.\nArguments supplied: %s, %s, %s',
             prettystr(actual), prettystr(expected), prettystr(margin))
     end
     if margin < 0 then
         error('almost_equals: margin must not be negative, current value is ' .. margin, 3)
     end
-    return math.abs(expected - actual) <= margin
+    return math.abs(tonumber(expected - actual)) <= margin
 end
 
-function M.assert_almost_equals( actual, expected, margin, extra_msg_or_nil )
+function M.assert_almost_equals(actual, expected, margin, extra_msg_or_nil)
     -- check that two floats are close by margin
     margin = margin or M.EPS
     if not M.almost_equals(actual, expected, margin) then
-        local delta = math.abs(actual - expected)
+        local delta = math.abs(tonumber(actual - expected))
         fail_fmt(2, extra_msg_or_nil, 'Values are not almost equal\n' ..
                     'Actual: %s, expected: %s, delta %s above margin of %s',
                     actual, expected, delta, margin)
@@ -1109,7 +1107,7 @@ function M.assert_almost_equals( actual, expected, margin, extra_msg_or_nil )
 end
 
 function M.assert_not_equals(actual, expected, extra_msg_or_nil)
-    if type(actual) ~= type(expected) then
+    if type(actual) ~= type(expected) and actual ~= expected then
         return
     end
 
@@ -1123,7 +1121,7 @@ function M.assert_not_equals(actual, expected, extra_msg_or_nil)
     fail_fmt(2, extra_msg_or_nil, 'Received the not expected value: %s', prettystr(actual))
 end
 
-function M.assert_not_almost_equals( actual, expected, margin, extra_msg_or_nil )
+function M.assert_not_almost_equals(actual, expected, margin, extra_msg_or_nil)
     -- check that two floats are not close by margin
     margin = margin or M.EPS
     if M.almost_equals(actual, expected, margin) then
