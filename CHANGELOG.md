@@ -1,5 +1,7 @@
 # Unreleased
 
+# 0.4.0
+
 - Fix not working `--exclude`, `--pattern` options
 - Fix error messages for `*_covers` matchers
 - Raise error when `group()` is called with existing group name.

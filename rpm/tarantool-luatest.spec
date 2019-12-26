@@ -1,5 +1,5 @@
 Name: luatest
-Version: 0.3.0
+Version: 0.4.0
 Release: 1%{?dist}
 Summary: Tarantool test framework
 Group: Applications/Databases
@@ -36,5 +36,21 @@ ctest -VV
 %license LICENSE
 
 %changelog
+* Thu Dec 26 2019 Maxim Melentiev <m.melentiev@corp.mail.ru> 0.4.0-1
+- Fix not working `--exclude`, `--pattern` options
+- Fix error messages for `*_covers` matchers
+- Raise error when `group()` is called with existing group name.
+- Allow dot in group name.
+- Prevent using `/` in group name.
+- Decide group name from filename for `group()` call without args.
+- `assert` returns input values.
+- `assert[_not]_equals` works for Tarantool's box.tuple.
+- Print tables in lua-compatible way in errors.
+- Fix performance issue with large errors messages.
+- Unify hooks definition: group hooks are defined via function calls.
+- Keep running other groups when group hook failed.
+- Prefix and colorize captured output.
+- Fix numeric assertions for cdata values.
+
 * Wed Oct 2 2019 Konstantin Nazarov <mail@knazarov.com> 0.3.0-1
 - Initial release

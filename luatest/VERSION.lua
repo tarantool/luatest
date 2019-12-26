@@ -1,1 +1,1 @@
-return "0.3.0-38-ge6c6ef4"
+return '0.4.0'
