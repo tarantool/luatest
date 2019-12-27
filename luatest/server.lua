@@ -77,13 +77,17 @@ end
 --- Start server process.
 function Server:start()
     local env = table.copy(os.environ())
-    local log_cmd = ''
+    local log_cmd = {}
     for k, v in pairs(self.env) do
-        log_cmd = log_cmd .. 'export ' .. k .. '=' .. v .. ' '
+        table.insert(log_cmd, string.format('%s=%q', k, v))
         env[k] = v
     end
-    log_cmd = log_cmd .. self.command
-    log.debug(log_cmd)
+    table.insert(log_cmd, self.command)
+    for _, v in ipairs(self.args) do
+        table.insert(log_cmd, string.format('%q', v))
+    end
+
+    log.debug(table.concat(log_cmd, ' '))
 
     self.process = Process:start(self.command, self.args, env, {
         chdir = self.chdir,
