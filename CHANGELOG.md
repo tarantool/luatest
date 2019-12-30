@@ -1,5 +1,7 @@
 # Unreleased
 
+- `assert_is` treats `box.NULL` and `nil` as different values.
+
 # 0.4.0
 
 - Fix not working `--exclude`, `--pattern` options

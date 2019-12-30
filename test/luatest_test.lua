@@ -19,6 +19,20 @@ g.test_assert_tnt_specific = function()
     t.assert_error(function() t.assert_not({}) end)
 end
 
+g.test_assert_equals_box_null = function()
+    t.assert_equals(box.NULL, nil)
+    helper.assert_failure_contains('Received the not expected value', t.assert_not_equals, box.NULL, nil)
+    t.assert_not_equals(box.NULL, 1ULL)
+end
+
+g.test_assert_is_box_null = function()
+    t.assert_is(box.NULL, box.NULL)
+    t.assert_is(nil, nil)
+    t.assert_is_not(box.NULL, nil)
+    t.assert_is_not(box.NULL, 1ULL)
+    helper.assert_failure_contains('expected and actual object should not be different', t.assert_is, box.NULL, nil)
+end
+
 g.test_assert_equals_tnt_tuples = function()
     t.assert_equals(box.tuple.new(1), box.tuple.new(1))
     t.assert_equals(box.tuple.new(1, 'a', box.NULL), box.tuple.new(1, 'a', box.NULL))

@@ -1333,7 +1333,7 @@ function M.assert_type(value, type_expected, extra_msg_or_nil)
 end
 
 function M.assert_is(actual, expected, extra_msg_or_nil)
-    if actual ~= expected then
+    if actual ~= expected or type(actual) ~= type(expected) then
         expected, actual = prettystr_pairs(expected, actual, '\n', '')
         fail_fmt(2, extra_msg_or_nil, 'expected and actual object should not be different\nExpected: %s\nReceived: %s',
                  expected, actual)
@@ -1341,7 +1341,7 @@ function M.assert_is(actual, expected, extra_msg_or_nil)
 end
 
 function M.assert_is_not(actual, expected, extra_msg_or_nil)
-    if actual == expected then
+    if actual == expected and type(actual) == type(expected) then
         fail_fmt(2, extra_msg_or_nil, 'expected and actual object should be different: %s',
                  prettystr_pairs(expected))
     end
