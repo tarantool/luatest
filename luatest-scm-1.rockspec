@@ -13,6 +13,11 @@ dependencies = {
     'lua >= 5.1',
     'checks >= 3.0.0',
 }
+external_dependencies = {
+    TARANTOOL = {
+        header = 'tarantool/module.h',
+    },
+}
 build = {
     type = 'cmake',
     variables = {
