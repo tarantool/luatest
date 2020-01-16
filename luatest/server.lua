@@ -112,7 +112,7 @@ end
 --- Establish `net.box` connection.
 -- It's available in `net_box` field.
 function Server:connect_net_box()
-    if self.net_box then
+    if self.net_box and self.net_box:is_connected() then
         return self.net_box
     end
     if not self.net_box_uri then

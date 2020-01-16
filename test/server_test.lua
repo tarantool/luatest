@@ -86,6 +86,11 @@ end
 g.test_net_box = function()
     server:connect_net_box()
     t.assert_equals(server.net_box:eval('return os.getenv("custom_env")'), 'test_value')
+
+    server.net_box:close()
+    t.assert_equals(server.net_box.state, 'closed')
+    server:connect_net_box()
+    t.assert_equals(server.net_box.state, 'active')
 end
 
 g.test_inherit = function()
