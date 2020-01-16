@@ -1,6 +1,7 @@
 # Unreleased
 
 - `assert_is` treats `box.NULL` and `nil` as different values.
+- Add luacov integration.
 
 # 0.4.0
 

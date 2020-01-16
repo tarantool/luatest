@@ -116,6 +116,7 @@ Options:
   -x, --exclude PATTERN:  Exclude all test names matching the Lua PATTERN
                           May be repeated to exclude several patterns
                           Make sure you escape magic chars like +? with %
+  --coverage:             Use luacov to collect code coverage.
   test_name, ...:         Tests to run in the form of group_name or group_name.test_name
 ]]
 
@@ -1850,6 +1851,8 @@ local LuaUnit_MT = { __index = M.LuaUnit }
                 return 'SET_EXCLUDE'
             elseif option == '-c' then
                 result.enable_capture = false
+            elseif option == '--coverage' then
+                result.coverage_report = true
             else
                 error('Unknown option: '..option,3)
             end

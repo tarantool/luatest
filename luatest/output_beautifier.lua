@@ -97,6 +97,7 @@ function OutputBeautifier.mt:enable(options)
         Process = Process or require('luatest.process')
         while fiber.testcancel() or true do
             if not Process.is_pid_alive(options.track_pid) then
+                fiber.sleep(self.class.PID_TRACKER_INTERVAL)
                 return self:disable()
             end
             fiber.sleep(self.class.PID_TRACKER_INTERVAL)

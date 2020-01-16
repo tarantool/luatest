@@ -10,7 +10,8 @@ Highlights:
 - before/after suite hooks,
 - before/after test group hooks,
 - [output capturing](#capturing-output),
-- [helpers](#test-helpers) for testing tarantool applications.
+- [helpers](#test-helpers) for testing tarantool applications,
+- [luacov integration](#luacov-integration).
 
 ## Requirements
 
@@ -210,13 +211,32 @@ luatest.helpers.retrying({timeout = 1, delay = 0.1}, failing_function, arg1, arg
 luatest.helpers.retrying({}, function() server:http_request('get', '/status') end)
 ```
 
+## luacov integration
+
+- Install [luacov](https://github.com/keplerproject/luacov) with `tarantoolctl rocks install luacov`
+- Configure it with `.luacov` file
+- Clean old reports `rm -f luacov.*.out*`
+- Run luatest with `--coverage` option
+- Generate report with `.rocks/bin/luacov .`
+- Show summary with `grep -A999 '^Summary' luacov.report.out`
+
+When running integration tests with coverage collector enabled, luatest
+automatically starts new tarantool instances with luacov enabled.
+So coverage is collected from all the instances.
+However this has some limitations:
+
+- It works only for instances started with `Server` helper.
+- Process command should be executable lua file or tarantool with script argument.
+- Instance must be stopped with `server:stop()`, because this is the point where stats are saved.
+- Don't save stats concurrently to prevent corruption.
+
 ## Development
 
 - Check out the repo.
 - Prepare makefile with `cmake .`.
 - Install dependencies with `make bootstrap`.
 - Run it with `make lint` before commiting changes.
-- Run tests with `make selftest` or `bin/luatest`.
+- Run tests with `bin/luatest`.
 
 ## Contributing
 
