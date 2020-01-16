@@ -49,6 +49,10 @@ function runner.run(args, options)
             capturing(lu, capture)
         end
 
+        if options.coverage_report then
+            require('luatest.coverage_utils').enable()
+        end
+
         lu.load_tests(options)
         return lu.LuaUnit.run(options)
     end, function(err)

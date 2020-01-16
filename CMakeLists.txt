@@ -42,6 +42,7 @@ add_custom_command(
   COMMAND tarantoolctl rocks make ./${PROJECT_NAME}-scm-1.rockspec
   COMMAND tarantoolctl rocks install http 1.1.0
   COMMAND tarantoolctl rocks install luacheck 0.25.0
+  COMMAND tarantoolctl rocks install luacov 0.13.0
 )
 
 add_custom_target(bootstrap DEPENDS .rocks)
@@ -60,6 +61,15 @@ add_custom_target(doc
 
 add_custom_target(lint DEPENDS bootstrap COMMAND .rocks/bin/luacheck .)
 add_custom_target(selftest DEPENDS bootstrap COMMAND bin/luatest)
+
+add_custom_target(test_with_coverage_report
+  DEPENDS bootstrap
+  COMMAND rm -f tmp/luacov.*.out*
+  COMMAND tarantool -l luatest.coverage bin/luatest
+  COMMAND .rocks/bin/luacov .
+  COMMAND echo
+  COMMAND grep -A999 '^Summary' tmp/luacov.report.out
+)
 
 ## Test #######################################################################
 ###############################################################################

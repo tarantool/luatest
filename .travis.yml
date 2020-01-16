@@ -20,7 +20,7 @@ _test: &test
     - sudo apt-get install -y tarantool tarantool-dev
   script:
     - cmake .
-    - make lint selftest
+    - make lint test_with_coverage_report
 
 _deploy_to_packagecloud: &deploy_to_packagecloud
   provider: packagecloud

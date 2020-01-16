@@ -7,6 +7,7 @@ local http_client = require('http.client')
 local json = require('json')
 local log = require('log')
 local net_box = require('net.box')
+local _, luacov_runner = pcall(require, 'luacov.runner') -- luacov may not be installed
 
 local Process = require('luatest.process')
 local utils = require('luatest.utils')
@@ -24,6 +25,8 @@ local Server = {
         net_box_credentials = '?table',
 
         alias = '?string',
+
+        coverage_report = '?string',
     },
 }
 
@@ -61,6 +64,30 @@ function Server:initialize()
     end
     self.env = utils.merge(self:build_env(), self.env or {})
     self.args = self.args or {}
+    -- Enable coverage_report if it's enabled when server is instantiated
+    -- and it's not disabled explicitly.
+    if self.coverage_report == nil and luacov_runner and luacov_runner.initialized then
+        self.coverage_report = true
+    end
+    if self.coverage_report then
+        -- If command is executable lua script, run it with `tarantool -l luatest.coverage script.lua`
+        if self.command:endswith('.lua') then
+            table.insert(self.args, 1, '-l')
+            table.insert(self.args, 2, 'luatest.coverage')
+            table.insert(self.args, 3, self.command)
+            self.command = arg[-1]
+        -- If command is tarantool, add `-l luatest.coverage`
+        elseif self.command:endswith('/tarantool') then
+            table.insert(self.args, 1, '-l')
+            table.insert(self.args, 2, 'luatest.coverage')
+        else
+            log.warn('Luatest can not enable coverage report ' ..
+                'for started process `' .. self.command .. '` ' ..
+                'because it may appear not a Lua script. ' ..
+                "Add `require('luatest.coverage')` to the program or " ..
+                'pass `coverage_report = false` option to disable this warning.')
+        end
+    end
 end
 
 --- Generates environment to run process with.
@@ -99,6 +126,9 @@ end
 --- Stop server process.
 function Server:stop()
     if self.net_box then
+        if self.coverage_report then
+            self:coverage('shutdown')
+        end
         self.net_box:close()
         self.net_box = nil
     end
@@ -158,6 +188,10 @@ function Server:http_request(method, path, options)
         end
     end
     return response
+end
+
+function Server:coverage(action)
+    self.net_box:eval('require("luatest.coverage_utils").' .. action .. '()')
 end
 
 return Server
