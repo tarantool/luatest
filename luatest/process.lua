@@ -34,7 +34,7 @@ function Process:start(path, args, env, options)
         ignore_gc = '?boolean',
         output_prefix = '?string',
     })
-    args = args or {}
+    args = args and table.copy(args) or {}
     env = env or {}
     options = options or {}
 
