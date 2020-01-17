@@ -4,6 +4,7 @@ local json = require('json')
 local t = require('luatest')
 local g = t.group('server')
 
+local Process = t.Process
 local Server = t.Server
 
 local root = fio.dirname(fio.dirname(fio.abspath(package.search('test.helper'))))
@@ -37,15 +38,17 @@ g.test_start_stop = function()
     local workdir = fio.pathjoin(datadir, 'start_stop')
     fio.mktree(workdir)
     local s = Server:new({command = command, workdir = workdir})
+    local orig_args = table.copy(s.args)
     s:start()
     local pid = s.process.pid
     t.helpers.retrying({timeout = 0.5}, function()
-        t.assert_equals(os.execute('ps -p ' .. pid .. ' > /dev/null'), 0)
+        t.assert(Process.is_pid_alive(pid))
     end)
     s:stop()
     t.helpers.retrying({timeout = 0.5}, function()
-        t.assert_equals(os.execute('ps -p ' .. pid .. ' > /dev/null'), 256) -- luajit multiplies code by 256
+        t.assert_not(Process.is_pid_alive(pid))
     end)
+    t.assert_equals(s.args, orig_args)
 end
 
 g.test_http_request = function()
