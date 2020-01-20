@@ -1,3 +1,4 @@
+local fio = require('fio')
 local runner = require('luacov.runner')
 
 -- Fix luacov issue. Without patch it's failed when `assert` is redefined.
@@ -21,13 +22,28 @@ local export = {
     },
 }
 
+local function with_cwd(dir, fn)
+    local old = fio.cwd()
+    assert(fio.chdir(dir), 'Failed to chdir to ' .. dir)
+    fn()
+    assert(fio.chdir(old), 'Failed to chdir to ' .. old)
+end
+
 function export.enable()
-    local config = runner.load_config()
-    config.exclude = config.exclude or {}
-    for _, item in pairs(export.DEFAULT_EXCLUDE) do
-        table.insert(config.exclude, item)
+    local root = os.getenv('LUATEST_LUACOV_ROOT')
+    if not root then
+        root = fio.cwd()
+        os.setenv('LUATEST_LUACOV_ROOT', root)
     end
-    runner.init(config)
+    -- Chdir to original root so luacov can find default config and resolve relative filenames.
+    with_cwd(root, function()
+        local config = runner.load_config()
+        config.exclude = config.exclude or {}
+        for _, item in pairs(export.DEFAULT_EXCLUDE) do
+            table.insert(config.exclude, item)
+        end
+        runner.init(config)
+    end)
 end
 
 function export.shutdown()

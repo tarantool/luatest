@@ -87,6 +87,9 @@ function Server:initialize()
                 "Add `require('luatest.coverage')` to the program or " ..
                 'pass `coverage_report = false` option to disable this warning.')
         end
+        -- values set with os.setenv are not available with os.environ
+        -- so set it explicitly:
+        self.env.LUATEST_LUACOV_ROOT = os.getenv('LUATEST_LUACOV_ROOT')
     end
 end
 
