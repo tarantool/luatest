@@ -136,8 +136,7 @@ return luatest
 -- @param expected
 -- @string[opt] message
 
---- Check that the items of table expected are contained in table actual.
--- Warning, this function is at least O(n^2)
+--- Checks equality of tables regardless of the order of elements.
 --
 -- @function assert_items_equals
 -- @param actual

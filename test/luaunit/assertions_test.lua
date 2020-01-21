@@ -298,7 +298,6 @@ function g.test_assert_str_matches()
 end
 
 function g.test_assert_items_equals()
-    t.assert_items_equals(nil, nil)
     t.assert_items_equals({},{})
     t.assert_items_equals({1,2,3}, {3,1,2})
     t.assert_items_equals({nil},{nil})
@@ -315,6 +314,10 @@ function g.test_assert_items_equals()
     assert_failure(t.assert_items_equals, {one=1,two=2,three=3}, {a=1,b=2,c=3,d=4})
     assert_failure(t.assert_items_equals, {1,2,three=3}, {3,4,a=1,b=2})
     assert_failure(t.assert_items_equals, {1,2,three=3,four=4}, {3,a=1,b=2})
+
+    assert_failure(t.assert_items_equals, {1,1,2,3}, {1,2,3})
+    assert_failure(t.assert_items_equals, {1,2,3}, {1,1,2,3})
+    assert_failure(t.assert_items_equals, {1,1,2,3}, {1,2,3,3})
 
     t.assert_items_equals({one=1,two={1,2},three=3}, {one={1,2},two=1,three=3})
     t.assert_items_equals({one=1,
