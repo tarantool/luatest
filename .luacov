@@ -3,4 +3,5 @@ reportfile = 'tmp/luacov.report.out'
 exclude = {
     '/test/.+_test',
     '/tmp/',
+    '/luatest/coverage_utils'
 }

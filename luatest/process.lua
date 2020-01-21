@@ -15,11 +15,13 @@ ffi.cdef([[
 
 local Process = {}
 
+-- luacov: disable
 local function to_const_char(input)
     local result = ffi.new('char const*[?]', #input + 1, input)
     result[#input] = nil
     return ffi.cast('char *const*', result)
 end
+-- luacov: enable
 
 --- Starts process and returns immediately, not waiting until process is finished.
 -- @param path Executable path.
@@ -54,6 +56,7 @@ function Process:start(path, args, env, options)
         end
         return self:new({pid = pid, ignore_gc = options.ignore_gc, output_beautifier = output_beautifier})
     end
+    -- luacov: disable
     if options.chdir then
         fio.chdir(options.chdir)
     end
@@ -65,6 +68,7 @@ function Process:start(path, args, env, options)
     ffi.C.execve(path, argv, envp)
     io.stderr:write('execve failed (' .. path ..  '): ' .. errno.strerror() .. '\n')
     os.exit(1)
+    -- luacov: enable
 end
 
 function Process:new(object)
