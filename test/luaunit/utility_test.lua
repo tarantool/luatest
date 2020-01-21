@@ -3,15 +3,8 @@ local g = t.group()
 
 local fun = require('fun')
 
-local function assert_failure(...)
-    local err = t.assert_error(...)
-    t.assert_equals(err.class, 'LuaUnitError')
-    return err
-end
-
-local function assert_failure_matches(msg, ...)
-    t.assert_str_matches(assert_failure(...).message, msg)
-end
+local helper = require('test.helper')
+local assert_failure_matches = helper.assert_failure_matches
 
 local function range(start, stop)
     -- return list of {start ... stop}
