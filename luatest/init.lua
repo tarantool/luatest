@@ -122,6 +122,13 @@ return luatest
 -- @param value
 -- @string[opt] message
 
+--- Checks that actual includes all items of expected.
+--
+-- @function assert_includes_items
+-- @param actual
+-- @param expected
+-- @string[opt] message
+
 --- Check that values are the same.
 --
 -- @function assert_is
