@@ -1090,24 +1090,30 @@ function M.assert_not_almost_equals(actual, expected, margin, extra_msg_or_nil)
     end
 end
 
-function M.private.is_table_items_equals(actual, expected)
+-- Checks that actual is subset of expected.
+-- Returns number of elements that are present in expected but not in actual.
+function M.private.is_subset(actual, expected)
     if (type(actual) ~= 'table') or (type(expected) ~= 'table') then
         return false
     end
 
+    local expected_array = {}
     local expected_casted = {}
-    local found_in_expected = {}
+    local found_ids = {}
     local found_count = 0
     for _, v in pairs(expected) do
-        table.insert(expected_casted, M.private.cast_value_for_equals(v))
+        table.insert(expected_array, v)
     end
 
     local function search(a)
         a = M.private.cast_value_for_equals(a)
-        for i, b in pairs(expected_casted) do
-            if not found_in_expected[i] then
-                if M.private.equals(a, b) then
-                    found_in_expected[i] = true
+        for i = 1, #expected_array do
+            if not found_ids[i] then
+                if not expected_casted[i] then
+                    expected_casted[i] = M.private.cast_value_for_equals(expected_array[i])
+                end
+                if M.private.equals(a, expected_casted[i]) then
+                    found_ids[i] = true
                     found_count = found_count + 1
                     return true
                 end
@@ -1120,15 +1126,22 @@ function M.private.is_table_items_equals(actual, expected)
             return false
         end
     end
-    return #expected_casted == found_count
+    return #expected_array - found_count
 end
 
 function M.assert_items_equals(actual, expected, extra_msg_or_nil)
     -- Checks equality of tables regardless of the order of elements.
-    if not M.private.is_table_items_equals(actual, expected) then
+    if M.private.is_subset(actual, expected) ~= 0 then
         expected, actual = prettystr_pairs(expected, actual)
         fail_fmt(2, extra_msg_or_nil, 'Content of the tables are not identical:\nExpected: %s\nActual: %s',
                  expected, actual)
+    end
+end
+
+function M.assert_includes_items(actual, expected, extra_msg_or_nil)
+    if not M.private.is_subset(expected, actual) then
+        expected, actual = prettystr_pairs(expected, actual)
+        fail_fmt(2, extra_msg_or_nil, 'Expected all elements from: %s\nTo be present in: %s', expected, actual)
     end
 end
 

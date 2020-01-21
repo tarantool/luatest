@@ -124,6 +124,7 @@ t.defaults({shuffle = 'group'})
 | `assert_error_msg_matches (pattern, fn, ...)` | |
 | `assert_eval_to_false (value[, message])` | Alias for assert_not. |
 | `assert_eval_to_true (value[, message])` | Alias for assert. |
+| `assert_includes_items (actual, expected[, message])` | Checks that actual includes all items of expected. |
 | `assert_is (actual, expected[, message])` | Check that values are the same. |
 | `assert_is_not (actual, expected[, message])` | Check that values are not the same. |
 | `assert_items_equals (actual, expected[, message])` | Checks equality of tables regardless of the order of elements. |

@@ -336,6 +336,25 @@ function g.test_assert_items_equals()
     assert_failure(t.assert_items_equals, {one=1,two=2,three=3}, {two=2,one=1})
 end
 
+function g.test_assert_includes_items()
+    t.assert_includes_items({},{})
+    t.assert_includes_items({1,2,3}, {3,1,2})
+    t.assert_includes_items({nil},{nil})
+    t.assert_includes_items({one=1,two=2,three=3}, {two=2,one=1,three=3})
+    t.assert_includes_items({one=1,two=2,three=3}, {a=1,b=2,c=3})
+    t.assert_includes_items({1,2,three=3}, {3,1,two=2})
+
+    t.assert_includes_items({1},{})
+    t.assert_includes_items({1,2,3,4}, {3,1,2})
+    t.assert_includes_items({1,1,2,3}, {3,1,2})
+
+    assert_failure(t.assert_includes_items, {}, {1})
+    assert_failure(t.assert_includes_items, nil, {1})
+    assert_failure(t.assert_includes_items, {}, nil)
+    assert_failure(t.assert_includes_items, {1,2,3}, {1,2,3,4})
+    assert_failure(t.assert_includes_items, {1,2,3}, {1,1,2,3})
+end
+
 function g.test_assert_nan()
     assert_failure(t.assert_nan, "hi there!")
     assert_failure(t.assert_nan, nil)
