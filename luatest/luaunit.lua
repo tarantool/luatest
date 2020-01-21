@@ -769,54 +769,6 @@ local function _table_tostring_format_result( tbl, result, indentLevel, printTab
 end
 M.private._table_tostring_format_result = _table_tostring_format_result -- prettystr_sub() needs it
 
-local function _table_contains(t, element)
-    if type(t) == "table" then
-        local type_e = type(element)
-        for _, value in pairs(t) do
-            if type(value) == type_e then
-                if value == element then
-                    return true
-                end
-                if type_e == 'table' then
-                    -- if we wanted recursive items content comparison, we could use
-                    -- _is_table_items_equals(v, expected) but one level of just comparing
-                    -- items is sufficient
-                    if M.private._is_table_equals( value, element ) then
-                        return true
-                    end
-                end
-            end
-        end
-    end
-    return false
-end
-
-local function _is_table_items_equals(actual, expected )
-    local type_a, type_e = type(actual), type(expected)
-
-    if (type_a == 'table') and (type_e == 'table') then
-        for _, v in pairs(actual) do
-            if not _table_contains(expected, v) then
-                return false
-            end
-        end
-        for _, v in pairs(expected) do
-            if not _table_contains(actual, v) then
-                return false
-            end
-        end
-        return true
-
-    elseif type_a ~= type_e then
-        return false
-
-    elseif actual ~= expected then
-        return false
-    end
-
-    return true
-end
-
 --[[
 This is a specialized metatable to help with the bookkeeping of recursions
 in _is_table_equals(). It provides an __index table that implements utility
@@ -1064,7 +1016,7 @@ end
 --                  Equality assertions
 ------------------------------------------------------------------
 
-local function cast_value_for_equals(value)
+function M.private.cast_value_for_equals(value)
     if type(value) == 'cdata' then
         local ok, table_value = pcall(function() return value:totable() end)
         if ok then
@@ -1074,15 +1026,19 @@ local function cast_value_for_equals(value)
     return value
 end
 
+function M.private.equals(a, b)
+    if type(a) == 'table' and type(b) == 'table' then
+        return _is_table_equals(a, b)
+    else
+        return a == b
+    end
+end
+
 function M.assert_equals(actual, expected, extra_msg_or_nil, doDeepAnalysis)
-    actual = cast_value_for_equals(actual)
-    expected = cast_value_for_equals(expected)
-    if type(actual) == 'table' and type(expected) == 'table' then
-        if not _is_table_equals(actual, expected) then
-            failure( error_msg_equality(actual, expected, doDeepAnalysis), extra_msg_or_nil, 2 )
-        end
-    elseif actual ~= expected then
-        failure( error_msg_equality(actual, expected), extra_msg_or_nil, 2 )
+    actual = M.private.cast_value_for_equals(actual)
+    expected = M.private.cast_value_for_equals(expected)
+    if not M.private.equals(actual, expected) then
+        failure(error_msg_equality(actual, expected, doDeepAnalysis), extra_msg_or_nil, 2)
     end
 end
 
@@ -1134,11 +1090,42 @@ function M.assert_not_almost_equals(actual, expected, margin, extra_msg_or_nil)
     end
 end
 
+function M.private.is_table_items_equals(actual, expected)
+    if (type(actual) ~= 'table') or (type(expected) ~= 'table') then
+        return false
+    end
+
+    local expected_casted = {}
+    local found_in_expected = {}
+    local found_count = 0
+    for _, v in pairs(expected) do
+        table.insert(expected_casted, M.private.cast_value_for_equals(v))
+    end
+
+    local function search(a)
+        a = M.private.cast_value_for_equals(a)
+        for i, b in pairs(expected_casted) do
+            if not found_in_expected[i] then
+                if M.private.equals(a, b) then
+                    found_in_expected[i] = true
+                    found_count = found_count + 1
+                    return true
+                end
+            end
+        end
+    end
+
+    for _, a in pairs(actual) do
+        if not search(a) then
+            return false
+        end
+    end
+    return #expected_casted == found_count
+end
+
 function M.assert_items_equals(actual, expected, extra_msg_or_nil)
-    -- checks that the items of table expected
-    -- are contained in table actual. Warning, this function
-    -- is at least O(n^2)
-    if not _is_table_items_equals(actual, expected ) then
+    -- Checks equality of tables regardless of the order of elements.
+    if not M.private.is_table_items_equals(actual, expected) then
         expected, actual = prettystr_pairs(expected, actual)
         fail_fmt(2, extra_msg_or_nil, 'Content of the tables are not identical:\nExpected: %s\nActual: %s',
                  expected, actual)

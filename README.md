@@ -126,7 +126,7 @@ t.defaults({shuffle = 'group'})
 | `assert_eval_to_true (value[, message])` | Alias for assert. |
 | `assert_is (actual, expected[, message])` | Check that values are the same. |
 | `assert_is_not (actual, expected[, message])` | Check that values are not the same. |
-| `assert_items_equals (actual, expected[, message])` | Check that the items of table expected are contained in table actual. |
+| `assert_items_equals (actual, expected[, message])` | Checks equality of tables regardless of the order of elements. |
 | `assert_nan (value[, message])` | |
 | `assert_not (value[, message])` | Check that value is falsy. |
 | `assert_not_almost_equals (actual, expected, margin[, message])` | Check that two floats are not close by margin. |

@@ -46,6 +46,12 @@ g.test_assert_equals_tnt_tuples = function()
     t.assert_equals(1ULL, 0ULL + 1)
 end
 
+g.test_assert_items_equals_tnt_tuples = function()
+    t.assert_items_equals({box.tuple.new(1)}, {box.tuple.new(1)})
+    helper.assert_failure_contains('Content of the tables are not identical',
+        t.assert_items_equals, {box.tuple.new(1)}, {box.tuple.new(2)})
+end
+
 g.test_fail_if_tnt_specific = function()
     t.fail_if(box.NULL, 'unexpected')
     t.assert_error(function() t.fail_if(true, 'expected') end)
