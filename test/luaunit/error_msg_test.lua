@@ -1,23 +1,10 @@
 local t = require('luatest')
 local g = t.group()
 
-local function assert_failure(...)
-    local err = t.assert_error(...)
-    t.assert_covers(err, {class = 'LuaUnitError'})
-    return err
-end
-
-local function assert_failure_equals(msg, ...)
-    t.assert_equals(assert_failure(...).message, msg)
-end
-
-local function assert_failure_matches(msg, ...)
-    t.assert_str_matches(assert_failure(...).message, msg)
-end
-
-local function assert_failure_contains(msg, ...)
-    t.assert_str_contains(assert_failure(...).message, msg)
-end
+local helper = require('test.helper')
+local assert_failure_matches = helper.assert_failure_matches
+local assert_failure_contains = helper.assert_failure_contains
+local assert_failure_equals = helper.assert_failure_equals
 
 function g.test_assert_equalsMsg()
     assert_failure_equals('expected: 2, actual: 1', t.assert_equals, 1, 2 )

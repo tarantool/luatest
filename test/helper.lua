@@ -16,6 +16,10 @@ function helper.assert_failure(...)
     return err
 end
 
+function helper.assert_failure_equals(msg, ...)
+    t.assert_equals(helper.assert_failure(...).message, msg)
+end
+
 function helper.assert_failure_matches(msg, ...)
     t.assert_str_matches(helper.assert_failure(...).message, msg)
 end

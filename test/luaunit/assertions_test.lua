@@ -1,11 +1,8 @@
 local t = require('luatest')
 local g = t.group()
 
-local function assert_failure(...)
-    local err = t.assert_error(...)
-    t.assert_covers(err, {class = 'LuaUnitError'})
-    return err
-end
+local helper = require('test.helper')
+local assert_failure = helper.assert_failure
 
 local function assertBadFindArgTable(...)
     t.assert_error_msg_matches(".* bad argument .* to 'find' %(string expected, got table%)", ...)

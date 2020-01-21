@@ -1,16 +1,9 @@
 local t = require('luatest')
 local g = t.group()
 
-local function assert_failure(...)
-    local err = t.assert_error(...)
-    t.assert_equals(err.class, 'LuaUnitError')
-    return err
-end
-
-local function assert_failure_equals(msg, ...)
-    local err = t.assert_error(...)
-    t.assert_equals(err.message, msg)
-end
+local helper = require('test.helper')
+local assert_failure = helper.assert_failure
+local assert_failure_equals = helper.assert_failure_equals
 
 local function f()
 end
