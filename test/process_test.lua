@@ -120,3 +120,18 @@ g.test_chdir = function()
         t.assert_not_equals(fio.stat('./tmp/' .. file_copy), nil)
     end)
 end
+
+g.test_start_with_debug_hook = function()
+    local original_hook = {debug.gethook()}
+    -- Hook is extracted from luacov. This is minimal implementation which makes fork-execve fail.
+    debug.sethook(function(_, _, level) debug.getinfo(level or 2, 'S') end, 'l')
+    local n = 100
+    local env = table.copy(os.environ())
+    local processes = fun.range(n):map(function()
+        return t.Process:start('/bin/sleep', {'10'}, env)
+    end):totable()
+    fiber.sleep(0.5) -- wait until all processes called execve
+    debug.sethook(unpack(original_hook))
+    local running = fun.iter(processes):filter(function(x) return x:is_alive() end):totable()
+    t.assert_equals(#running, n)
+end

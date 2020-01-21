@@ -44,9 +44,7 @@ function Process:start(path, args, env, options)
         prefix = options.output_prefix,
     })
 
-    local argv = to_const_char(args)
     local env_list = fun.iter(env):map(function(k, v) return k .. '=' .. v end):totable()
-    local envp = to_const_char(env_list)
     local pid = ffi.C.fork()
     if pid == -1 then
         error('fork failed: ' .. pid)
@@ -62,6 +60,8 @@ function Process:start(path, args, env, options)
     if output_beautifier then
         output_beautifier:hijack_output()
     end
+    local argv = to_const_char(args)
+    local envp = to_const_char(env_list)
     ffi.C.execve(path, argv, envp)
     io.stderr:write('execve failed (' .. path ..  '): ' .. errno.strerror() .. '\n')
     os.exit(1)
