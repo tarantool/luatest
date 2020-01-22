@@ -1174,6 +1174,9 @@ function M.assert_str_contains( str, sub, isPattern, extra_msg_or_nil )
     -- a string always contains the empty string
     -- assert( type(str) == 'string', 'Argument 1 of assert_str_contains() should be a string.' ) )
     -- assert( type(sub) == 'string', 'Argument 2 of assert_str_contains() should be a string.' ) )
+    M.assert_type(str, 'string', nil, 2)
+    M.assert_type(sub, 'string', nil, 2)
+
     if not string.find(str, sub, 1, not isPattern) then
         sub, str = prettystr_pairs(sub, str, '\n')
         fail_fmt(2, extra_msg_or_nil, 'Could not find %s %s in string %s',
@@ -1184,6 +1187,9 @@ end
 function M.assert_str_icontains( str, sub, extra_msg_or_nil )
     -- this relies on lua string.find function
     -- a string always contains the empty string
+    M.assert_type(str, 'string', nil, 2)
+    M.assert_type(sub, 'string', nil, 2)
+
     if not string.find(str:lower(), sub:lower(), 1, true) then
         sub, str = prettystr_pairs(sub, str, '\n')
         fail_fmt(2, extra_msg_or_nil, 'Could not find (case insensitively) substring %s in string %s',
@@ -1194,6 +1200,9 @@ end
 function M.assert_not_str_contains( str, sub, isPattern, extra_msg_or_nil )
     -- this relies on lua string.find function
     -- a string always contains the empty string
+    M.assert_type(str, 'string', nil, 2)
+    M.assert_type(sub, 'string', nil, 2)
+
     if string.find(str, sub, 1, not isPattern) then
         sub, str = prettystr_pairs(sub, str, '\n')
         fail_fmt(2, extra_msg_or_nil, 'Found the not expected %s %s in string %s',
@@ -1204,6 +1213,9 @@ end
 function M.assert_not_str_icontains( str, sub, extra_msg_or_nil )
     -- this relies on lua string.find function
     -- a string always contains the empty string
+    M.assert_type(str, 'string', nil, 2)
+    M.assert_type(sub, 'string', nil, 2)
+
     if string.find(str:lower(), sub:lower(), 1, true) then
         sub, str = prettystr_pairs(sub, str, '\n')
         fail_fmt(2, extra_msg_or_nil, 'Found (case insensitively) the not expected substring %s in string %s',
@@ -1213,6 +1225,9 @@ end
 
 function M.assert_str_matches( str, pattern, start, final, extra_msg_or_nil )
     -- Verify a full match for the string
+    M.assert_type(str, 'string', nil, 2)
+    M.assert_type(pattern, 'string', nil, 2)
+
     if not str_match( str, pattern, start, final ) then
         pattern, str = prettystr_pairs(pattern, str, '\n')
         fail_fmt(2, extra_msg_or_nil, 'Could not match pattern %s with string %s',
@@ -1322,9 +1337,9 @@ function M.assert_eval_to_false(value, extra_msg_or_nil)
     end
 end
 
-function M.assert_type(value, type_expected, extra_msg_or_nil)
+function M.assert_type(value, type_expected, extra_msg_or_nil, level)
     if type(value) ~= type_expected then
-        fail_fmt(2, extra_msg_or_nil, 'expected: a %s value, actual: type %s, value %s',
+        fail_fmt((level or 1) + 1, extra_msg_or_nil, 'expected: a %s value, actual: type %s, value %s',
                  type_expected, type(value), prettystr_pairs(value))
     end
 end

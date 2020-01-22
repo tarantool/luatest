@@ -5,26 +5,6 @@ local helper = require('test.helper')
 local assert_failure = helper.assert_failure
 local assert_failure_contains = helper.assert_failure_contains
 
-local function assertBadFindArgTable(...)
-    t.assert_error_msg_matches(".* bad argument .* to 'find' %(string expected, got table%)", ...)
-end
-
-local function assertBadFindArgNil(...)
-    t.assert_error_msg_matches(".* bad argument .* to 'find' %(string expected, got nil%)", ...)
-end
-
-local function assertBadIndexNumber(...)
-    t.assert_error_msg_matches(".* attempt to index .*a number value.*", ...)
-end
-
-local function assertBadIndexNil(...)
-    t.assert_error_msg_matches(".* attempt to index .*a nil value.*", ...)
-end
-
-local function assertBadMethodNil(...)
-    t.assert_error_msg_matches(".* attempt to call .*a nil value.*", ...)
-end
-
 function g.test_assert_equals()
     local f = function() return true end
 
@@ -220,15 +200,15 @@ function g.test_assert_str_contains()
     t.assert_str_contains('abcdef', 'abc')
     t.assert_str_contains('abcdef', 'bcd')
     t.assert_str_contains('abcdef', 'abcdef')
-    t.assert_str_contains('abc0', 0)
+    assert_failure(t.assert_str_contains, 'abc0', 0)
     assert_failure(t.assert_str_contains, 'ABCDEF', 'abc')
     assert_failure(t.assert_str_contains, '', 'abc')
     t.assert_str_contains('abcdef', '')
     assert_failure(t.assert_str_contains, 'abcdef', 'abcx')
     assert_failure(t.assert_str_contains, 'abcdef', 'abcdefg')
     assert_failure(t.assert_str_contains, 'abcdef', 0)
-    assertBadFindArgTable(t.assert_str_contains, 'abcdef', {})
-    assertBadFindArgNil(t.assert_str_contains, 'abcdef', nil)
+    assert_failure(t.assert_str_contains, 'abcdef', {})
+    assert_failure(t.assert_str_contains, 'abcdef', nil)
 
     t.assert_str_contains('abcdef', 'abc', false)
     t.assert_str_contains('abcdef', 'abc', true)
@@ -245,6 +225,9 @@ function g.test_assert_str_icontains()
     t.assert_str_icontains('abcDef', '')
     assert_failure(t.assert_str_icontains, 'abcdef', 'abcx')
     assert_failure(t.assert_str_icontains, 'abcdef', 'abcdefg')
+    assert_failure(t.assert_str_icontains, nil, 'abcdef')
+    assert_failure(t.assert_str_icontains, 'abcdef', {})
+    assert_failure(t.assert_str_icontains, 'abc0', 0)
 end
 
 function g.test_assert_not_str_contains()
@@ -256,8 +239,8 @@ function g.test_assert_not_str_contains()
     assert_failure(t.assert_not_str_contains, 'abc0', 0)
     t.assert_not_str_contains('abcdef', 'abcx')
     t.assert_not_str_contains('abcdef', 'abcdefg')
-    assertBadFindArgTable(t.assert_not_str_contains, 'abcdef', {})
-    assertBadFindArgNil(t.assert_not_str_contains, 'abcdef', nil)
+    assert_failure(t.assert_not_str_contains, 'abcdef', {})
+    assert_failure(t.assert_not_str_contains, 'abcdef', nil)
 
     assert_failure(t.assert_not_str_contains, 'abcdef', 'abc', false)
     assert_failure(t.assert_not_str_contains, 'abcdef', 'a.c', true)
@@ -271,11 +254,11 @@ function g.test_assert_not_str_icontains()
     assert_failure(t.assert_not_str_icontains, 'abcdef', 'abcdef')
     t.assert_not_str_icontains('', 'abc')
     assert_failure(t.assert_not_str_icontains, 'abcdef', '')
-    assertBadIndexNumber(t.assert_not_str_icontains, 'abc0', 0)
+    assert_failure(t.assert_not_str_icontains, 'abc0', 0)
     t.assert_not_str_icontains('abcdef', 'abcx')
     t.assert_not_str_icontains('abcdef', 'abcdefg')
-    assertBadMethodNil(t.assert_not_str_icontains, 'abcdef', {})
-    assertBadIndexNil(t.assert_not_str_icontains, 'abcdef', nil)
+    assert_failure(t.assert_not_str_icontains, 'abcdef', {})
+    assert_failure(t.assert_not_str_icontains, 'abcdef', nil)
 end
 
 function g.test_assert_str_matches()
@@ -290,9 +273,10 @@ function g.test_assert_str_matches()
     assert_failure(t.assert_str_matches, 'abcdef', '')
     assert_failure(t.assert_str_matches, '', 'abcdef')
 
+    assert_failure(t.assert_str_matches, nil, 'abcdef')
     assert_failure(t.assert_str_matches, 'abcdef', 0)
-    assertBadFindArgTable(t.assert_str_matches, 'abcdef', {})
-    assertBadFindArgNil(t.assert_str_matches, 'abcdef', nil)
+    assert_failure(t.assert_str_matches, 'abcdef', {})
+    assert_failure(t.assert_str_matches, 'abcdef', nil)
 end
 
 function g.test_assert_items_equals()
