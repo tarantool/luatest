@@ -28,7 +28,7 @@ g.test_assert_equals_box_null = function()
     helper.assert_failure(t.assert_equals, {1, nil, 3}, {1, 3})
 
     t.assert_not_equals(box.NULL, 1ULL)
-    helper.assert_failure_contains('Received the not expected value', t.assert_not_equals, box.NULL, nil)
+    helper.assert_failure_contains('Received unexpected value', t.assert_not_equals, box.NULL, nil)
 end
 
 g.test_assert_is_box_null = function()

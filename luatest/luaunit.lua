@@ -1041,7 +1041,7 @@ end
 
 function M.assert_not_equals(actual, expected, extra_msg_or_nil)
     if M.private.equals(actual, expected) then
-        fail_fmt(2, extra_msg_or_nil, 'Received the not expected value: %s', prettystr(actual))
+        fail_fmt(2, extra_msg_or_nil, 'Received unexpected value: %s', prettystr(actual))
     end
 end
 
@@ -1175,7 +1175,7 @@ function M.assert_not_str_contains( str, sub, isPattern, extra_msg_or_nil )
 
     if string.find(str, sub, 1, not isPattern) then
         sub, str = prettystr_pairs(sub, str, '\n')
-        fail_fmt(2, extra_msg_or_nil, 'Found the not expected %s %s in string %s',
+        fail_fmt(2, extra_msg_or_nil, 'Found unexpected %s %s in string %s',
                  isPattern and 'pattern' or 'substring', sub, str)
     end
 end
@@ -1188,8 +1188,7 @@ function M.assert_not_str_icontains( str, sub, extra_msg_or_nil )
 
     if string.find(str:lower(), sub:lower(), 1, true) then
         sub, str = prettystr_pairs(sub, str, '\n')
-        fail_fmt(2, extra_msg_or_nil, 'Found (case insensitively) the not expected substring %s in string %s',
-                 sub, str)
+        fail_fmt(2, extra_msg_or_nil, 'Found (case insensitively) unexpected substring %s in string %s', sub, str)
     end
 end
 

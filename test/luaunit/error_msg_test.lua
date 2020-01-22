@@ -34,10 +34,10 @@ function g.test_assert_not_almost_equalsMsg()
 end
 
 function g.test_assert_not_equalsMsg()
-    assert_failure_equals('Received the not expected value: 1', t.assert_not_equals, 1, 1 )
-    assert_failure_matches('Received the not expected value: {1, 2}', t.assert_not_equals, {1,2}, {1,2})
-    assert_failure_equals('Received the not expected value: nil', t.assert_not_equals, nil, nil)
-    assert_failure_equals('toto\nReceived the not expected value: 1', t.assert_not_equals, 1, 1, 'toto' )
+    assert_failure_equals('Received unexpected value: 1', t.assert_not_equals, 1, 1 )
+    assert_failure_matches('Received unexpected value: {1, 2}', t.assert_not_equals, {1,2}, {1,2})
+    assert_failure_equals('Received unexpected value: nil', t.assert_not_equals, nil, nil)
+    assert_failure_equals('toto\nReceived unexpected value: 1', t.assert_not_equals, 1, 1, 'toto' )
 end
 
 function g.test_assert_not()
@@ -103,23 +103,23 @@ function g.test_assert_str_icontains()
 end
 
 function g.test_assert_not_str_contains()
-    assert_failure_equals('Found the not expected substring "abc" in string "abcdef"',
+    assert_failure_equals('Found unexpected substring "abc" in string "abcdef"',
         t.assert_not_str_contains, 'abcdef', 'abc')
-    assert_failure_equals('Found the not expected substring "abc" in string "abcdef"',
+    assert_failure_equals('Found unexpected substring "abc" in string "abcdef"',
         t.assert_not_str_contains, 'abcdef', 'abc', false)
-    assert_failure_equals('Found the not expected pattern "..." in string "abcdef"',
+    assert_failure_equals('Found unexpected pattern "..." in string "abcdef"',
         t.assert_not_str_contains, 'abcdef', '...', true)
 
-    assert_failure_equals('toto\nFound the not expected substring "abc" in string "abcdef"',
+    assert_failure_equals('toto\nFound unexpected substring "abc" in string "abcdef"',
         t.assert_not_str_contains, 'abcdef', 'abc', false, 'toto')
 end
 
 function g.test_assert_not_str_icontains()
-    assert_failure_equals('Found (case insensitively) the not expected substring "aBc" in string "abcdef"',
+    assert_failure_equals('Found (case insensitively) unexpected substring "aBc" in string "abcdef"',
         t.assert_not_str_icontains, 'abcdef', 'aBc')
-    assert_failure_equals('Found (case insensitively) the not expected substring "abc" in string "abcdef"',
+    assert_failure_equals('Found (case insensitively) unexpected substring "abc" in string "abcdef"',
         t.assert_not_str_icontains, 'abcdef', 'abc')
-    assert_failure_equals('toto\nFound (case insensitively) the not expected substring "abc" in string "abcdef"',
+    assert_failure_equals('toto\nFound (case insensitively) unexpected substring "abc" in string "abcdef"',
         t.assert_not_str_icontains, 'abcdef', 'abc', 'toto')
 end
 
@@ -313,10 +313,10 @@ end
 
 function g.test_printTableWithRef()
     t.PRINT_TABLE_REF_IN_ERROR_MSG = true
-    assert_failure_matches('Received the not expected value: <table: 0?x?[%x]+> {1, 2}',
+    assert_failure_matches('Received unexpected value: <table: 0?x?[%x]+> {1, 2}',
         t.assert_not_equals, {1,2}, {1,2})
     -- trigger multiline prettystr
-    assert_failure_matches('Received the not expected value: <table: 0?x?[%x]+> {1, 2, 3, 4}',
+    assert_failure_matches('Received unexpected value: <table: 0?x?[%x]+> {1, 2, 3, 4}',
         t.assert_not_equals, {1,2,3,4}, {1,2,3,4})
     assert_failure_matches('expected: false or nil, actual: <table: 0?x?[%x]+> {}', t.assert_not, {})
     local v = {1,2}
