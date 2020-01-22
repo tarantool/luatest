@@ -3,6 +3,7 @@ local g = t.group()
 
 local helper = require('test.helper')
 local assert_failure = helper.assert_failure
+local assert_failure_contains = helper.assert_failure_contains
 
 local function assertBadFindArgTable(...)
     t.assert_error_msg_matches(".* bad argument .* to 'find' %(string expected, got table%)", ...)
@@ -109,10 +110,10 @@ function g.test_assert_almost_equals()
 
     assert_failure(t.assert_almost_equals, 1, 1.11, 0.1)
     assert_failure(t.assert_almost_equals, -1, -1.11, 0.1)
-    t.assert_error_msg_contains("must supply only number arguments", t.assert_almost_equals, -1, 1, "foobar")
-    t.assert_error_msg_contains("must supply only number arguments", t.assert_almost_equals, -1, nil, 0)
-    t.assert_error_msg_contains("must supply only number arguments", t.assert_almost_equals, nil, 1, 0)
-    t.assert_error_msg_contains("margin must not be negative", t.assert_almost_equals, 1, 1.1, -0.1)
+    assert_failure_contains("must supply only number arguments", t.assert_almost_equals, -1, 1, "foobar")
+    assert_failure_contains("must supply only number arguments", t.assert_almost_equals, -1, nil, 0)
+    assert_failure_contains("must supply only number arguments", t.assert_almost_equals, nil, 1, 0)
+    assert_failure_contains("margin must not be negative", t.assert_almost_equals, 1, 1.1, -0.1)
 end
 
 function g.test_assert_not_equals()
@@ -168,10 +169,10 @@ function g.test_assert_not_almost_equals()
 
     assert_failure(t.assert_not_almost_equals, 1, 1.11, 0.2)
     assert_failure(t.assert_not_almost_equals, -1, -1.11, 0.2)
-    t.assert_error_msg_contains("must supply only number arguments", t.assert_not_almost_equals, -1, 1, "foobar")
-    t.assert_error_msg_contains("must supply only number arguments", t.assert_not_almost_equals, -1, nil, 0)
-    t.assert_error_msg_contains("must supply only number arguments", t.assert_not_almost_equals, nil, 1, 0)
-    t.assert_error_msg_contains("margin must not be negative", t.assert_not_almost_equals, 1, 1.1, -0.1)
+    assert_failure_contains("must supply only number arguments", t.assert_not_almost_equals, -1, 1, "foobar")
+    assert_failure_contains("must supply only number arguments", t.assert_not_almost_equals, -1, nil, 0)
+    assert_failure_contains("must supply only number arguments", t.assert_not_almost_equals, nil, 1, 0)
+    assert_failure_contains("margin must not be negative", t.assert_not_almost_equals, 1, 1.1, -0.1)
 end
 
 function g.test_assert_not_equalsDifferentTypes2()

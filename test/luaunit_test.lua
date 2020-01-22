@@ -64,7 +64,7 @@ g.test_assert_almost_eqals_for_cdata = function()
 
     helper.assert_failure_contains('Values are not almost equal', t.assert_almost_equals, 1, 3ULL, 1)
     helper.assert_failure_contains('Values are not almost equal', t.assert_almost_equals, 1LL, 3, 1)
-    t.assert_error_msg_contains('must supply only number arguments', t.assert_almost_equals, box.NULL, 3, 1)
+    helper.assert_failure_contains('must supply only number arguments', t.assert_almost_equals, box.NULL, 3, 1)
 
     t.assert_not_almost_equals(1, 3ULL, 1)
     t.assert_not_almost_equals(1LL, 3, 1)

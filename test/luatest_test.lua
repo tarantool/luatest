@@ -13,10 +13,10 @@ end
 g.test_assert_tnt_specific = function()
     t.assert(true)
     t.assert({})
-    t.assert_error(function() t.assert(box.NULL) end)
+    helper.assert_failure(t.assert, box.NULL)
     t.assert_not(box.NULL)
-    t.assert_error(function() t.assert_not(true) end)
-    t.assert_error(function() t.assert_not({}) end)
+    helper.assert_failure(t.assert_not, true)
+    helper.assert_failure(t.assert_not, {})
 end
 
 g.test_assert_equals_box_null = function()
@@ -54,8 +54,8 @@ end
 
 g.test_fail_if_tnt_specific = function()
     t.fail_if(box.NULL, 'unexpected')
-    t.assert_error(function() t.fail_if(true, 'expected') end)
-    t.assert_error(function() t.fail_if({}, 'expected') end)
+    helper.assert_failure(t.fail_if, true, 'expected')
+    helper.assert_failure(t.fail_if, {}, 'expected')
 end
 
 local function assert_any_error(fn, ...)
@@ -65,14 +65,14 @@ end
 
 g.test_skip_if_tnt_specific = function()
     assert_any_error(t.skip_if, box.NULL, 'unexpected')
-    t.assert_equals(t.assert_error(t.skip_if, true, 'expected').status, 'skip')
-    t.assert_equals(t.assert_error(t.skip_if, {}, 'expected').status, 'skip')
+    t.assert_equals(helper.assert_failure(t.skip_if, true, 'expected').status, 'skip')
+    t.assert_equals(helper.assert_failure(t.skip_if, {}, 'expected').status, 'skip')
 end
 
 g.test_success_if_tnt_specific = function()
     assert_any_error(t.success_if, box.NULL)
-    t.assert_equals(t.assert_error(t.success_if, true).status, 'success')
-    t.assert_equals(t.assert_error(t.success_if, {}).status, 'success')
+    t.assert_equals(helper.assert_failure(t.success_if, true).status, 'success')
+    t.assert_equals(helper.assert_failure(t.success_if, {}).status, 'success')
 end
 
 g.test_assert_aliases = function ()
@@ -88,13 +88,12 @@ g.test_assert_covers = function()
     subject({a = 1, b = 2, c = 3}, {a = 1, b = 2, c = 3})
     subject({a = box.NULL}, {a = box.NULL})
 
-    t.assert_error(subject, {a = 1, b = 2, c = 3}, {a = 2})
-    t.assert_error(subject, {a = 1, b = 2, c = 3}, {a = 1, b = 1})
-    t.assert_error(subject, {a = 1, b = 2, c = 3}, {a = 1, b = 2, c = 3, d = 4})
-    t.assert_error(subject, {a = 1, b = 2, c = 3}, {d = 1})
-    t.assert_error(subject, {a = nil}, {a = box.NULL})
-    t.assert_error_msg_contains('Argument 1 and 2 must be tables',
-        subject, {a = 1, b = 2, c = 3}, nil)
+    helper.assert_failure(subject, {a = 1, b = 2, c = 3}, {a = 2})
+    helper.assert_failure(subject, {a = 1, b = 2, c = 3}, {a = 1, b = 1})
+    helper.assert_failure(subject, {a = 1, b = 2, c = 3}, {a = 1, b = 2, c = 3, d = 4})
+    helper.assert_failure(subject, {a = 1, b = 2, c = 3}, {d = 1})
+    helper.assert_failure(subject, {a = nil}, {a = box.NULL})
+    helper.assert_failure_contains('Argument 1 and 2 must be tables', subject, {a = 1, b = 2, c = 3}, nil)
 end
 
 g.test_assert_not_covers = function()
@@ -105,13 +104,12 @@ g.test_assert_not_covers = function()
     subject({a = 1, b = 2, c = 3}, {d = 1})
     subject({a = nil}, {a = box.NULL})
 
-    t.assert_error(subject, {a = 1, b = 2, c = 3}, {})
-    t.assert_error(subject, {a = 1, b = 2, c = 3}, {a = 1})
-    t.assert_error(subject, {a = 1, b = 2, c = 3}, {a = 1, c = 3})
-    t.assert_error(subject, {a = 1, b = 2, c = 3}, {a = 1, b = 2, c = 3})
-    t.assert_error(subject, {a = box.NULL}, {a = box.NULL})
-    t.assert_error_msg_contains('Argument 1 and 2 must be tables',
-        subject, {a = 1, b = 2, c = 3}, nil)
+    helper.assert_failure(subject, {a = 1, b = 2, c = 3}, {})
+    helper.assert_failure(subject, {a = 1, b = 2, c = 3}, {a = 1})
+    helper.assert_failure(subject, {a = 1, b = 2, c = 3}, {a = 1, c = 3})
+    helper.assert_failure(subject, {a = 1, b = 2, c = 3}, {a = 1, b = 2, c = 3})
+    helper.assert_failure(subject, {a = box.NULL}, {a = box.NULL})
+    helper.assert_failure_contains('Argument 1 and 2 must be tables', subject, {a = 1, b = 2, c = 3}, nil)
 end
 
 g.test_assert_type = function()
@@ -119,8 +117,8 @@ g.test_assert_type = function()
     subject(1, 'number')
     subject('1', 'string')
 
-    t.assert_error(subject, 1, 'string')
-    t.assert_error(subject, '1', 'number')
+    helper.assert_failure(subject, 1, 'string')
+    helper.assert_failure(subject, '1', 'number')
 end
 
 g.test_group_with_existing_name_fails = function()

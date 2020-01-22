@@ -929,11 +929,6 @@ local function fail_fmt(level, extra_msg_or_nil, ...)
 end
 M.private.fail_fmt = fail_fmt
 
-local function error_fmt(level, ...)
-     -- printf-style error()
-    error(string.format(...), (level or 1) + 1)
-end
-
 ----------------------------------------------------------------
 --
 --                     assertions
@@ -1044,11 +1039,11 @@ end
 
 function M.almost_equals(actual, expected, margin)
     if not tonumber(actual) or not tonumber(expected) or not tonumber(margin) then
-        error_fmt(3, 'almost_equals: must supply only number arguments.\nArguments supplied: %s, %s, %s',
+        fail_fmt(2, 'almost_equals: must supply only number arguments.\nArguments supplied: %s, %s, %s',
             prettystr(actual), prettystr(expected), prettystr(margin))
     end
     if margin < 0 then
-        error('almost_equals: margin must not be negative, current value is ' .. margin, 3)
+        failure('almost_equals: margin must not be negative, current value is ' .. margin, 2)
     end
     return math.abs(tonumber(expected - actual)) <= margin
 end
@@ -1147,7 +1142,7 @@ end
 
 local function table_covers(actual, expected)
     if type(actual) ~= 'table' or type(expected) ~= 'table' then
-        error('Argument 1 and 2 must be tables')
+        failure('Argument 1 and 2 must be tables', 3)
     end
     local sliced = {}
     for k, _ in pairs(expected) do
