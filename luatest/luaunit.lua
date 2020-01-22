@@ -17,9 +17,6 @@ M.private = {}
 
 M.VERSION = require('luatest.VERSION')
 
---[[ Some people like assert_equals( actual, expected ) and some people prefer
-assert_equals( expected, actual ).
-]]--
 M.PRINT_TABLE_REF_IN_ERROR_MSG = false
 M.TABLE_EQUALS_KEYBYCONTENT = true
 M.LINE_LENGTH = 80
@@ -120,8 +117,6 @@ Options:
   --coverage:             Use luacov to collect code coverage.
   test_name, ...:         Tests to run in the form of group_name or group_name.test_name
 ]]
-
-local is_equal -- defined here to allow calling from mismatch_formatting_pure_list
 
 ----------------------------------------------------------------
 --
@@ -518,7 +513,7 @@ local function mismatch_formatting_pure_list( table_a, table_b )
 
     local commonUntil = shortest
     for i = 1, shortest do
-        if not is_equal(table_a[i], table_b[i]) then
+        if not M.private.equals(table_a[i], table_b[i]) then
             commonUntil = i - 1
             break
         end
@@ -526,7 +521,7 @@ local function mismatch_formatting_pure_list( table_a, table_b )
 
     local commonBackTo = shortest - 1
     for i = 0, shortest - 1 do
-        if not is_equal(table_a[len_a-i], table_b[len_b-i]) then
+        if not M.private.equals(table_a[len_a-i], table_b[len_b-i]) then
             commonBackTo = i - 1
             break
         end
@@ -556,7 +551,7 @@ local function mismatch_formatting_pure_list( table_a, table_b )
 
     local function insert_ab_value(ai, bi)
         bi = bi or ai
-        if is_equal( table_a[ai], table_b[bi]) then
+        if M.private.equals(table_a[ai], table_b[bi]) then
             return extend_with_str_fmt( result, '  = A[%d], B[%d]: %s', ai, bi, prettystr(table_a[ai]) )
         else
             extend_with_str_fmt( result, '  - A[%d]: %s', ai, prettystr(table_a[ai]))
@@ -771,7 +766,7 @@ M.private._table_tostring_format_result = _table_tostring_format_result -- prett
 
 --[[
 This is a specialized metatable to help with the bookkeeping of recursions
-in _is_table_equals(). It provides an __index table that implements utility
+in M.private.table_equals(). It provides an __index table that implements utility
 functions for easier management of the table. The "cached" method queries
 the state of a specific (actual,expected) pair; and the "store" method sets
 this state to the given value. The state of pairs not "seen" / visited is
@@ -807,15 +802,9 @@ local _recursion_cache_MT = {
     }
 }
 
-local function _is_table_equals(actual, expected, recursions)
-    local type_a, type_e = type(actual), type(expected)
-    recursions = recursions or setmetatable({}, _recursion_cache_MT)
+function M.private.table_equals(actual, expected, recursions)
+        recursions = recursions or setmetatable({}, _recursion_cache_MT)
 
-    if type_a ~= type_e then
-        return false -- different types won't match
-    end
-
-    if (type_a == 'table') then
         if actual == expected then
             -- Both reference the same table, so they are actually identical
             return recursions:store(actual, expected, true)
@@ -834,18 +823,17 @@ local function _is_table_equals(actual, expected, recursions)
         -- We used to verify that table count is identical here by comparing their length
         -- but this is unreliable when table is not a sequence. There is a test in test_luaunit.lua
         -- to catch this case.
-
         local actualKeysMatched, actualTableKeys = {}, {}
 
         for k, v in pairs(actual) do
             if M.TABLE_EQUALS_KEYBYCONTENT and type(k) == "table" then
                 -- If the keys are tables, things get a bit tricky here as we
-                -- can have _is_table_equals(t[k1], t[k2]) despite k1 ~= k2. So
+                -- can have M.private.table_equals(t[k1], t[k2]) despite k1 ~= k2. So
                 -- we first collect table keys from "actual", and then later try
                 -- to match each table key from "expected" to actualTableKeys.
                 table.insert(actualTableKeys, k)
             else
-                if not _is_table_equals(v, expected[k], recursions) then
+                if not M.private.equals(v, expected[k], recursions) then
                     return false -- Mismatch on value, tables can't be equal
                 end
                 actualKeysMatched[k] = true -- Keep track of matched keys
@@ -857,8 +845,8 @@ local function _is_table_equals(actual, expected, recursions)
                 local found = false
                 -- Note: DON'T use ipairs() here, table may be non-sequential!
                 for i, candidate in pairs(actualTableKeys) do
-                    if _is_table_equals(candidate, k, recursions) then
-                        if _is_table_equals(actual[candidate], v, recursions) then
+                    if M.private.equals(candidate, k, recursions) then
+                        if M.private.equals(actual[candidate], v, recursions) then
                             found = true
                             -- Remove the candidate we matched against from the list
                             -- of table keys, so each key in actual can only match
@@ -890,15 +878,7 @@ local function _is_table_equals(actual, expected, recursions)
 
         -- The tables are actually considered equal, update cache and return result
         return recursions:store(actual, expected, true)
-
-    elseif actual ~= expected then
-        return false
-    end
-
-    return true
 end
-M.private._is_table_equals = _is_table_equals
-is_equal = _is_table_equals
 
 local function luaunit_error(status, message, level)
     local _
@@ -1021,19 +1001,19 @@ function M.private.cast_value_for_equals(value)
     return value
 end
 
-function M.private.equals(a, b)
+function M.private.equals(a, b, recursions)
+    a = M.private.cast_value_for_equals(a)
+    b = M.private.cast_value_for_equals(b)
     if type(a) == 'table' and type(b) == 'table' then
-        return _is_table_equals(a, b)
+        return M.private.table_equals(a, b, recursions)
     else
         return a == b
     end
 end
 
 function M.assert_equals(actual, expected, extra_msg_or_nil, doDeepAnalysis)
-    actual = M.private.cast_value_for_equals(actual)
-    expected = M.private.cast_value_for_equals(expected)
     if not M.private.equals(actual, expected) then
-        failure(error_msg_equality(actual, expected, doDeepAnalysis), extra_msg_or_nil, 2)
+        failure(M.private.error_msg_equality(actual, expected, doDeepAnalysis), extra_msg_or_nil, 2)
     end
 end
 
@@ -1060,18 +1040,9 @@ function M.assert_almost_equals(actual, expected, margin, extra_msg_or_nil)
 end
 
 function M.assert_not_equals(actual, expected, extra_msg_or_nil)
-    if type(actual) ~= type(expected) and actual ~= expected then
-        return
+    if M.private.equals(actual, expected) then
+        fail_fmt(2, extra_msg_or_nil, 'Received the not expected value: %s', prettystr(actual))
     end
-
-    if type(actual) == 'table' and type(expected) == 'table' then
-        if not _is_table_equals(actual, expected) then
-            return
-        end
-    elseif actual ~= expected then
-        return
-    end
-    fail_fmt(2, extra_msg_or_nil, 'Received the not expected value: %s', prettystr(actual))
 end
 
 function M.assert_not_almost_equals(actual, expected, margin, extra_msg_or_nil)
@@ -1101,7 +1072,6 @@ function M.private.is_subset(actual, expected)
     end
 
     local function search(a)
-        a = M.private.cast_value_for_equals(a)
         for i = 1, #expected_array do
             if not found_ids[i] then
                 if not expected_casted[i] then
@@ -1148,7 +1118,7 @@ local function table_covers(actual, expected)
     for k, _ in pairs(expected) do
         sliced[k] = actual[k]
     end
-    return _is_table_equals(sliced, expected)
+    return M.private.table_equals(sliced, expected)
 end
 
 function M.assert_covers(actual, expected, message)
