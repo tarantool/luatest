@@ -228,7 +228,6 @@ function g.test_assert_str_icontains()
     assert_failure(t.assert_str_icontains, nil, 'abcdef')
     assert_failure(t.assert_str_icontains, 'abcdef', {})
     assert_failure(t.assert_str_icontains, 'abc0', 0)
-
 end
 
 function g.test_assert_not_str_contains()
