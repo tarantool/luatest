@@ -84,7 +84,7 @@ if math.abs(1.1 - 1 - 0.1) > M.EPS then
 end
 
 -- set this to false to debug luaunit
-local STRIP_LUAUNIT_FROM_STACKTRACE = true
+M.STRIP_LUAUNIT_FROM_STACKTRACE = os.getenv('LUATEST_BACKTRACE') == nil
 
 M.VERBOSITY_DEFAULT = 10
 M.VERBOSITY_LOW     = 1
@@ -2093,7 +2093,7 @@ local LuaUnit_MT = { __index = M.LuaUnit }
         if pretty_name then -- we do have the real method name
             err.trace = err.trace:gsub("in (%a+) 'method'", "in %1 '" .. pretty_name .. "'")
         end
-        if STRIP_LUAUNIT_FROM_STACKTRACE then
+        if M.STRIP_LUAUNIT_FROM_STACKTRACE then
             err.trace = strip_luaunit_trace(err.trace)
         end
 
