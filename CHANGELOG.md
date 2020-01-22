@@ -3,7 +3,7 @@
 - `assert_is` treats `box.NULL` and `nil` as different values.
 - Add luacov integration.
 - Fix `assert_items_equals` for repeated values. Add support for `tuple` items.
-- Add `assert_includes_items` matcher.
+- Add `assert_items_include` matcher.
 - `assert_equals` uses same comparison rules for nested values.
 - Fix generated group names when running files within specific directory.
 

@@ -124,8 +124,8 @@ g.test_assert_not_covers = function()
     helper.assert_failure_contains('Argument 1 and 2 must be tables', subject, {a = 1, b = 2, c = 3}, nil)
 end
 
-g.test_assert_includes_items = function()
-    local subject = t.assert_includes_items
+g.test_assert_items_include = function()
+    local subject = t.assert_items_include
     subject({1, box.tuple.new(1)}, {box.tuple.new(1)})
 
     helper.assert_failure(subject, {box.tuple.new(1)}, {box.tuple.new(2)})

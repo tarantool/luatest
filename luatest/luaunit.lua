@@ -1103,7 +1103,7 @@ function M.assert_items_equals(actual, expected, extra_msg_or_nil)
     end
 end
 
-function M.assert_includes_items(actual, expected, extra_msg_or_nil)
+function M.assert_items_include(actual, expected, extra_msg_or_nil)
     if not M.private.is_subset(expected, actual) then
         expected, actual = prettystr_pairs(expected, actual)
         fail_fmt(2, extra_msg_or_nil, 'Expected all elements from: %s\nTo be present in: %s', expected, actual)

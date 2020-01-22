@@ -124,7 +124,7 @@ return luatest
 
 --- Checks that actual includes all items of expected.
 --
--- @function assert_includes_items
+-- @function assert_items_include
 -- @param actual
 -- @param expected
 -- @string[opt] message
