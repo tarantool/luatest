@@ -33,7 +33,7 @@ local function get_test_modules_list(path)
     end
     return files:
         map(function(x) return x:gsub('%.lua$', '') end):
-        map(function(x) return x:gsub('/', '.') end):
+        map(function(x) return x:gsub('/+', '.') end):
         totable()
 end
 
