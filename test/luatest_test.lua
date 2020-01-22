@@ -97,12 +97,14 @@ g.test_assert_covers = function()
     subject({a = 1, b = 2, c = 3}, {a = 1, c = 3})
     subject({a = 1, b = 2, c = 3}, {a = 1, b = 2, c = 3})
     subject({a = box.NULL}, {a = box.NULL})
+    subject({a = box.tuple.new(1)}, {a = box.tuple.new(1)})
 
     helper.assert_failure(subject, {a = 1, b = 2, c = 3}, {a = 2})
     helper.assert_failure(subject, {a = 1, b = 2, c = 3}, {a = 1, b = 1})
     helper.assert_failure(subject, {a = 1, b = 2, c = 3}, {a = 1, b = 2, c = 3, d = 4})
     helper.assert_failure(subject, {a = 1, b = 2, c = 3}, {d = 1})
     helper.assert_failure(subject, {a = nil}, {a = box.NULL})
+    helper.assert_failure(subject, {a = box.tuple.new(1)}, {a = box.tuple.new(2)})
     helper.assert_failure_contains('Argument 1 and 2 must be tables', subject, {a = 1, b = 2, c = 3}, nil)
 end
 
@@ -120,6 +122,13 @@ g.test_assert_not_covers = function()
     helper.assert_failure(subject, {a = 1, b = 2, c = 3}, {a = 1, b = 2, c = 3})
     helper.assert_failure(subject, {a = box.NULL}, {a = box.NULL})
     helper.assert_failure_contains('Argument 1 and 2 must be tables', subject, {a = 1, b = 2, c = 3}, nil)
+end
+
+g.test_assert_includes_items = function()
+    local subject = t.assert_includes_items
+    subject({1, box.tuple.new(1)}, {box.tuple.new(1)})
+
+    helper.assert_failure(subject, {box.tuple.new(1)}, {box.tuple.new(2)})
 end
 
 g.test_assert_type = function()
