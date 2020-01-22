@@ -115,7 +115,7 @@ t.defaults({shuffle = 'group'})
 | :--- | --- |
 | `assert (value[, message])` | Check that value is truthy. |
 | `assert_almost_equals (actual, expected, margin[, message])` | Check that two floats are close by margin. |
-| `assert_covers (actual, expected[, message])` | Checks that map contains the other one. |
+| `assert_covers (actual, expected[, message])` | Checks that actual map includes expected one. |
 | `assert_equals (actual, expected[, message[, deep_analysis]])` | Check that two values are equal. |
 | `assert_error (fn, ...)` | Check that calling fn raises an error. |
 | `assert_error_msg_contains (expected_partial, fn, ...)` | |

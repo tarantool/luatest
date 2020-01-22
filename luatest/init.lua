@@ -60,7 +60,7 @@ return luatest
 -- @number margin
 -- @string[opt] message
 
---- Checks that map contains the other one.
+--- Checks that actual map includes expected one.
 --
 -- @function assert_covers
 -- @tab actual
