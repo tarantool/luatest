@@ -155,7 +155,7 @@ function g.test_prefix_string()
     t.assert_equals(t.private.prefix_string('12 ', 'ab\ncd\nde'), '12 ab\n12 cd\n12 de')
 end
 
-function g.test_is_table_equals()
+function g.test_equals_for_tables()
     -- Make sure that _is_table_equals() doesn't fall for these traps
     -- (See https://github.com/bluebird75/luaunit/issues/48)
     local A, B, C = {}, {}, {}

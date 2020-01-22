@@ -4,6 +4,7 @@
 - Add luacov integration.
 - Fix `assert_items_equals` for repeated values. Add support for `tuple` items.
 - Add `assert_includes_items` matcher.
+- `assert_equals` uses same comparison rules for nested values.
 
 # 0.4.0
 

@@ -21,8 +21,14 @@ end
 
 g.test_assert_equals_box_null = function()
     t.assert_equals(box.NULL, nil)
-    helper.assert_failure_contains('Received the not expected value', t.assert_not_equals, box.NULL, nil)
+    t.assert_equals({box.NULL}, {nil})
+    t.assert_equals({1, box.NULL, 3}, {1, nil, 3})
+    helper.assert_failure(t.assert_equals, box.NULL, 1)
+    helper.assert_failure(t.assert_equals, {1, box.NULL, 3}, {1, 3})
+    helper.assert_failure(t.assert_equals, {1, nil, 3}, {1, 3})
+
     t.assert_not_equals(box.NULL, 1ULL)
+    helper.assert_failure_contains('Received the not expected value', t.assert_not_equals, box.NULL, nil)
 end
 
 g.test_assert_is_box_null = function()
@@ -37,10 +43,14 @@ g.test_assert_equals_tnt_tuples = function()
     t.assert_equals(box.tuple.new(1), box.tuple.new(1))
     t.assert_equals(box.tuple.new(1, 'a', box.NULL), box.tuple.new(1, 'a', box.NULL))
     t.assert_equals(box.tuple.new(1, {'a'}), box.tuple.new(1, {'a'}))
+    t.assert_equals({box.tuple.new(1)}, {box.tuple.new(1)})
+    t.assert_equals({box.tuple.new(1)}, {{1}})
+    helper.assert_failure(t.assert_equals, box.tuple.new(1), box.tuple.new(2))
 
     t.assert_not_equals(box.tuple.new(1), box.tuple.new(2))
-    t.assert_not_equals(box.tuple.new(1, 'a', box.NULL), box.tuple.new(1, 'a'))
+    t.assert_not_equals(box.tuple.new(1, 'a', box.NULL, {}), box.tuple.new(1, 'a'))
     t.assert_not_equals(box.tuple.new(1, {'a'}), box.tuple.new(1, {'b'}))
+    helper.assert_failure(t.assert_not_equals, box.tuple.new(1), box.tuple.new(1))
 
     -- Check that other cdata values works fine.
     t.assert_equals(1ULL, 0ULL + 1)
