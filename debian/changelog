@@ -1,3 +1,14 @@
+luatest (0.5.0-1) unstable; urgency=medium
+
+  * `assert_is` treats `box.NULL` and `nil` as different values.
+  * Add luacov integration.
+  * Fix `assert_items_equals` for repeated values. Add support for `tuple` items.
+  * Add `assert_items_include` matcher.
+  * `assert_equals` uses same comparison rules for nested values.
+  * Fix generated group names when running files within specific directory.
+
+ -- Maxim Melentiev <m.melentiev@corp.mail.ru>  Wed, 22 Jan 2020 13:00:00 +0300
+
 luatest (0.4.0-1) unstable; urgency=medium
 
   * Fix not working `--exclude`, `--pattern` options

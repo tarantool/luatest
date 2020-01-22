@@ -1,5 +1,5 @@
 Name: luatest
-Version: 0.4.0
+Version: 0.5.0
 Release: 1%{?dist}
 Summary: Tarantool test framework
 Group: Applications/Databases
@@ -36,6 +36,14 @@ ctest -VV
 %license LICENSE
 
 %changelog
+* Wed Jan 22 2020 Maxim Melentiev <m.melentiev@corp.mail.ru> 0.5.0-1
+- `assert_is` treats `box.NULL` and `nil` as different values.
+- Add luacov integration.
+- Fix `assert_items_equals` for repeated values. Add support for `tuple` items.
+- Add `assert_items_include` matcher.
+- `assert_equals` uses same comparison rules for nested values.
+- Fix generated group names when running files within specific directory.
+
 * Thu Dec 26 2019 Maxim Melentiev <m.melentiev@corp.mail.ru> 0.4.0-1
 - Fix not working `--exclude`, `--pattern` options
 - Fix error messages for `*_covers` matchers
