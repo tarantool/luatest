@@ -373,17 +373,9 @@ M.private.strip_luaunit_trace = strip_luaunit_trace
 local function prettystr_sub(v, indentLevel, printTableRefs, recursionTable )
     local type_v = type(v)
     if "string" == type_v  then
-        -- use clever delimiters according to content:
-        -- enclose with single quotes if string contains ", but no '
-        if v:find('"', 1, true) and not v:find("'", 1, true) then
-            return "'" .. v .. "'"
-        end
-        -- use double quotes otherwise, escape embedded "
-        return '"' .. v:gsub('"', '\\"') .. '"'
-
+        return string.format("%q", v)
     elseif "table" == type_v then
         return M.private._table_tostring(v, indentLevel, printTableRefs, recursionTable)
-
     elseif "number" == type_v then
         -- eliminate differences in formatting between various Lua versions
         if v ~= v then

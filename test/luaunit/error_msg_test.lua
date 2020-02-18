@@ -9,7 +9,7 @@ local assert_failure_equals = helper.assert_failure_equals
 function g.test_assert_equalsMsg()
     assert_failure_equals('expected: 2, actual: 1', t.assert_equals, 1, 2 )
     assert_failure_equals('expected: "exp"\nactual: "act"', t.assert_equals, 'act', 'exp')
-    assert_failure_equals('expected: \n"exp\npxe"\nactual: \n"act\ntca"', t.assert_equals, 'act\ntca', 'exp\npxe')
+    assert_failure_equals('expected: \n"exp\\\npxe"\nactual: \n"act\\\ntca"', t.assert_equals, 'act\ntca', 'exp\npxe')
     assert_failure_equals('expected: true, actual: false', t.assert_equals, false, true)
     assert_failure_equals('expected: 1.2, actual: 1', t.assert_equals, 1.0, 1.2)
     assert_failure_matches('expected: {1, 2}\nactual: {2, 1}', t.assert_equals, {2,1}, {1,2})

@@ -237,9 +237,10 @@ function g.test_prettystr_numbers()
 end
 
 function g.test_prettystr_strings()
+    t.assert_equals(t.prettystr('x\0'), '"x\\0"')
     t.assert_equals(t.prettystr('abc'), '"abc"')
-    t.assert_equals(t.prettystr('ab\ncd'), '"ab\ncd"')
-    t.assert_equals(t.prettystr('ab"cd'), "'ab\"cd'")
+    t.assert_equals(t.prettystr('ab\ncd'), '"ab\\\ncd"')
+    t.assert_equals(t.prettystr('ab"cd'), '"ab\\"cd"')
     t.assert_equals(t.prettystr("ab'cd"), '"ab\'cd"')
 end
 
@@ -256,10 +257,10 @@ function g.test_prettystr_tables2()
     t.assert_equals(t.prettystr({a = 1}), '{a = 1}')
     t.assert_equals(t.prettystr({a0 = 2}), '{a0 = 2}')
     t.assert_equals(t.prettystr({['a0!'] = 3}), '{["a0!"] = 3}')
-    t.assert_equals(t.prettystr({["foo\nbar"] = 1}), [[{["foo
+    t.assert_equals(t.prettystr({["foo\nbar"] = 1}), [[{["foo\
 bar"] = 1}]])
     t.assert_equals(t.prettystr({["foo'bar"] = 2}), [[{["foo'bar"] = 2}]])
-    t.assert_equals(t.prettystr({['foo"bar'] = 3}), [[{['foo"bar'] = 3}]])
+    t.assert_equals(t.prettystr({['foo"bar'] = 3}), [[{["foo\"bar"] = 3}]])
 end
 
 function g.test_prettystr_tables3()
@@ -479,10 +480,10 @@ function g.test_prettystr_pairs()
     bar = "bar\n"
     str1, str2 = t.private.prettystr_pairs(foo, bar)
     t.assert_equals(str1, "\nnil")
-    t.assert_equals(str2, '\n"bar\n"')
+    t.assert_equals(str2, '\n"bar\\\n"')
     str1, str2 = t.private.prettystr_pairs(foo, bar, "_A", "_B")
     t.assert_equals(str1, "\nnil_A")
-    t.assert_equals(str2, '\n"bar\n"')
+    t.assert_equals(str2, '\n"bar\\\n"')
 
     foo = "foo"
     bar = nil
@@ -504,35 +505,35 @@ function g.test_prettystr_pairs()
     bar = "bar\n"
     str1, str2 = t.private.prettystr_pairs(foo, bar)
     t.assert_equals(str1, '\n"foo"')
-    t.assert_equals(str2, '\n"bar\n"')
+    t.assert_equals(str2, '\n"bar\\\n"')
     str1, str2 = t.private.prettystr_pairs(foo, bar, "_A", "_B")
     t.assert_equals(str1, '\n"foo"_A')
-    t.assert_equals(str2, '\n"bar\n"')
+    t.assert_equals(str2, '\n"bar\\\n"')
 
     foo = "fo\no"
     bar = nil
     str1, str2 = t.private.prettystr_pairs(foo, bar)
-    t.assert_equals(str1, '\n"fo\no"')
+    t.assert_equals(str1, '\n"fo\\\no"')
     t.assert_equals(str2, "\nnil")
     str1, str2 = t.private.prettystr_pairs(foo, bar, "_A", "_B")
-    t.assert_equals(str1, '\n"fo\no"_A')
+    t.assert_equals(str1, '\n"fo\\\no"_A')
     t.assert_equals(str2, "\nnil")
 
     bar = "bar"
     str1, str2 = t.private.prettystr_pairs(foo, bar)
-    t.assert_equals(str1, '\n"fo\no"')
+    t.assert_equals(str1, '\n"fo\\\no"')
     t.assert_equals(str2, '\n"bar"')
     str1, str2 = t.private.prettystr_pairs(foo, bar, "_A", "_B")
-    t.assert_equals(str1, '\n"fo\no"_A')
+    t.assert_equals(str1, '\n"fo\\\no"_A')
     t.assert_equals(str2, '\n"bar"')
 
     bar = "bar\n"
     str1, str2 = t.private.prettystr_pairs(foo, bar)
-    t.assert_equals(str1, '\n"fo\no"')
-    t.assert_equals(str2, '\n"bar\n"')
+    t.assert_equals(str1, '\n"fo\\\no"')
+    t.assert_equals(str2, '\n"bar\\\n"')
     str1, str2 = t.private.prettystr_pairs(foo, bar, "_A", "_B")
-    t.assert_equals(str1, '\n"fo\no"_A')
-    t.assert_equals(str2, '\n"bar\n"')
+    t.assert_equals(str1, '\n"fo\\\no"_A')
+    t.assert_equals(str2, '\n"bar\\\n"')
 end
 
 function g.test_fail_fmt()
