@@ -46,7 +46,7 @@ M.group = function(name)
         local info = assert(
             find_closest_matching_frame(pattern),
             "Can't derive test name from file name " ..
-            "(it should match the glob '*_test.lua')"
+            "(it should match pattern '.*/test/.*_test.lua')"
         )
         local test_filename = info.source:match(pattern)
         name = test_filename:gsub('/', '.')
