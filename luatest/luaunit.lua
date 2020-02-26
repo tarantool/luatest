@@ -882,15 +882,17 @@ local function is_luaunit_error(err)
     return type(err) == 'table' and err.class == 'LuaUnitError'
 end
 
-local function failure(main_msg, extra_msg_or_nil, level)
+local function failure(msg, extra_msg, level)
     -- raise an error indicating a test failure
     -- for error() compatibility we adjust "level" here (by +1), to report the
     -- calling context
-    local msg
-    if type(extra_msg_or_nil) == 'string' and extra_msg_or_nil:len() > 0 then
-        msg = extra_msg_or_nil .. '\n' .. main_msg
-    else
-        msg = main_msg
+    if extra_msg ~= nil then
+        if type(extra_msg) ~= 'string' then
+            extra_msg = prettystr(extra_msg)
+        end
+        if #extra_msg > 0 then
+            msg = extra_msg .. '\n' .. msg
+        end
     end
     luaunit_error('fail', msg, (level or 1) + 1)
 end

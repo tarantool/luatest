@@ -69,3 +69,11 @@ g.test_assert_almost_eqals_for_cdata = function()
     t.assert_not_almost_equals(1, 3ULL, 1)
     t.assert_not_almost_equals(1LL, 3, 1)
 end
+
+g.test_assert_with_extra_message_not_string = function()
+    local raw_msg = 'expected: a value evaluating to true, actual: nil'
+    helper.assert_failure_equals('{custom = "error"}\n' .. raw_msg, t.assert, nil, {custom = 'error'})
+    helper.assert_failure_equals(raw_msg, t.assert, nil, nil)
+    helper.assert_failure_equals(raw_msg, t.assert, nil, box.NULL)
+    helper.assert_failure_equals('321\n' .. raw_msg, t.assert, nil, 321)
+end
