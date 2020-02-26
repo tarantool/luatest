@@ -1,5 +1,8 @@
 # Unreleased
 
+- Assertions pretty-prints non-string extra messages (useful for custom errors as tables).
+- String values in errors are printed as valid Lua strings (with `%q` formatter).
+
 # 0.5.0
 
 - `assert_is` treats `box.NULL` and `nil` as different values.
