@@ -2,12 +2,12 @@ local checks = require('checks')
 local fiber = require('fiber')
 local fun = require('fun')
 
+local Class = require('luatest.class')
 local ffi_io = require('luatest.ffi_io')
 local Monitor = require('luatest.monitor')
 local Process -- later require to avoid circular dependency
 
-local OutputBeautifier = {
-    mt = {},
+local OutputBeautifier = Class.new({
     monitor = Monitor:new(),
     PID_TRACKER_INTERVAL = 0.2,
 
@@ -26,14 +26,11 @@ local OutputBeautifier = {
     WARN_COLOR_CODE = '\x1B[33m', -- yellow
 
     ERROR_LOG_LINE_PATTERN = ' (%u)> ',
-}
+})
 
 OutputBeautifier.COLOR_BY_NAME = fun.iter(OutputBeautifier.COLORS):
     map(function(x) return unpack(x) end):
     tomap()
-
-OutputBeautifier.mt.__index = OutputBeautifier.mt
-OutputBeautifier.mt.class = OutputBeautifier
 
 -- Map of `log_level_letter => color_code`.
 OutputBeautifier.COLOR_CODE_BY_LOG_LEVEL = fun.iter({
@@ -65,9 +62,7 @@ end
 -- @return input object.
 function OutputBeautifier:new(object)
     checks('table', {prefix = 'string', color = '?string', color_code = '?string'})
-    object = setmetatable(object, self.mt)
-    object:initialize()
-    return object
+    return self:from(object)
 end
 
 function OutputBeautifier.mt:initialize()

@@ -1,16 +1,15 @@
 local fiber = require('fiber')
+
+local Class = require('luatest.class')
 local utils = require('luatest.utils')
 
 -- Reentrant mutex for fibers.
-local Monitor = {mt = {}}
-Monitor.mt.__index = Monitor.mt
+local Monitor = Class.new()
 
-function Monitor:new()
-    return setmetatable({
-        mutex = fiber.cond(),
-        fiber_id = nil,
-        count = 0,
-    }, self.mt)
+function Monitor.mt:initialize()
+    self.mutex = fiber.cond()
+    self.fiber_id = nil
+    self.count = 0
 end
 
 function Monitor.mt:synchronize(fn)

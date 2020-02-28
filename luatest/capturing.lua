@@ -26,13 +26,16 @@ local function wrap_methods(capture, enabled, object, ...)
     end
 end
 
--- Disable capturing when printing output.
-local function patch_output(capture, output, genericOutput)
-    for name, val in pairs(genericOutput) do
+-- Create new output instance with patched methods which disable capturing
+-- when printing output.
+local function patch_output(capture, output, GenericOutput)
+    output = table.copy(output)
+    for name, val in pairs(GenericOutput.mt) do
         if type(val) == 'function' then
             wrap_methods(capture, false, output, name)
         end
     end
+    return output
 end
 
 -- Patch luaunit to capture output in tests and show it only for failed ones.
@@ -41,7 +44,7 @@ return function(lu, capture)
     function lu.print_error(err)
         local message
         local captured = {}
-        if err.type == capture.CAPTURED_ERROR_TYPE then
+        if err.type == capture.class.CAPTURED_ERROR_TYPE then
             message = err.traceback
             captured = err.captured
         else
@@ -60,19 +63,19 @@ return function(lu, capture)
     wrap_methods(capture, true, lu, 'load_tests')
 
     -- Patch output here because it's created in `super`
-    utils.patch(lu.LuaUnit, 'start_suite', function(super) return function(self, ...)
+    utils.patch(lu.LuaUnit.mt, 'start_suite', function(super) return function(self, ...)
         super(self, ...)
-        patch_output(capture, self.output, lu.genericOutput)
+        self.output = patch_output(capture, self.output, lu.GenericOutput)
     end end)
 
     -- Main capturing wrapper.
-    wrap_methods(capture, true, lu.LuaUnit, 'run_tests')
+    wrap_methods(capture, true, lu.LuaUnit.mt, 'run_tests')
 
     -- Disable capturing to print possible notices.
-    wrap_methods(capture, false, lu.LuaUnit, 'end_test')
+    wrap_methods(capture, false, lu.LuaUnit.mt, 'end_test')
 
     -- Save captured output into result in the case of failure.
-    utils.patch(lu.LuaUnit, 'protected_call', function(super) return function(...)
+    utils.patch(lu.LuaUnit.mt, 'protected_call', function(super) return function(...)
         local result = super(...)
         if capture.enabled and result and result.status ~= 'success' then
             result.capture = capture:flush()
@@ -81,7 +84,7 @@ return function(lu, capture)
     end end)
 
     -- Copy captured output from result to the test node.
-    utils.patch(lu.LuaUnit, 'update_status', function(super) return function(self, node, result)
+    utils.patch(lu.LuaUnit.mt, 'update_status', function(super) return function(self, node, result)
         if result.capture then
             node.capture = result.capture
         end
@@ -89,17 +92,15 @@ return function(lu, capture)
     end end)
 
     -- Flush capture before and after running a test.
-    utils.patch(lu.LuaUnit, 'run_test', function(super) return function(...)
+    utils.patch(lu.LuaUnit.mt, 'run_test', function(super) return function(...)
         capture:flush()
         local result = super(...)
         capture:flush()
         return result
     end end)
 
-    local TextOutput = lu.OutputTypes.text
-
     -- Print captured output for failed test.
-    utils.patch(TextOutput, 'display_one_failed_test', function(super) return function(self, index, node)
+    utils.patch(lu.OutputTypes.text.mt, 'display_one_failed_test', function(super) return function(self, index, node)
         super(self, index, node)
         if node.capture then
             io.stdout:write(format_captured('stdout', node.capture.stdout))
