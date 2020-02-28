@@ -1,5 +1,8 @@
 local clock = require("clock")
 require("math")
+
+local Class = require('luatest.class')
+
 local M={}
 
 -- private exported functions (for testing)
@@ -754,38 +757,35 @@ the state of a specific (actual,expected) pair; and the "store" method sets
 this state to the given value. The state of pairs not "seen" / visited is
 assumed to be `nil`.
 ]]
-local _recursion_cache_MT = {
-    __index = {
-        -- Return the cached value for an (actual,expected) pair (or `nil`)
-        cached = function(t, actual, expected)
-            local subtable = t[actual] or {}
-            return subtable[expected]
-        end,
+local RecursionCache = Class.new()
+-- Return the cached value for an (actual,expected) pair (or `nil`)
+function RecursionCache.mt:cached(actual, expected)
+    local subtable = self[actual] or {}
+    return subtable[expected]
+end
 
-        -- Store cached value for a specific (actual,expected) pair.
-        -- Returns the value, so it's easy to use for a "tailcall" (return ...).
-        store = function(t, actual, expected, value, asymmetric)
-            local subtable = t[actual]
-            if not subtable then
-                subtable = {}
-                t[actual] = subtable
-            end
-            subtable[expected] = value
+-- Store cached value for a specific (actual,expected) pair.
+-- Returns the value, so it's easy to use for a "tailcall" (return ...).
+function RecursionCache.mt:store(actual, expected, value, asymmetric)
+    local subtable = self[actual]
+    if not subtable then
+        subtable = {}
+        self[actual] = subtable
+    end
+    subtable[expected] = value
 
-            -- Unless explicitly marked "asymmetric": Consider the recursion
-            -- on (expected,actual) to be equivalent to (actual,expected) by
-            -- default, and thus cache the value for both.
-            if not asymmetric then
-                t:store(expected, actual, value, true)
-            end
+    -- Unless explicitly marked "asymmetric": Consider the recursion
+    -- on (expected,actual) to be equivalent to (actual,expected) by
+    -- default, and thus cache the value for both.
+    if not asymmetric then
+        self:store(expected, actual, value, true)
+    end
 
-            return value
-        end
-    }
-}
+    return value
+end
 
 function M.private.table_equals(actual, expected, recursions)
-        recursions = recursions or setmetatable({}, _recursion_cache_MT)
+        recursions = recursions or RecursionCache:new()
 
         if actual == expected then
             -- Both reference the same table, so they are actually identical
@@ -1416,56 +1416,45 @@ end
 
 M.OutputTypes = {}
 
-local genericOutput = {__class__ = 'genericOutput'} -- class
-genericOutput.MT = {__index = genericOutput} -- metatable
-M.genericOutput = genericOutput -- publish, so that custom classes may derive from it
+local GenericOutput = Class.new()
+M.GenericOutput = GenericOutput -- publish, so that custom classes may derive from it
 
-function genericOutput.new_class(name)
-    local output = setmetatable({__class__ = name}, genericOutput.MT)
-    output.MT = {__index = output}
-    M.OutputTypes[name:lower():gsub('output$', '')] = output
-    return output
-end
-
-function genericOutput:new(runner)
-    local object = {
-        runner = runner,
-        result = runner.result,
-        verbosity = runner.verbosity,
-    }
-    return setmetatable(object, self.MT)
+function GenericOutput.mt:initialize(runner)
+    self.runner = runner
+    self.result = runner.result
+    self.verbosity = runner.verbosity
 end
 
 -- luacheck: push no unused
 -- abstract ("empty") methods
-function genericOutput:start_suite()
+function GenericOutput.mt:start_suite()
     -- Called once, when the suite is started
 end
 
-function genericOutput:start_group(group)
+function GenericOutput.mt:start_group(group)
     -- Called each time a new test group is started
 end
 
-function genericOutput:start_test(test)
+function GenericOutput.mt:start_test(test)
     -- called each time a new test is started, right before the setUp()
 end
 
-function genericOutput:update_status(node)
+function GenericOutput.mt:update_status(node)
     -- called with status failed or error as soon as the error/failure is encountered
     -- this method is NOT called for a successful test because a test is marked as successful by default
     -- and does not need to be updated
 end
 
-function genericOutput:end_test(node)
+function GenericOutput.mt:end_test(node)
     -- called when the test is finished, after the tearDown() method
 end
 
-function genericOutput:end_group(group)
+function GenericOutput.mt:end_group(group)
     -- called when executing the group is finished, before moving on to the next group
     -- of at the end of the test execution
 end
 
-function genericOutput:end_suite()
+function GenericOutput.mt:end_suite()
     -- called at the end of the test suite execution
 end
 -- luacheck: pop
@@ -1475,18 +1464,19 @@ end
 --                     class TapOutput
 ----------------------------------------------------------------
 
-local TapOutput = genericOutput.new_class('TapOutput')
+local TapOutput = GenericOutput:new_class()
+M.OutputTypes.tap = TapOutput
     -- For a good reference for TAP format, check: http://testanything.org/tap-specification.html
 
-    function TapOutput:start_suite()
+    function TapOutput.mt:start_suite()
         print("1.."..self.result.selected_count)
         print('# Started on ' .. os.date(nil, self.result.start_time))
     end
-    function TapOutput:start_group(group) -- luacheck: no unused
+    function TapOutput.mt:start_group(group) -- luacheck: no unused
         print('# Starting group: ' .. group.name)
     end
 
-    function TapOutput:update_status(node)
+    function TapOutput.mt:update_status(node)
         if node:is('skip') then
             io.stdout:write("ok ", node.serial_number, "\t# SKIP ", node.message or '', "\n")
             return
@@ -1501,13 +1491,13 @@ local TapOutput = genericOutput.new_class('TapOutput')
         end
     end
 
-    function TapOutput:end_test(node) -- luacheck: no unused
+    function TapOutput.mt:end_test(node) -- luacheck: no unused
         if node:is('success') then
             io.stdout:write("ok     ", node.serial_number, "\t", node.name, "\n")
         end
     end
 
-    function TapOutput:end_suite()
+    function TapOutput.mt:end_suite()
         print( '# '..M.LuaUnit.status_line( self.result ) )
     end
 
@@ -1519,9 +1509,10 @@ local TapOutput = genericOutput.new_class('TapOutput')
 ----------------------------------------------------------------
 
 -- See directory junitxml for more information about the junit format
-local JUnitOutput = genericOutput.new_class('JUnitOutput')
+local JUnitOutput = GenericOutput:new_class()
+M.OutputTypes.junit = JUnitOutput
 
-    function JUnitOutput:start_suite()
+    function JUnitOutput.mt:start_suite()
         self.output_file_name = assert(self.runner.output_file_name)
         -- open xml file early to deal with errors
         if string.sub(self.output_file_name,-4) ~= '.xml' then
@@ -1535,14 +1526,14 @@ local JUnitOutput = genericOutput.new_class('JUnitOutput')
         print('# XML output to '..self.output_file_name)
         print('# Started on ' .. os.date(nil, self.result.start_time))
     end
-    function JUnitOutput:start_group(group) -- luacheck: no unused
+    function JUnitOutput.mt:start_group(group) -- luacheck: no unused
         print('# Starting group: ' .. group.name)
     end
-    function JUnitOutput:start_test(test) -- luacheck: no unused
+    function JUnitOutput.mt:start_test(test) -- luacheck: no unused
         print('# Starting test: ' .. test.name)
     end
 
-    function JUnitOutput:update_status( node ) -- luacheck: no unused
+    function JUnitOutput.mt:update_status( node ) -- luacheck: no unused
         if node:is('fail') then
             print('#   Failure: ' .. prefix_string('#   ', node.message):sub(4, nil))
             -- print('# ' .. node.trace)
@@ -1552,7 +1543,7 @@ local JUnitOutput = genericOutput.new_class('JUnitOutput')
         end
     end
 
-    function JUnitOutput:end_suite()
+    function JUnitOutput.mt:end_suite()
         print( '# '..M.LuaUnit.status_line(self.result))
 
         -- XML file writing
@@ -1608,15 +1599,15 @@ local JUnitOutput = genericOutput.new_class('JUnitOutput')
 
 -- class JUnitOutput end
 
-
-local TextOutput = genericOutput.new_class('TextOutput')
+local TextOutput = GenericOutput:new_class()
+M.OutputTypes.text = TextOutput
 
 TextOutput.BOLD_CODE = '\x1B[1m'
 TextOutput.ERROR_COLOR_CODE = TextOutput.BOLD_CODE .. '\x1B[31m' -- red
 TextOutput.SUCCESS_COLOR_CODE = TextOutput.BOLD_CODE .. '\x1B[32m' -- green
 TextOutput.RESET_TERM = '\x1B[0m'
 
-    function TextOutput:start_suite()
+    function TextOutput.mt:start_suite()
         if self.runner.seed then
             print('Running with --shuffle ' .. self.runner.shuffle .. ':' .. self.runner.seed)
         end
@@ -1625,13 +1616,13 @@ TextOutput.RESET_TERM = '\x1B[0m'
         end
     end
 
-    function TextOutput:start_test(test) -- luacheck: no unused
+    function TextOutput.mt:start_test(test) -- luacheck: no unused
         if self.verbosity > M.VERBOSITY_DEFAULT then
             io.stdout:write("    ", test.name, " ... ")
         end
     end
 
-    function TextOutput:end_test( node )
+    function TextOutput.mt:end_test( node )
         if node:is('success') then
             if self.verbosity > M.VERBOSITY_DEFAULT then
                 io.stdout:write("Ok\n")
@@ -1651,38 +1642,38 @@ TextOutput.RESET_TERM = '\x1B[0m'
         end
     end
 
-    function TextOutput:display_one_failed_test(index, fail) -- luacheck: no unused
-        print(index..") " .. fail.name .. TextOutput.ERROR_COLOR_CODE)
-        print(fail.message .. TextOutput.RESET_TERM)
+    function TextOutput.mt:display_one_failed_test(index, fail) -- luacheck: no unused
+        print(index..") " .. fail.name .. self.class.ERROR_COLOR_CODE)
+        print(fail.message .. self.class.RESET_TERM)
         print(fail.trace)
         print()
     end
 
-    function TextOutput:display_errored_tests()
+    function TextOutput.mt:display_errored_tests()
         if #self.result.tests.error > 0 then
-            print(TextOutput.BOLD_CODE)
+            print(self.class.BOLD_CODE)
             print("Tests with errors:")
             print("------------------")
-            print(TextOutput.RESET_TERM)
+            print(self.class.RESET_TERM)
             for i, v in ipairs(self.result.tests.error) do
                 self:display_one_failed_test(i, v)
             end
         end
     end
 
-    function TextOutput:display_failed_tests()
+    function TextOutput.mt:display_failed_tests()
         if #self.result.tests.fail > 0 then
-            print(TextOutput.BOLD_CODE)
+            print(self.class.BOLD_CODE)
             print("Failed tests:")
             print("-------------")
-            print(TextOutput.RESET_TERM)
+            print(self.class.RESET_TERM)
             for i, v in ipairs(self.result.tests.fail) do
                 self:display_one_failed_test(i, v)
             end
         end
     end
 
-    function TextOutput:end_suite()
+    function TextOutput.mt:end_suite()
         if self.verbosity > M.VERBOSITY_DEFAULT then
             print("=========================================================")
         else
@@ -1691,9 +1682,9 @@ TextOutput.RESET_TERM = '\x1B[0m'
         self:display_errored_tests()
         self:display_failed_tests()
         print( M.LuaUnit.status_line( self.result, {
-            success = TextOutput.SUCCESS_COLOR_CODE,
-            failure = TextOutput.ERROR_COLOR_CODE,
-            reset = TextOutput.RESET_TERM,
+            success = self.class.SUCCESS_COLOR_CODE,
+            failure = self.class.ERROR_COLOR_CODE,
+            reset = self.class.RESET_TERM,
         } ) )
         if self.result.notSuccessCount == 0 then
             print('OK')
@@ -1710,11 +1701,11 @@ TextOutput.RESET_TERM = '\x1B[0m'
             else
                 print()
             end
-            print(TextOutput.BOLD_CODE .. 'Failed tests:\n' .. TextOutput.ERROR_COLOR_CODE)
+            print(self.class.BOLD_CODE .. 'Failed tests:\n' .. self.class.ERROR_COLOR_CODE)
             for _, x in pairs(list) do
                 print(x.name)
             end
-            io.stdout:write(TextOutput.RESET_TERM)
+            io.stdout:write(self.class.RESET_TERM)
         end
     end
 
@@ -1725,8 +1716,9 @@ TextOutput.RESET_TERM = '\x1B[0m'
 --                     class NilOutput
 ----------------------------------------------------------------
 
-local NilOutput = genericOutput.new_class('NilOutput')
-NilOutput.MT = {__index = function(self, key)
+local NilOutput = GenericOutput:new_class()
+M.OutputTypes['nil'] = NilOutput
+NilOutput.mt = {__index = function(self, key)
     self[key] = function() end
     return self.key
 end}
@@ -1737,20 +1729,11 @@ end}
 --
 ----------------------------------------------------------------
 
-M.LuaUnit = {
-    output_type = TextOutput,
-    verbosity = M.VERBOSITY_DEFAULT,
-    shuffle = 'none',
-    __class__ = 'LuaUnit'
-}
-local LuaUnit_MT = { __index = M.LuaUnit }
+M.LuaUnit = Class.new()
 
-
-    function M.LuaUnit.new(object)
-        object = setmetatable(object or {}, LuaUnit_MT)
-        object:initialize()
-        return object
-    end
+M.LuaUnit.mt.output_type = TextOutput
+M.LuaUnit.mt.verbosity = M.VERBOSITY_DEFAULT
+M.LuaUnit.mt.shuffle = 'none'
 
     -----------------[[ Utility methods ]]---------------------
 
@@ -1899,26 +1882,20 @@ local LuaUnit_MT = { __index = M.LuaUnit }
 --                     class NodeStatus
 ----------------------------------------------------------------
 
-    local NodeStatus = {
-        __class__ = 'NodeStatus',
-        MT = {},
-        STATUSES = {'success', 'skip', 'fail', 'error'},
-    }
-    NodeStatus.MT = {__index = NodeStatus} -- metatable
+    local NodeStatus = Class.new()
 
     -- default constructor, test are PASS by default
-    function NodeStatus:new(object)
-        object.status = 'success'
-        return setmetatable(object, self.MT)
+    function NodeStatus.mt:initialize()
+        self.status = 'success'
     end
 
-    function NodeStatus:update_status(status, message, trace)
+    function NodeStatus.mt:update_status(status, message, trace)
         self.status = status
         self.message = message
         self.trace = trace
     end
 
-    function NodeStatus:is(status)
+    function NodeStatus.mt:is(status)
         return self.status == status
     end
 
@@ -1959,7 +1936,7 @@ local LuaUnit_MT = { __index = M.LuaUnit }
         return table.concat(s, ', ')
     end
 
-    function M.LuaUnit:start_suite(selected_count, not_selected_count)
+    function M.LuaUnit.mt:start_suite(selected_count, not_selected_count)
         self.result = {
             selected_count = selected_count,
             not_selected_count = not_selected_count,
@@ -1976,18 +1953,18 @@ local LuaUnit_MT = { __index = M.LuaUnit }
         self.output:start_suite()
     end
 
-    function M.LuaUnit:start_group(group)
+    function M.LuaUnit.mt:start_group(group)
         self.output:start_group(group)
     end
 
-    function M.LuaUnit:start_test(test)
+    function M.LuaUnit.mt:start_test(test)
         test.serial_number = #self.result.tests.all + 1
         test.start_time = clock.time()
         table.insert(self.result.tests.all, test)
         self.output:start_test(test)
     end
 
-    function M.LuaUnit:update_status(node, err)
+    function M.LuaUnit.mt:update_status(node, err)
         -- "err" is expected to be a table / result from protected_call()
         if err.status == 'success' then
             return
@@ -2002,7 +1979,7 @@ local LuaUnit_MT = { __index = M.LuaUnit }
         self.output:update_status(node)
     end
 
-    function M.LuaUnit:end_test(node)
+    function M.LuaUnit.mt:end_test(node)
         node.duration = clock.time() - node.start_time
         node.start_time = nil
         self.output:end_test(node)
@@ -2016,11 +1993,11 @@ local LuaUnit_MT = { __index = M.LuaUnit }
         end
     end
 
-    function M.LuaUnit:end_group(group)
+    function M.LuaUnit.mt:end_group(group)
         self.output:end_group(group)
     end
 
-    function M.LuaUnit:end_suite()
+    function M.LuaUnit.mt:end_suite()
         if self.result.duration then
             error('Suite was already ended' )
         end
@@ -2034,7 +2011,7 @@ local LuaUnit_MT = { __index = M.LuaUnit }
 
     --------------[[ Runner ]]-----------------
 
-    function M.LuaUnit:protected_call(instance, method, pretty_name) -- luacheck: no unused
+    function M.LuaUnit.mt:protected_call(instance, method, pretty_name) -- luacheck: no unused
         local _, err = xpcall(function()
             method(instance)
             return {status = 'success'}
@@ -2068,7 +2045,7 @@ local LuaUnit_MT = { __index = M.LuaUnit }
         return err -- return the error "object" (table)
     end
 
-    function M.LuaUnit:invoke_test_function(test, iteration)
+    function M.LuaUnit.mt:invoke_test_function(test, iteration)
         local err = self:protected_call(test.group, test.method, test.name)
         if iteration > 1 and err.status ~= 'success' then
             err.message = tostring(err.message) .. '\nIteration ' .. self.test_iteration
@@ -2076,7 +2053,7 @@ local LuaUnit_MT = { __index = M.LuaUnit }
         self:update_status(test, err)
     end
 
-    function M.LuaUnit:run_test(test)
+    function M.LuaUnit.mt:run_test(test)
         self:start_test(test)
         for iteration = 1, self.exe_repeat or 1 do
             if not test:is('success') then
@@ -2087,7 +2064,7 @@ local LuaUnit_MT = { __index = M.LuaUnit }
         self:end_test(test)
     end
 
-    function M.LuaUnit:run_tests(tests_list)
+    function M.LuaUnit.mt:run_tests(tests_list)
         -- Make seed for ordering not affect other random numbers.
         math.randomseed(os.time())
         local last_group
@@ -2113,7 +2090,7 @@ local LuaUnit_MT = { __index = M.LuaUnit }
         local name = group.name .. '.' .. method_name
         local method = assert(group[method_name], 'Could not find method ' .. name)
         assert(type(method) == 'function', name .. ' is not a function')
-        return NodeStatus:new({
+        return NodeStatus:from({
             name = name,
             group = group,
             method_name = method_name,
@@ -2123,21 +2100,21 @@ local LuaUnit_MT = { __index = M.LuaUnit }
     end
 
     -- Exrtact all test methods from group.
-    function M.LuaUnit:expand_group(group)
+    function M.LuaUnit.mt:expand_group(group)
         local result = {}
         for method_name in sorted_pairs(group) do
             if M.LuaUnit.is_method_test_name(method_name) then
-                table.insert(result, self.build_test(group, method_name))
+                table.insert(result, self.class.build_test(group, method_name))
             end
         end
         return result
     end
 
-    function M.LuaUnit:find_test(groups, name)
+    function M.LuaUnit.mt:find_test(groups, name)
         local group_name, method_name = M.LuaUnit.split_test_method_name(name)
         assert(group_name and method_name, 'Invalid test name: ' .. name)
         local group = assert(groups[group_name], 'Group not found: ' .. group_name)
-        return self.build_test(group, method_name)
+        return self.class.build_test(group, method_name)
     end
 
     function M.LuaUnit.filter_tests(tests_list, patterns)
@@ -2152,7 +2129,7 @@ local LuaUnit_MT = { __index = M.LuaUnit }
         return included, excluded
     end
 
-    function M.LuaUnit:find_tests()
+    function M.LuaUnit.mt:find_tests()
         -- Set seed to ordering.
         if self.seed then
             math.randomseed(self.seed)
@@ -2195,10 +2172,10 @@ local LuaUnit_MT = { __index = M.LuaUnit }
     --   - shuffle
     --   - seed
     function M.LuaUnit.run(options)
-        return M.LuaUnit.new(options):run_suite()
+        return M.LuaUnit:from(options):run_suite()
     end
 
-    function M.LuaUnit:initialize()
+    function M.LuaUnit.mt:initialize()
         if self.shuffle == 'group' or self.shuffle == 'all' then
             if not self.seed then
                 math.randomseed(os.time())
@@ -2225,9 +2202,9 @@ local LuaUnit_MT = { __index = M.LuaUnit }
         end
     end
 
-    function M.LuaUnit:run_suite()
+    function M.LuaUnit.mt:run_suite()
         local tests = self:find_tests()
-        local filtered_list, filtered_out_list = self.filter_tests(tests, self.tests_pattern)
+        local filtered_list, filtered_out_list = self.class.filter_tests(tests, self.tests_pattern)
         self:start_suite(#filtered_list, #filtered_out_list)
         self:run_tests(filtered_list)
         self:end_suite()

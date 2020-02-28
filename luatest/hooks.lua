@@ -66,7 +66,7 @@ return function(lu)
     -- Run test hooks.
     -- If test's group hook failed with error, then test does not run and
     -- hook's error is copied for the test.
-    utils.patch(lu.LuaUnit, 'invoke_test_function', function(super) return function(self, test, ...)
+    utils.patch(lu.LuaUnit.mt, 'invoke_test_function', function(super) return function(self, test, ...)
         last_test = test
         if test.group._before_all_hook_error then
             return self:update_status(test, test.group._before_all_hook_error)
@@ -79,13 +79,13 @@ return function(lu)
     end end)
 
     -- Run group hook and save possible error to the group object.
-    utils.patch(lu.LuaUnit, 'start_group', function(super) return function(self, group)
+    utils.patch(lu.LuaUnit.mt, 'start_group', function(super) return function(self, group)
         super(self, group)
         group._before_all_hook_error = run_group_hooks(self, group, 'before_all')
     end end)
 
     -- Run group hook and save possible error to the `last_test`.
-    utils.patch(lu.LuaUnit, 'end_group', function(super) return function(self, group)
+    utils.patch(lu.LuaUnit.mt, 'end_group', function(super) return function(self, group)
         local err = run_group_hooks(self, group, 'after_all')
         if err then
             err.message = 'Failure in after_all hook: ' .. tostring(err.message)
@@ -94,7 +94,7 @@ return function(lu)
         super(self, group)
     end end)
 
-    utils.patch(lu.LuaUnit, 'run_tests', function(super) return function(self, tests)
+    utils.patch(lu.LuaUnit.mt, 'run_tests', function(super) return function(self, tests)
         if #tests == 0 then
             return
         end

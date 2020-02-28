@@ -143,7 +143,7 @@ end
 
 function g.test_protected_call()
     local function boom() error("Something went wrong.") end
-    local err = t.LuaUnit:protected_call(nil, boom, "kaboom")
+    local err = t.LuaUnit.mt:protected_call(nil, boom, "kaboom")
 
     -- check that err received the expected fields
     t.assert_equals(err.status, "error")
@@ -733,7 +733,7 @@ function g.test_str_match()
 end
 
 function g.test_expand_group()
-    t.assert_equals(t.LuaUnit:expand_group({}), {})
+    t.assert_equals(t.LuaUnit.mt:expand_group({}), {})
 
     local MyTestToto1 = {name = 'MyTestToto1'}
     MyTestToto1.test1 = function() end
@@ -742,7 +742,7 @@ function g.test_expand_group()
     MyTestToto1.testa = function() end
     MyTestToto1.test2 = function() end
     MyTestToto1.not_test = function() end
-    t.assert_equals(fun.iter(t.LuaUnit:expand_group(MyTestToto1)):map(function(x) return x.name end):totable(), {
+    t.assert_equals(fun.iter(t.LuaUnit.mt:expand_group(MyTestToto1)):map(function(x) return x.name end):totable(), {
         'MyTestToto1.test1',
         'MyTestToto1.test2',
         'MyTestToto1.test3',

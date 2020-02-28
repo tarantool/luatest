@@ -4,6 +4,7 @@
 local ffi = require('ffi')
 local fiber = require('fiber')
 
+local Class = require('luatest.class')
 local ffi_io = require('luatest.ffi_io')
 local utils = require('luatest.utils')
 
@@ -21,22 +22,18 @@ local function dup_io(file)
     return newfd
 end
 
-local Capture = {
+local Capture = Class.new({
     CAPTURED_ERROR_TYPE = 'ERROR_WITH_CAPTURE',
-}
+})
 
-function Capture:new()
-    local object = {}
-    setmetatable(object, self)
-    self.__index = self
-    object.enabled = false
-    object.buffer = {stdout = {}, stderr = {}}
-    return object
+function Capture.mt:initialize()
+    self.enabled = false
+    self.buffer = {stdout = {}, stderr = {}}
 end
 
 -- Overwrite stdout and stderr fds with pipe inputs.
 -- Original fds are copied into original_fds, to be able to restore them later.
-function Capture:enable(raise)
+function Capture.mt:enable(raise)
     if self.enabled then
         if raise then
             error('Already capturing')
@@ -55,7 +52,7 @@ function Capture:enable(raise)
 end
 
 -- Start the fiber that reads from pipes to the buffer.
-function Capture:start_reader_fibers()
+function Capture.mt:start_reader_fibers()
     assert(not self.reader_fibers, 'reader_fibers are already running')
     self.reader_fibers = {}
     for name, pipe in pairs(self.pipes) do
@@ -69,7 +66,7 @@ function Capture:start_reader_fibers()
 end
 
 -- Stop reader fiber and read available data from pipe after fiber was stopped.
-function Capture:stop_reader_fibers()
+function Capture.mt:stop_reader_fibers()
     io.flush()
     if not self.reader_fibers then
         return false
@@ -84,7 +81,7 @@ function Capture:stop_reader_fibers()
 end
 
 -- Restore original fds for stdout and stderr.
-function Capture:disable(raise)
+function Capture.mt:disable(raise)
     if not self.enabled then
         if raise then
             error('Not capturing')
@@ -98,7 +95,7 @@ function Capture:disable(raise)
 end
 
 -- Enable/disable depending on passed value.
-function Capture:set_enabled(value)
+function Capture.mt:set_enabled(value)
     if value then
         self:enable()
     else
@@ -107,7 +104,7 @@ function Capture:set_enabled(value)
 end
 
 -- Read from capture pipes and return results.
-function Capture:flush()
+function Capture.mt:flush()
     if not self.pipes then
         return {stdout = '', stderr = ''}
     end
@@ -125,16 +122,16 @@ end
 
 -- Run function with enabled/disabled capture and restore previous state.
 -- In the case of failure it wraps error into map-table with captured output added.
-function Capture:wrap(enabled, fn)
+function Capture.mt:wrap(enabled, fn)
     local old = self.enabled
     return utils.reraise_and_ensure(function()
         self:set_enabled(enabled)
         return fn()
     end, function(err)
         -- Don't re-wrap error.
-        if err.type ~= self.CAPTURED_ERROR_TYPE then
+        if err.type ~= self.class.CAPTURED_ERROR_TYPE then
             err = {
-                type = self.CAPTURED_ERROR_TYPE,
+                type = self.class.CAPTURED_ERROR_TYPE,
                 original = err,
                 traceback = utils.traceback(err),
                 captured = self:flush(),

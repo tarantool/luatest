@@ -5,6 +5,7 @@ local ffi = require('ffi')
 local fio = require('fio')
 local log = require('log')
 
+local Class = require('luatest.class')
 local OutputBeautifier = require('luatest.output_beautifier')
 
 ffi.cdef([[
@@ -13,7 +14,7 @@ ffi.cdef([[
     int kill(pid_t pid, int sig);
 ]])
 
-local Process = {}
+local Process = Class.new()
 
 -- luacov: disable
 local function to_const_char(input)
@@ -54,7 +55,7 @@ function Process:start(path, args, env, options)
         if output_beautifier then
             output_beautifier:enable({track_pid = pid})
         end
-        return self:new({pid = pid, ignore_gc = options.ignore_gc, output_beautifier = output_beautifier})
+        return self:from({pid = pid, ignore_gc = options.ignore_gc, output_beautifier = output_beautifier})
     end
     -- luacov: disable
     if options.chdir then
@@ -71,26 +72,23 @@ function Process:start(path, args, env, options)
     -- luacov: enable
 end
 
-function Process:new(object)
-    setmetatable(object, self)
-    self.__index = self
-    if not object.ignore_gc then
-        object._pid_ull = ffi.cast('void*', 0ULL + object.pid)
-        ffi.gc(object._pid_ull, function(x)
+function Process.mt:initialize()
+    if not self.ignore_gc then
+        self._pid_ull = ffi.cast('void*', 0ULL + self.pid)
+        ffi.gc(self._pid_ull, function(x)
             local pid = tonumber(ffi.cast(ffi.typeof(0ULL), x))
             log.debug("Killing GC'ed process " .. pid)
             Process.kill_pid(pid, nil, {quiet = true})
         end)
     end
-    return object
 end
 
-function Process:kill(signal, options)
-    self.kill_pid(self.pid, signal, options)
+function Process.mt:kill(signal, options)
+    self.class.kill_pid(self.pid, signal, options)
 end
 
-function Process:is_alive()
-    return self.pid ~= nil and Process.is_pid_alive(self.pid)
+function Process.mt:is_alive()
+    return self.pid ~= nil and self.class.is_pid_alive(self.pid)
 end
 
 function Process.kill_pid(pid, signal, options)
