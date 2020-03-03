@@ -76,10 +76,7 @@ end
 -- set this to false to debug luaunit
 M.STRIP_LUAUNIT_FROM_STACKTRACE = os.getenv('LUATEST_BACKTRACE') == nil
 
-M.VERBOSITY_DEFAULT = 10
-M.VERBOSITY_LOW     = 1
-M.VERBOSITY_QUIET   = 0
-M.VERBOSITY_VERBOSE = 20
+M.VERBOSITY = require('luatest.output.generic').VERBOSITY
 M.FORCE_DEEP_ANALYSIS   = true
 M.DISABLE_DEEP_ANALYSIS = false
 
@@ -257,12 +254,6 @@ local function has_new_line( s )
 end
 M.private.has_new_line = has_new_line
 
-local function prefix_string( prefix, s )
-    -- Prefix all the lines of s with prefix
-    return prefix .. string.gsub(s, '\n', '\n' .. prefix)
-end
-M.private.prefix_string = prefix_string
-
 local function str_match(s, pattern, start, final )
     -- return true if s matches completely the pattern from index start to index end
     -- return false in every other cases
@@ -312,31 +303,6 @@ local function pattern_filter(patterns, expr)
     return default
 end
 M.private.pattern_filter = pattern_filter
-
-local function xml_escape( s )
-    -- Return s escaped for XML attributes
-    -- escapes table:
-    -- "   &quot;
-    -- '   &apos;
-    -- <   &lt;
-    -- >   &gt;
-    -- &   &amp;
-
-    return string.gsub( s, '.', {
-        ['&'] = "&amp;",
-        ['"'] = "&quot;",
-        ["'"] = "&apos;",
-        ['<'] = "&lt;",
-        ['>'] = "&gt;",
-    } )
-end
-M.private.xml_escape = xml_escape
-
-local function xml_c_data_escape( s )
-    -- Return s escaped for CData section, escapes: "]]>"
-    return string.gsub( s, ']]>', ']]&gt;' )
-end
-M.private.xml_c_data_escape = xml_c_data_escape
 
 local function is_luaunit_internal_line(s)
     -- return true if line of stack trace comes from inside luaunit
@@ -1407,331 +1373,14 @@ end
 
 ----------------------------------------------------------------
 --
---                     Outputters
---
-----------------------------------------------------------------
-
--- A common "base" class for outputters
-
-M.OutputTypes = {}
-
-local GenericOutput = Class.new()
-M.GenericOutput = GenericOutput -- publish, so that custom classes may derive from it
-
-function GenericOutput.mt:initialize(runner)
-    self.runner = runner
-    self.result = runner.result
-    self.verbosity = runner.verbosity
-end
-
--- luacheck: push no unused
--- abstract ("empty") methods
-function GenericOutput.mt:start_suite()
-    -- Called once, when the suite is started
-end
-
-function GenericOutput.mt:start_group(group)
-    -- Called each time a new test group is started
-end
-
-function GenericOutput.mt:start_test(test)
-    -- called each time a new test is started, right before the setUp()
-end
-
-function GenericOutput.mt:update_status(node)
-    -- called with status failed or error as soon as the error/failure is encountered
-    -- this method is NOT called for a successful test because a test is marked as successful by default
-    -- and does not need to be updated
-end
-
-function GenericOutput.mt:end_test(node)
-    -- called when the test is finished, after the tearDown() method
-end
-
-function GenericOutput.mt:end_group(group)
-    -- called when executing the group is finished, before moving on to the next group
-    -- of at the end of the test execution
-end
-
-function GenericOutput.mt:end_suite()
-    -- called at the end of the test suite execution
-end
--- luacheck: pop
-
-
-----------------------------------------------------------------
---                     class TapOutput
-----------------------------------------------------------------
-
-local TapOutput = GenericOutput:new_class()
-M.OutputTypes.tap = TapOutput
-    -- For a good reference for TAP format, check: http://testanything.org/tap-specification.html
-
-    function TapOutput.mt:start_suite()
-        print("1.."..self.result.selected_count)
-        print('# Started on ' .. os.date(nil, self.result.start_time))
-    end
-    function TapOutput.mt:start_group(group) -- luacheck: no unused
-        print('# Starting group: ' .. group.name)
-    end
-
-    function TapOutput.mt:update_status(node)
-        if node:is('skip') then
-            io.stdout:write("ok ", node.serial_number, "\t# SKIP ", node.message or '', "\n")
-            return
-        end
-
-        io.stdout:write("not ok ", node.serial_number, "\t", node.name, "\n")
-        if self.verbosity > M.VERBOSITY_LOW then
-           print(prefix_string( '#   ', node.message))
-        end
-        if (node:is('fail') or node:is('error')) and self.verbosity > M.VERBOSITY_DEFAULT then
-           print(prefix_string('#   ', node.trace))
-        end
-    end
-
-    function TapOutput.mt:end_test(node) -- luacheck: no unused
-        if node:is('success') then
-            io.stdout:write("ok     ", node.serial_number, "\t", node.name, "\n")
-        end
-    end
-
-    function TapOutput.mt:end_suite()
-        print( '# '..M.LuaUnit.status_line( self.result ) )
-    end
-
-
--- class TapOutput end
-
-----------------------------------------------------------------
---                     class JUnitOutput
-----------------------------------------------------------------
-
--- See directory junitxml for more information about the junit format
-local JUnitOutput = GenericOutput:new_class()
-M.OutputTypes.junit = JUnitOutput
-
-    function JUnitOutput.mt:start_suite()
-        self.output_file_name = assert(self.runner.output_file_name)
-        -- open xml file early to deal with errors
-        if string.sub(self.output_file_name,-4) ~= '.xml' then
-            self.output_file_name = self.output_file_name..'.xml'
-        end
-        self.fd = io.open(self.output_file_name, "w")
-        if self.fd == nil then
-            error("Could not open file for writing: "..self.output_file_name)
-        end
-
-        print('# XML output to '..self.output_file_name)
-        print('# Started on ' .. os.date(nil, self.result.start_time))
-    end
-    function JUnitOutput.mt:start_group(group) -- luacheck: no unused
-        print('# Starting group: ' .. group.name)
-    end
-    function JUnitOutput.mt:start_test(test) -- luacheck: no unused
-        print('# Starting test: ' .. test.name)
-    end
-
-    function JUnitOutput.mt:update_status( node ) -- luacheck: no unused
-        if node:is('fail') then
-            print('#   Failure: ' .. prefix_string('#   ', node.message):sub(4, nil))
-            -- print('# ' .. node.trace)
-        elseif node:is('error') then
-            print('#   Error: ' .. prefix_string('#   ', node.message):sub(4, nil))
-            -- print('# ' .. node.trace)
-        end
-    end
-
-    function JUnitOutput.mt:end_suite()
-        print( '# '..M.LuaUnit.status_line(self.result))
-
-        -- XML file writing
-        self.fd:write('<?xml version="1.0" encoding="UTF-8" ?>\n')
-        self.fd:write('<testsuites>\n')
-        self.fd:write(string.format(
-            '    <testsuite name="luatest" id="00001" package="" hostname="localhost" tests="%d" timestamp="%s" ' ..
-            'time="%0.3f" errors="%d" failures="%d" skipped="%d">\n',
-            #self.result.tests.all - #self.result.tests.skip, os.date('%Y-%m-%dT%H:%M:%S', self.result.start_time),
-            self.result.duration, #self.result.tests.error, #self.result.tests.fail, #self.result.tests.skip
-        ))
-        self.fd:write("        <properties>\n")
-        self.fd:write(string.format('            <property name="Lua Version" value="%s"/>\n', _VERSION ) )
-        self.fd:write(string.format('            <property name="luatest Version" value="%s"/>\n', M.VERSION) )
-        -- XXX please include system name and version if possible
-        self.fd:write("        </properties>\n")
-
-        for _, node in ipairs(self.result.tests.all) do
-            self.fd:write(string.format('        <testcase group="%s" name="%s" time="%0.3f">\n',
-                node.group.name or '', node.name, node.duration))
-            if not node:is('success') then
-                self.fd:write(JUnitOutput.node_status_xml(node))
-            end
-            self.fd:write('        </testcase>\n')
-        end
-
-        -- Next two lines are needed to validate junit ANT xsd, but really not useful in general:
-        self.fd:write('    <system-out/>\n')
-        self.fd:write('    <system-err/>\n')
-
-        self.fd:write('    </testsuite>\n')
-        self.fd:write('</testsuites>\n')
-        self.fd:close()
-    end
-
-    function JUnitOutput.node_status_xml(node)
-        if node:is('error') then
-            return table.concat(
-                {'            <error type="', xml_escape(node.message), '">\n',
-                 '                <![CDATA[', xml_c_data_escape(node.trace),
-                 ']]></error>\n'})
-        elseif node:is('fail') then
-            return table.concat(
-                {'            <failure type="', xml_escape(node.message), '">\n',
-                 '                <![CDATA[', xml_c_data_escape(node.trace),
-                 ']]></failure>\n'})
-        elseif node:is('skip') then
-            return table.concat({'            <skipped>', xml_escape(node.message or ''),'</skipped>\n' } )
-        end
-        return '            <passed/>\n' -- (not XSD-compliant! normally shouldn't get here)
-    end
-
-
--- class JUnitOutput end
-
-local TextOutput = GenericOutput:new_class()
-M.OutputTypes.text = TextOutput
-
-TextOutput.BOLD_CODE = '\x1B[1m'
-TextOutput.ERROR_COLOR_CODE = TextOutput.BOLD_CODE .. '\x1B[31m' -- red
-TextOutput.SUCCESS_COLOR_CODE = TextOutput.BOLD_CODE .. '\x1B[32m' -- green
-TextOutput.RESET_TERM = '\x1B[0m'
-
-    function TextOutput.mt:start_suite()
-        if self.runner.seed then
-            print('Running with --shuffle ' .. self.runner.shuffle .. ':' .. self.runner.seed)
-        end
-        if self.verbosity > M.VERBOSITY_DEFAULT then
-            print('Started on '.. os.date(nil, self.result.start_time))
-        end
-    end
-
-    function TextOutput.mt:start_test(test) -- luacheck: no unused
-        if self.verbosity > M.VERBOSITY_DEFAULT then
-            io.stdout:write("    ", test.name, " ... ")
-        end
-    end
-
-    function TextOutput.mt:end_test( node )
-        if node:is('success') then
-            if self.verbosity > M.VERBOSITY_DEFAULT then
-                io.stdout:write("Ok\n")
-            else
-                io.stdout:write(".")
-                io.stdout:flush()
-            end
-        else
-            if self.verbosity > M.VERBOSITY_DEFAULT then
-                print(node.status)
-                print(node.message)
-            else
-                -- write only the first character of status E, F or S
-                io.stdout:write(string.sub(node.status, 1, 1):upper())
-                io.stdout:flush()
-            end
-        end
-    end
-
-    function TextOutput.mt:display_one_failed_test(index, fail) -- luacheck: no unused
-        print(index..") " .. fail.name .. self.class.ERROR_COLOR_CODE)
-        print(fail.message .. self.class.RESET_TERM)
-        print(fail.trace)
-        print()
-    end
-
-    function TextOutput.mt:display_errored_tests()
-        if #self.result.tests.error > 0 then
-            print(self.class.BOLD_CODE)
-            print("Tests with errors:")
-            print("------------------")
-            print(self.class.RESET_TERM)
-            for i, v in ipairs(self.result.tests.error) do
-                self:display_one_failed_test(i, v)
-            end
-        end
-    end
-
-    function TextOutput.mt:display_failed_tests()
-        if #self.result.tests.fail > 0 then
-            print(self.class.BOLD_CODE)
-            print("Failed tests:")
-            print("-------------")
-            print(self.class.RESET_TERM)
-            for i, v in ipairs(self.result.tests.fail) do
-                self:display_one_failed_test(i, v)
-            end
-        end
-    end
-
-    function TextOutput.mt:end_suite()
-        if self.verbosity > M.VERBOSITY_DEFAULT then
-            print("=========================================================")
-        else
-            print()
-        end
-        self:display_errored_tests()
-        self:display_failed_tests()
-        print( M.LuaUnit.status_line( self.result, {
-            success = self.class.SUCCESS_COLOR_CODE,
-            failure = self.class.ERROR_COLOR_CODE,
-            reset = self.class.RESET_TERM,
-        } ) )
-        if self.result.notSuccessCount == 0 then
-            print('OK')
-        end
-
-        local list = table.copy(self.result.tests.fail)
-        for _, x in pairs(self.result.tests.error) do
-            table.insert(list, x)
-        end
-        if #list > 0 then
-            table.sort(list, function(a, b) return a.name < b.name end)
-            if self.verbosity > M.VERBOSITY_DEFAULT then
-                print("\n=========================================================")
-            else
-                print()
-            end
-            print(self.class.BOLD_CODE .. 'Failed tests:\n' .. self.class.ERROR_COLOR_CODE)
-            for _, x in pairs(list) do
-                print(x.name)
-            end
-            io.stdout:write(self.class.RESET_TERM)
-        end
-    end
-
--- class TextOutput end
-
-
-----------------------------------------------------------------
---                     class NilOutput
-----------------------------------------------------------------
-
-local NilOutput = GenericOutput:new_class()
-M.OutputTypes['nil'] = NilOutput
-NilOutput.mt = {__index = function(self, key)
-    self[key] = function() end
-    return self.key
-end}
-
-----------------------------------------------------------------
---
 --                     class LuaUnit
 --
 ----------------------------------------------------------------
 
 M.LuaUnit = Class.new()
 
-M.LuaUnit.mt.output_type = TextOutput
-M.LuaUnit.mt.verbosity = M.VERBOSITY_DEFAULT
+M.LuaUnit.mt.output = 'text'
+M.LuaUnit.mt.verbosity = M.VERBOSITY.DEFAULT
 M.LuaUnit.mt.shuffle = 'none'
 
     -----------------[[ Utility methods ]]---------------------
@@ -1780,9 +1429,9 @@ M.LuaUnit.mt.shuffle = 'none'
             elseif arg == '--version' then
                 M.LuaUnit.version()
             elseif arg == '--verbose' or arg == '-v' then
-                result.verbosity = M.VERBOSITY_VERBOSE
+                result.verbosity = M.VERBOSITY.VERBOSE
             elseif arg == '--quiet' or arg == '-q' then
-                result.verbosity = M.VERBOSITY_QUIET
+                result.verbosity = M.VERBOSITY.QUIET
             elseif arg == '--fail-fast' or arg == '-f' then
                 result.fail_fast = true
             elseif arg == '--shuffle' or arg == '-s' then
@@ -1859,41 +1508,6 @@ M.LuaUnit.mt.shuffle = 'none'
     end
 
     --------------[[ Output methods ]]-------------------------
-
-    local function conditional_plural(number, singular)
-        -- returns a grammatically well-formed string "%d <singular/plural>"
-        local suffix = ''
-        if number ~= 1 then -- use plural
-            suffix = (singular:sub(-2) == 'ss') and 'es' or 's'
-        end
-        return string.format('%d %s%s', number, singular, suffix)
-    end
-
-    function M.LuaUnit.status_line(result, colors)
-        colors = colors or {success = '', failure = '', reset = ''}
-        -- return status line string according to results
-        local tests = result.tests
-        local s = {
-            string.format('Ran %d tests in %0.3f seconds', #tests.all - #tests.skip, result.duration),
-            colors.success .. conditional_plural(#tests.success, 'success') .. colors.reset,
-        }
-        if #tests.fail > 0 then
-            table.insert(s, colors.failure .. conditional_plural(#tests.fail, 'fail') .. colors.reset)
-        end
-        if #tests.error > 0 then
-            table.insert(s, colors.failure .. conditional_plural(#tests.error, 'error') .. colors.reset)
-        end
-        if #tests.fail == 0 and #tests.error == 0 then
-            table.insert(s, '0 failures')
-        end
-        if #tests.skip > 0 then
-            table.insert(s, string.format("%d skipped", #tests.skip))
-        end
-        if result.not_selected_count > 0 then
-            table.insert(s, string.format("%d not-selected", result.not_selected_count))
-        end
-        return table.concat(s, ', ')
-    end
 
     function M.LuaUnit.mt:start_suite(selected_count, not_selected_count)
         self.result = {
@@ -2154,7 +1768,9 @@ M.LuaUnit.mt.shuffle = 'none'
                 print('With junit output, a filename must be supplied with -n or --name')
                 os_exit(-1)
             end
-            self.output_type = assert(M.OutputTypes[self.output], 'No such format: ' .. self.output)
+            local ok, output_type = pcall(require, 'luatest.output.' .. self.output)
+            assert(ok, 'Can not load output module: ' .. self.output)
+            self.output_type = output_type
         end
     end
 

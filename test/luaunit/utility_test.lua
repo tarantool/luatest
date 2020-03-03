@@ -151,10 +151,6 @@ function g.test_protected_call()
     t.assert_str_matches(err.trace, "^stack traceback:.*in %a+ 'kaboom'.*")
 end
 
-function g.test_prefix_string()
-    t.assert_equals(t.private.prefix_string('12 ', 'ab\ncd\nde'), '12 ab\n12 cd\n12 de')
-end
-
 function g.test_equals_for_tables()
     -- Make sure that _is_table_equals() doesn't fall for these traps
     -- (See https://github.com/bluebird75/luaunit/issues/48)
@@ -578,11 +574,11 @@ function g.test_parse_cmd_line()
     assert_subject({'someTest', 'someOtherTest'}, {test_names={'someTest', 'someOtherTest'}})
 
     -- verbosity
-    assert_subject({'--verbose'}, {verbosity=t.VERBOSITY_VERBOSE})
-    assert_subject({'-v'}, {verbosity=t.VERBOSITY_VERBOSE})
-    assert_subject({'--quiet'}, {verbosity=t.VERBOSITY_QUIET})
-    assert_subject({'-q'}, {verbosity=t.VERBOSITY_QUIET})
-    assert_subject({'-v', '-q'}, {verbosity=t.VERBOSITY_QUIET})
+    assert_subject({'--verbose'}, {verbosity=t.VERBOSITY.VERBOSE})
+    assert_subject({'-v'}, {verbosity=t.VERBOSITY.VERBOSE})
+    assert_subject({'--quiet'}, {verbosity=t.VERBOSITY.QUIET})
+    assert_subject({'-q'}, {verbosity=t.VERBOSITY.QUIET})
+    assert_subject({'-v', '-q'}, {verbosity=t.VERBOSITY.QUIET})
 
     --output
     assert_subject({'--output', 'toto'}, {output='toto'})
@@ -618,7 +614,7 @@ function g.test_parse_cmd_line()
     --megamix
     assert_subject({'-p', 'toto', 'tutu', '-v', 'tata', '-o', 'tintin', '-p', 'tutu', 'prout', '-n', 'toto.xml'}, {
         tests_pattern = {'toto', 'tutu'},
-        verbosity = t.VERBOSITY_VERBOSE,
+        verbosity = t.VERBOSITY.VERBOSE,
         output = 'tintin',
         test_names = {'tutu', 'tata', 'prout'},
         output_file_name='toto.xml',
@@ -751,19 +747,23 @@ function g.test_expand_group()
   })
 end
 
+local JUNitOutput = require('luatest.output.junit')
+
 function g.test_xml_escape()
-    t.assert_equals(t.private.xml_escape('abc'), 'abc')
-    t.assert_equals(t.private.xml_escape('a"bc'), 'a&quot;bc')
-    t.assert_equals(t.private.xml_escape("a'bc"), 'a&apos;bc')
-    t.assert_equals(t.private.xml_escape("a<b&c>"), 'a&lt;b&amp;c&gt;')
+    local subject = JUNitOutput.xml_escape
+    t.assert_equals(subject('abc'), 'abc')
+    t.assert_equals(subject('a"bc'), 'a&quot;bc')
+    t.assert_equals(subject("a'bc"), 'a&apos;bc')
+    t.assert_equals(subject("a<b&c>"), 'a&lt;b&amp;c&gt;')
 end
 
 function g.test_xml_c_data_escape()
-    t.assert_equals(t.private.xml_c_data_escape('abc'), 'abc')
-    t.assert_equals(t.private.xml_c_data_escape('a"bc'), 'a"bc')
-    t.assert_equals(t.private.xml_c_data_escape("a'bc"), "a'bc")
-    t.assert_equals(t.private.xml_c_data_escape("a<b&c>"), 'a<b&c>')
-    t.assert_equals(t.private.xml_c_data_escape("a<b]]>--"), 'a<b]]&gt;--')
+    local subject = JUNitOutput.xml_c_data_escape
+    t.assert_equals(subject('abc'), 'abc')
+    t.assert_equals(subject('a"bc'), 'a"bc')
+    t.assert_equals(subject("a'bc"), "a'bc")
+    t.assert_equals(subject("a<b&c>"), 'a<b&c>')
+    t.assert_equals(subject("a<b]]>--"), 'a<b]]&gt;--')
 end
 
 function g.test_hasNewline()

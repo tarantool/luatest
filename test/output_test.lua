@@ -1,5 +1,5 @@
 local t = require('luatest')
-local g = t.group('reporting')
+local g = t.group()
 
 local Capture = require('luatest.capture')
 local capture = Capture:new()
