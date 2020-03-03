@@ -19,12 +19,6 @@ function g.test_assert_equals()
     t.assert_equals({one=1,two={1,2},three=3}, {two={1,2},three=3,one=1})
     t.assert_equals({one=1,two={1,{2,nil}},three=3}, {two={1,{2,nil}},three=3,one=1})
     t.assert_equals({nil}, {nil})
-    local config_saved = t.TABLE_EQUALS_KEYBYCONTENT
-    t.TABLE_EQUALS_KEYBYCONTENT = false
-    assert_failure(t.assert_equals, {[{}] = 1}, {[{}] = 1})
-    assert_failure(t.assert_equals, {[{one=1, two=2}] = 1}, {[{two=2, one=1}] = 1})
-    assert_failure(t.assert_equals, {[{1}]=2, [{1}]=3}, {[{1}]=3, [{1}]=2})
-    t.TABLE_EQUALS_KEYBYCONTENT = true
     t.assert_equals({[{}] = 1}, {[{}] = 1})
     t.assert_equals({[{one=1, two=2}] = 1}, {[{two=2, one=1}] = 1})
     t.assert_equals({[{1}]=2, [{1}]=3}, {[{1}]=3, [{1}]=2})
@@ -54,14 +48,12 @@ function g.test_assert_equals()
     assert_failure(t.assert_equals, {one=1,two=2,three=3}, true)
     assert_failure(t.assert_equals, {one=1,two=2,three=3}, {1,2,3})
     assert_failure(t.assert_equals, {one=1,two={1,2},three=3}, {two={2,1},three=3,one=1})
-    t.TABLE_EQUALS_KEYBYCONTENT = true -- without it, these tests won't pass anyway
     assert_failure(t.assert_equals, {[{}] = 1}, {[{}] = 2})
     assert_failure(t.assert_equals, {[{}] = 1}, {[{one=1}] = 2})
     assert_failure(t.assert_equals, {[{}] = 1}, {[{}] = 1, 2})
     assert_failure(t.assert_equals, {[{}] = 1}, {[{}] = 1, [{}] = 1})
     assert_failure(t.assert_equals, {[{"one"}]=1}, {[{"one", 1}]=2})
     assert_failure(t.assert_equals, {[{"one"}]=1,[{"one"}]=1}, {[{"one"}]=1})
-    t.TABLE_EQUALS_KEYBYCONTENT = config_saved
 end
 
 function g.test_assert_almost_equals()
