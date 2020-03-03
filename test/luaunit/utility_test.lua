@@ -151,9 +151,7 @@ function g.test_protected_call()
     t.assert_str_matches(err.trace, "^stack traceback:.*in %a+ 'kaboom'.*")
 end
 
-function g.test_equals_for_tables()
-    -- Make sure that _is_table_equals() doesn't fall for these traps
-    -- (See https://github.com/bluebird75/luaunit/issues/48)
+function g.test_equals_for_recursive_tables()
     local A, B, C = {}, {}, {}
 
     A.self = A
