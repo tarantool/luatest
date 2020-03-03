@@ -1,5 +1,6 @@
 local utils = require('luatest.utils')
 local OutputBeautifier = require('luatest.output_beautifier')
+local GenericOutput = require('luatest.output.generic')
 
 local function format_captured(name, text)
     if text and text:len() > 0 then
@@ -26,15 +27,28 @@ local function wrap_methods(capture, enabled, object, ...)
     end
 end
 
--- Create new output instance with patched methods which disable capturing
--- when printing output.
-local function patch_output(capture, output, GenericOutput)
+-- Create new output instance with patched methods.
+local function patch_output(capture, output)
     output = table.copy(output)
+
+    -- Disable capturing when printing output
     for name, val in pairs(GenericOutput.mt) do
         if type(val) == 'function' then
             wrap_methods(capture, false, output, name)
         end
     end
+
+    if output.display_one_failed_test then
+        -- Print captured output for failed test
+        utils.patch(output, 'display_one_failed_test', function(super) return function(self, index, node)
+            super(self, index, node)
+            if node.capture then
+                io.stdout:write(format_captured('stdout', node.capture.stdout))
+                io.stdout:write(format_captured('stderr', node.capture.stderr))
+            end
+        end end)
+    end
+
     return output
 end
 
@@ -65,7 +79,7 @@ return function(lu, capture)
     -- Patch output here because it's created in `super`
     utils.patch(lu.LuaUnit.mt, 'start_suite', function(super) return function(self, ...)
         super(self, ...)
-        self.output = patch_output(capture, self.output, lu.GenericOutput)
+        self.output = patch_output(capture, self.output)
     end end)
 
     -- Main capturing wrapper.
@@ -97,14 +111,5 @@ return function(lu, capture)
         local result = super(...)
         capture:flush()
         return result
-    end end)
-
-    -- Print captured output for failed test.
-    utils.patch(lu.OutputTypes.text.mt, 'display_one_failed_test', function(super) return function(self, index, node)
-        super(self, index, node)
-        if node.capture then
-            io.stdout:write(format_captured('stdout', node.capture.stdout))
-            io.stdout:write(format_captured('stderr', node.capture.stderr))
-        end
     end end)
 end
