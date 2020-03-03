@@ -18,12 +18,20 @@ local function range(start, stop)
     return ret
 end
 
+local sorted_pairs = require('luatest.sorted_pairs')
+
 function g.test_genSortedIndex()
-    t.assert_equals(t.private.__gen_sorted_index({2, 5, 7}), {1,2,3})
-    t.assert_equals(t.private.__gen_sorted_index({a='1', h='2', c='3'}), {'a', 'c', 'h'})
-    t.assert_equals(t.private.__gen_sorted_index({1, 'z', a='1', h='2', c='3'}), {1, 2, 'a', 'c', 'h'})
-    t.assert_equals(t.private.__gen_sorted_index({b=4, a=3, true, foo="bar", nil, bar=false, 42, c=5}),
-                                                  {1, 3, 'a', 'b', 'bar', 'c', 'foo'})
+    local subject = function(x)
+        local _, state = sorted_pairs(x)
+        return state.sortedIdx
+    end
+    t.assert_equals(subject({2, 5, 7}), {1,2,3})
+    t.assert_equals(subject({a='1', h='2', c='3'}), {'a', 'c', 'h'})
+    t.assert_equals(subject({1, 'z', a='1', h='2', c='3'}), {1, 2, 'a', 'c', 'h'})
+    t.assert_equals(
+        subject({b=4, a=3, true, foo="bar", nil, bar=false, 42, c=5}),
+        {1, 3, 'a', 'b', 'bar', 'c', 'foo'}
+    )
 end
 
 function g.test_sorted_nextWorks()
@@ -33,7 +41,7 @@ function g.test_sorted_nextWorks()
     t1['bbb'] = 'cba'
 
     -- mimic semantics of "generic for" loop
-    local sorted_next, state = t.private.sorted_pairs(t1)
+    local sorted_next, state = sorted_pairs(t1)
 
     local k, v = sorted_next(state, nil)
     t.assert_equals(k, 'aaa')
@@ -55,7 +63,7 @@ function g.test_sorted_nextWorks()
 
     -- run a generic for loop (internally using a separate state)
     local tested = {}
-    for _, val in t.private.sorted_pairs(t1) do table.insert(tested, val) end
+    for _, val in sorted_pairs(t1) do table.insert(tested, val) end
     t.assert_equals(tested, {'abc', 'cba', 'def'})
 
     -- test bisection algorithm by searching for non-existing key values
@@ -77,8 +85,8 @@ function g.test_sorted_nextWorksOnTwoTables()
     local t2 = {['3'] = '33', ['1'] = '11'}
 
     local sorted_next, state1, state2, _
-    _, state1 = t.private.sorted_pairs(t1)
-    sorted_next, state2 = t.private.sorted_pairs(t2)
+    _, state1 = sorted_pairs(t1)
+    sorted_next, state2 = sorted_pairs(t2)
 
     local k, v = sorted_next(state1, nil)
     t.assert_equals(k, 'aaa')
