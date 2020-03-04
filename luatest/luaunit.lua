@@ -3,7 +3,12 @@ require("math")
 
 local Class = require('luatest.class')
 local comparator = require('luatest.comparator')
+local mismatch_formatter = require('luatest.mismatch_formatter')
+local pp = require('luatest.pp')
 local sorted_pairs = require('luatest.sorted_pairs')
+
+local prettystr = pp.tostring
+local prettystr_pairs = pp.tostring_pair
 
 local M={}
 
@@ -11,10 +16,6 @@ local M={}
 M.private = {}
 
 M.VERSION = require('luatest.VERSION')
-
-M.PRINT_TABLE_REF_IN_ERROR_MSG = false
-M.LINE_LENGTH = 80
-M.LIST_DIFF_ANALYSIS_THRESHOLD  = 10    -- display deep analysis for more than 10 items
 
 M.groups = {}
 
@@ -78,8 +79,6 @@ end
 M.STRIP_LUAUNIT_FROM_STACKTRACE = os.getenv('LUATEST_BACKTRACE') == nil
 
 M.VERBOSITY = require('luatest.output.generic').VERBOSITY
-M.FORCE_DEEP_ANALYSIS   = true
-M.DISABLE_DEEP_ANALYSIS = false
 
 M.USAGE=[[Usage: luatest [options] [files or dirs...] [testname1 [testname2] ... ]
 Options:
@@ -156,12 +155,6 @@ local function strsplit(delimiter, text)
 end
 M.private.strsplit = strsplit
 
-local function has_new_line( s )
-    -- return true if s has a newline
-    return (string.find(s, '\n', 1, true) ~= nil)
-end
-M.private.has_new_line = has_new_line
-
 local function str_match(s, pattern, start, final )
     -- return true if s matches completely the pattern from index start to index end
     -- return false in every other cases
@@ -235,393 +228,6 @@ local function strip_luaunit_trace(trace)
 end
 M.private.strip_luaunit_trace = strip_luaunit_trace
 
-
-local function prettystr_sub(v, indentLevel, printTableRefs, recursionTable )
-    local type_v = type(v)
-    if "string" == type_v  then
-        return string.format("%q", v)
-    elseif "table" == type_v then
-        return M.private._table_tostring(v, indentLevel, printTableRefs, recursionTable)
-    elseif "number" == type_v then
-        -- eliminate differences in formatting between various Lua versions
-        if v ~= v then
-            return "#NaN" -- "not a number"
-        end
-        if v == math.huge then
-            return "#Inf" -- "infinite"
-        end
-        if v == -math.huge then
-            return "-#Inf"
-        end
-        if rawget(math, 'tointeger') then -- Lua 5.3
-            local i = rawget(math, 'tointeger')(v)
-            if i then
-                return tostring(i)
-            end
-        end
-    end
-
-    return tostring(v)
-end
-
-local function prettystr( v )
-    --[[ Pretty string conversion, to display the full content of a variable of any type.
-
-    * string are enclosed with " by default, or with ' if string contains a "
-    * tables are expanded to show their full content, with indentation in case of nested tables
-    ]]--
-    local recursionTable = {}
-    local s = prettystr_sub(v, 1, M.PRINT_TABLE_REF_IN_ERROR_MSG, recursionTable)
-    if recursionTable.recursionDetected and not M.PRINT_TABLE_REF_IN_ERROR_MSG then
-        -- some table contain recursive references,
-        -- so we must recompute the value by including all table references
-        -- else the result looks like crap
-        recursionTable = {}
-        s = prettystr_sub(v, 1, true, recursionTable)
-    end
-    return s
-end
-M.prettystr = prettystr
-
-local function try_mismatch_formatting( table_a, table_b, doDeepAnalysis )
-    --[[
-    Prepares a nice error message when comparing tables, performing a deeper
-    analysis.
-
-    Arguments:
-    * table_a, table_b: tables to be compared
-    * doDeepAnalysis:
-        M.DEFAULT_DEEP_ANALYSIS: (the default if not specified) perform deep analysis
-                                    only for big lists and big dictionnaries
-        M.FORCE_DEEP_ANALYSIS  : always perform deep analysis
-        M.DISABLE_DEEP_ANALYSIS: never perform deep analysis
-
-    Returns: {success, result}
-    * success: false if deep analysis could not be performed
-               in this case, just use standard assertion message
-    * result: if success is true, a multi-line string with deep analysis of the two lists
-    ]]
-
-    -- check if table_a & table_b are suitable for deep analysis
-    if type(table_a) ~= 'table' or type(table_b) ~= 'table' then
-        return false
-    end
-
-    if doDeepAnalysis == M.DISABLE_DEEP_ANALYSIS then
-        return false
-    end
-
-    local len_a, len_b, isPureList = #table_a, #table_b, true
-
-    for k1 in pairs(table_a) do
-        if type(k1) ~= 'number' or k1 > len_a then
-            -- this table a mapping
-            isPureList = false
-            break
-        end
-    end
-
-    if isPureList then
-        for k2 in pairs(table_b) do
-            if type(k2) ~= 'number' or k2 > len_b then
-                -- this table a mapping
-                isPureList = false
-                break
-            end
-        end
-    end
-
-    if isPureList and math.min(len_a, len_b) < M.LIST_DIFF_ANALYSIS_THRESHOLD then
-        if not (doDeepAnalysis == M.FORCE_DEEP_ANALYSIS) then
-            return false
-        end
-    end
-
-    if isPureList then
-        return M.private.mismatch_formatting_pure_list( table_a, table_b )
-    else
-        return false
-    end
-end
-M.private.try_mismatch_formatting = try_mismatch_formatting
-
-
-local function extend_with_str_fmt( res, ... )
-    table.insert( res, string.format( ... ) )
-end
-
-local function mismatch_formatting_pure_list( table_a, table_b )
-    --[[
-    Prepares a nice error message when comparing tables which are lists, performing a deeper
-    analysis.
-
-    Returns: {success, result}
-    * success: false if deep analysis could not be performed
-               in this case, just use standard assertion message
-    * result: if success is true, a multi-line string with deep analysis of the two lists
-    ]]
-    local result = {}
-
-    local len_a, len_b, refa, refb = #table_a, #table_b, '', ''
-    if M.PRINT_TABLE_REF_IN_ERROR_MSG then
-        refa, refb = string.format( '<%s> ', tostring(table_a)), string.format('<%s> ', tostring(table_b) )
-    end
-    local longest, shortest = math.max(len_a, len_b), math.min(len_a, len_b)
-    local deltalv  = longest - shortest
-
-    local commonUntil = shortest
-    for i = 1, shortest do
-        if not comparator.equals(table_a[i], table_b[i]) then
-            commonUntil = i - 1
-            break
-        end
-    end
-
-    local commonBackTo = shortest - 1
-    for i = 0, shortest - 1 do
-        if not comparator.equals(table_a[len_a-i], table_b[len_b-i]) then
-            commonBackTo = i - 1
-            break
-        end
-    end
-
-
-    table.insert( result, 'List difference analysis:' )
-    if len_a == len_b then
-        -- TODO: handle expected/actual naming
-        extend_with_str_fmt(result, '* lists %sA (actual) and %sB (expected) have the same size', refa, refb)
-    else
-        extend_with_str_fmt(result,
-            '* list sizes differ: list %sA (actual) has %d items, list %sB (expected) has %d items',
-            refa, len_a, refb, len_b
-        )
-    end
-
-    extend_with_str_fmt( result, '* lists A and B start differing at index %d', commonUntil+1 )
-    if commonBackTo >= 0 then
-        if deltalv > 0 then
-            extend_with_str_fmt(result, '* lists A and B are equal again from index %d for A, %d for B',
-                len_a-commonBackTo, len_b-commonBackTo)
-        else
-            extend_with_str_fmt( result, '* lists A and B are equal again from index %d', len_a-commonBackTo )
-        end
-    end
-
-    local function insert_ab_value(ai, bi)
-        bi = bi or ai
-        if comparator.equals(table_a[ai], table_b[bi]) then
-            return extend_with_str_fmt( result, '  = A[%d], B[%d]: %s', ai, bi, prettystr(table_a[ai]) )
-        else
-            extend_with_str_fmt( result, '  - A[%d]: %s', ai, prettystr(table_a[ai]))
-            extend_with_str_fmt( result, '  + B[%d]: %s', bi, prettystr(table_b[bi]))
-        end
-    end
-
-    -- common parts to list A & B, at the beginning
-    if commonUntil > 0 then
-        table.insert( result, '* Common parts:' )
-        for i = 1, commonUntil do
-            insert_ab_value( i )
-        end
-    end
-
-    -- diffing parts to list A & B
-    if commonUntil < shortest - commonBackTo - 1 then
-        table.insert( result, '* Differing parts:' )
-        for i = commonUntil + 1, shortest - commonBackTo - 1 do
-            insert_ab_value( i )
-        end
-    end
-
-    -- display indexes of one list, with no match on other list
-    if shortest - commonBackTo <= longest - commonBackTo - 1 then
-        table.insert( result, '* Present only in one list:' )
-        for i = shortest - commonBackTo, longest - commonBackTo - 1 do
-            if len_a > len_b then
-                extend_with_str_fmt( result, '  - A[%d]: %s', i, prettystr(table_a[i]) )
-                -- table.insert( result, '+ (no matching B index)')
-            else
-                -- table.insert( result, '- no matching A index')
-                extend_with_str_fmt( result, '  + B[%d]: %s', i, prettystr(table_b[i]) )
-            end
-        end
-    end
-
-    -- common parts to list A & B, at the end
-    if commonBackTo >= 0 then
-        table.insert( result, '* Common parts at the end of the lists' )
-        for i = longest - commonBackTo, longest do
-            if len_a > len_b then
-                insert_ab_value( i, i-deltalv )
-            else
-                insert_ab_value( i-deltalv, i )
-            end
-        end
-    end
-
-    return true, table.concat( result, '\n')
-end
-M.private.mismatch_formatting_pure_list = mismatch_formatting_pure_list
-
-local function prettystr_pairs(value1, value2, suffix_a, suffix_b)
-    --[[
-    This function helps with the recurring task of constructing the "expected
-    vs. actual" error messages. It takes two arbitrary values and formats
-    corresponding strings with prettystr().
-
-    To keep the (possibly complex) output more readable in case the resulting
-    strings contain line breaks, they get automatically prefixed with additional
-    newlines. Both suffixes are optional (default to empty strings), and get
-    appended to the "value1" string. "suffix_a" is used if line breaks were
-    encountered, "suffix_b" otherwise.
-
-    Returns the two formatted strings (including padding/newlines).
-    ]]
-    local str1, str2 = prettystr(value1), prettystr(value2)
-    if has_new_line(str1) or has_new_line(str2) then
-        -- line break(s) detected, add padding
-        return "\n" .. str1 .. (suffix_a or ""), "\n" .. str2
-    end
-    return str1 .. (suffix_b or ""), str2
-end
-M.private.prettystr_pairs = prettystr_pairs
-
-local function _table_raw_tostring( t )
-    -- return the default tostring() for tables, with the table ID, even if the table has a metatable
-    -- with the __tostring converter
-    local mt = getmetatable( t )
-    if mt then setmetatable( t, nil ) end
-    local ref = tostring(t)
-    if mt then setmetatable( t, mt ) end
-    return ref
-end
-M.private._table_raw_tostring = _table_raw_tostring
-
-local TABLE_TOSTRING_SEP = ", "
-local TABLE_TOSTRING_SEP_LEN = string.len(TABLE_TOSTRING_SEP)
-
-local function _table_tostring( tbl, indentLevel, printTableRefs, recursionTable )
-    printTableRefs = printTableRefs or M.PRINT_TABLE_REF_IN_ERROR_MSG
-    recursionTable = recursionTable or {}
-    recursionTable[tbl] = true
-
-    local result = {}
-
-    -- like prettystr but do not enclose with "" if the string is just alphanumerical
-    -- this is better for displaying table keys who are often simple strings
-    local function keytostring(k)
-        if "string" == type(k) and k:match("^[_%a][_%w]*$") then
-            return k
-        end
-        return '[' .. prettystr_sub(k, indentLevel+1, printTableRefs, recursionTable) .. ']'
-    end
-
-    local mt = getmetatable( tbl )
-
-    if mt and mt.__tostring then
-        -- if table has a __tostring() function in its metatable, use it to display the table
-        -- else, compute a regular table
-        result = tostring(tbl)
-        if type(result) ~= 'string' then
-            return string.format( '<invalid tostring() result: "%s" >', prettystr(result) )
-        end
-        result = strsplit( '\n', result )
-        return M.private._table_tostring_format_multiline_string( result, indentLevel )
-
-    else
-        -- no metatable, compute the table representation
-
-        local count, seq_index = 0, 1
-        for k, v in sorted_pairs( tbl ) do
-            local entry
-
-            -- key part
-            if k == seq_index then
-                -- for the sequential part of tables, we'll skip the "<key>=" output
-                entry = ''
-                seq_index = seq_index + 1
-            elseif recursionTable[k] then
-                -- recursion in the key detected
-                recursionTable.recursionDetected = true
-                entry = "<".._table_raw_tostring(k)..">="
-            else
-                entry = keytostring(k) .. " = "
-            end
-
-            -- value part
-            if recursionTable[v] then
-                -- recursion in the value detected!
-                recursionTable.recursionDetected = true
-                entry = entry .. "<".._table_raw_tostring(v)..">"
-            else
-                entry = entry ..
-                    prettystr_sub( v, indentLevel+1, printTableRefs, recursionTable )
-            end
-            count = count + 1
-            result[count] = entry
-        end
-        return M.private._table_tostring_format_result( tbl, result, indentLevel, printTableRefs )
-    end
-
-end
-M.private._table_tostring = _table_tostring -- prettystr_sub() needs it
-
-local function _table_tostring_format_multiline_string( tbl_str, indentLevel )
-    local indentString = '\n'..string.rep("    ", indentLevel - 1)
-    return table.concat( tbl_str, indentString )
-
-end
-M.private._table_tostring_format_multiline_string = _table_tostring_format_multiline_string
-
-
-local function _table_tostring_format_result( tbl, result, indentLevel, printTableRefs )
-    -- final function called in _table_to_string() to format the resulting list of
-    -- string describing the table.
-
-    local dispOnMultLines = false
-
-    -- set dispOnMultLines to true if the maximum LINE_LENGTH would be exceeded with the values
-    local totalLength = 0
-    for _, v in ipairs( result ) do
-        totalLength = totalLength + string.len( v )
-        if totalLength >= M.LINE_LENGTH then
-            dispOnMultLines = true
-            break
-        end
-    end
-
-    -- set dispOnMultLines to true if the max LINE_LENGTH would be exceeded
-    -- with the values and the separators.
-    if not dispOnMultLines then
-        -- adjust with length of separator(s):
-        -- two items need 1 sep, three items two seps, ... plus len of '{}'
-        if #result > 0 then
-            totalLength = totalLength + TABLE_TOSTRING_SEP_LEN * (#result - 1)
-        end
-        dispOnMultLines = (totalLength + 2 >= M.LINE_LENGTH)
-    end
-
-    -- now reformat the result table (currently holding element strings)
-    if dispOnMultLines then
-        local indentString = string.rep("    ", indentLevel - 1)
-        result = {
-                    "{\n    ",
-                    indentString,
-                    table.concat(result, ",\n    " .. indentString),
-                    ",\n",
-                    indentString,
-                    "}"
-                }
-    else
-        result = {"{", table.concat(result, TABLE_TOSTRING_SEP), "}"}
-    end
-    if printTableRefs then
-        table.insert(result, 1, "<".._table_raw_tostring(tbl).."> ") -- prepend table ref
-    end
-    return table.concat(result)
-end
-M.private._table_tostring_format_result = _table_tostring_format_result -- prettystr_sub() needs it
-
 local function luaunit_error(status, message, level)
     local _
     _, message = pcall(error, message, (level or 1) + 2)
@@ -665,8 +271,7 @@ local function error_msg_equality(actual, expected, doDeepAnalysis)
         local result = string.format("expected: %s\nactual: %s", strExpected, strActual)
 
         -- extend with mismatch analysis if possible:
-        local success, mismatchResult
-        success, mismatchResult = try_mismatch_formatting( actual, expected, doDeepAnalysis )
+        local success, mismatchResult = mismatch_formatter.format(actual, expected, doDeepAnalysis)
         if success then
             result = table.concat( { result, mismatchResult }, '\n' )
         end
@@ -893,7 +498,7 @@ end
 local function _assert_error_msg_equals( stripFileAndLine, expectedMsg, func, ... )
     local no_error, error_msg = pcall( func, ... )
     if no_error then
-        failure( 'No error generated when calling function but expected error: '..M.prettystr(expectedMsg), nil, 3 )
+        failure('No error generated when calling function but expected error: ' .. prettystr(expectedMsg), nil, 3)
     end
     if type(expectedMsg) == "string" and type(error_msg) ~= "string" then
         -- table are converted to string automatically

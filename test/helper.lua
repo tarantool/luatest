@@ -12,7 +12,7 @@ end
 
 function helper.assert_failure(...)
     local err = t.assert_error(...)
-    t.assert_equals(err.class, 'LuaUnitError')
+    t.assert_equals(err.class, 'LuaUnitError', err)
     return err
 end
 

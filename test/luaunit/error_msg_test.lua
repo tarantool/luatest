@@ -311,8 +311,10 @@ function g.test_assert_errorMsgContentEquals()
     t.assert_error_msg_content_equals("This is error message", f, 1, 2)
 end
 
+local pp = require('luatest.pp')
+
 function g.test_printTableWithRef()
-    t.PRINT_TABLE_REF_IN_ERROR_MSG = true
+    pp.TABLE_REF_IN_ERROR_MSG = true
     assert_failure_matches('Received unexpected value: <table: 0?x?[%x]+> {1, 2}',
         t.assert_not_equals, {1,2}, {1,2})
     -- trigger multiline prettystr
@@ -333,5 +335,5 @@ actual: <table: 0?x?[%x]+> {3, 2, 1}]], t.assert_equals, {3,2,1}, {one=1,two=2})
     -- trigger mismatch formatting
     assert_failure_contains([[lists <table: ]] , t.assert_equals, {3,2,1,4,1,1,1,1,1,1,1}, {1,2,3,4,1,1,1,1,1,1,1})
     assert_failure_contains([[and <table: ]] , t.assert_equals, {3,2,1,4,1,1,1,1,1,1,1}, {1,2,3,4,1,1,1,1,1,1,1})
-    t.PRINT_TABLE_REF_IN_ERROR_MSG = false
+    pp.TABLE_REF_IN_ERROR_MSG = false
 end
