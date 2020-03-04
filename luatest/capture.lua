@@ -26,6 +26,14 @@ local Capture = Class.new({
     CAPTURED_ERROR_TYPE = 'ERROR_WITH_CAPTURE',
 })
 
+Capture.Stub = Capture:new_class()
+Capture.Stub.mt.enable = function() end
+Capture.Stub.mt.disable = function() end
+
+function Capture:stub()
+    return self.Stub:new()
+end
+
 function Capture.mt:initialize()
     self.enabled = false
     self.buffer = {stdout = {}, stderr = {}}

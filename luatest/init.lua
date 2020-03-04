@@ -1,10 +1,12 @@
 --- Tool for testing tarantool applications.
 --
 -- @module luatest
-local luatest = require('luatest.luaunit')
+local luatest = table.copy(require('luatest.luaunit'))
 
 luatest.runner = require('luatest.runner')
 luatest.Process = require('luatest.process')
+luatest.VERSION = require('luatest.VERSION')
+
 
 --- Helpers.
 -- @see luatest.helpers
@@ -13,6 +15,37 @@ luatest.helpers = require('luatest.helpers')
 --- Class to manage tarantool instances.
 -- @see luatest.server
 luatest.Server = require('luatest.server')
+
+local Group = require('luatest.group')
+local hooks = require('luatest.hooks')
+
+--- Add before suite hook.
+--
+-- @function before_suite
+-- @func fn
+
+--- Add after suite hook.
+--
+-- @function after_suite
+-- @func fn
+hooks.define_suite_hooks(luatest)
+
+luatest.groups = {}
+
+--- Create group of tests.
+--
+-- @string[opt] name
+-- @return Group object
+-- @see luatest.group
+function luatest.group(name)
+    local group = Group:new(name)
+    name = group.name
+    if luatest.groups[name] then
+        error('Test group already exists: ' .. name ..'.')
+    end
+    luatest.groups[name] = group
+    return group
+end
 
 --- Check that value is truthy.
 --
@@ -31,16 +64,6 @@ luatest.assert = luatest.assert_eval_to_true
 luatest.assert_not = luatest.assert_eval_to_false
 
 return luatest
-
---- Add before suite hook.
---
--- @function before_suite
--- @func fn
-
---- Add after suite hook.
---
--- @function after_suite
--- @func fn
 
 -- LDocs for luaunit functions.
 -- We encourage using snake_case naming and simple assertions (no assertNumber, etc.)
@@ -240,13 +263,6 @@ return luatest
 -- @param condition
 -- @string message
 
---- Create group of tests.
---
--- @function group
--- @string[opt] name Default name is inferred from caller filename when possible.
---  For `test/a/b/c_d_test.lua` it will be `a.b.c_d`.
--- @return @{TestGroup}
-
 --- Skip a running test.
 --
 -- @function skip
@@ -266,15 +282,3 @@ return luatest
 --
 -- @function success_if
 -- @param condition
-
---- Tests group.
--- To add new example add function at key starting with `test`.
---
--- Group hooks run always when test group is changed.
--- So it may run multiple times when `--shuffle` option is used.
---
--- @table TestGroup
--- @func before_all Function to run once before all tests in the group.
--- @func after_all Function to run once after all tests in the group.
--- @func setup Function to run before each test in the group.
--- @func teardown Function to run after each test in the group.
