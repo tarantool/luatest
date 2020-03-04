@@ -27,9 +27,14 @@ function utils.traceback(err, skip)
     return debug.traceback(err, 2 + (skip or 0)) .. '\n'
 end
 
+-- Default value for rescue.
+local function bypass_error(err)
+    return err
+end
+
 -- Reraises error but calls `ensure` in both cases of success and failure.
 function utils.reraise_and_ensure(fn, rescue, ensure)
-    local result = {xpcall(fn, rescue)}
+    local result = {xpcall(fn, rescue or bypass_error)}
     if ensure then
         ensure()
     end

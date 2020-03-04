@@ -1,4 +1,5 @@
 file = {
+    'luatest/group.lua',
     'luatest/helpers.lua',
     'luatest/init.lua',
     'luatest/server.lua',

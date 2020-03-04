@@ -15,48 +15,6 @@ local M={}
 -- private exported functions (for testing)
 M.private = {}
 
-M.VERSION = require('luatest.VERSION')
-
-M.groups = {}
-
-local function find_closest_matching_frame(pattern)
-    local level = 2
-    while true do
-        local info = debug.getinfo(level, 'S')
-        if not info then
-            return
-        end
-        local source = info.source
-        if source:match(pattern) then
-            return info
-        end
-        level = level + 1
-    end
-end
-
---- Define named test group.
-M.group = function(name)
-    if not name then
-        local pattern = '.*/test/(.+)_test%.lua'
-        local info = assert(
-            find_closest_matching_frame(pattern),
-            "Can't derive test name from file name " ..
-            "(it should match pattern '.*/test/.*_test.lua')"
-        )
-        local test_filename = info.source:match(pattern)
-        name = test_filename:gsub('/', '.')
-    end
-    if M.groups[name] then
-        error('Test group already exists: ' .. name ..
-            '. To modify existing group use `luatest.groups[name]`.')
-    end
-    if name:find('/') then
-        error('Group name must not contain `/`: ' .. name)
-    end
-    M.groups[name] = {name = name}
-    return M.groups[name]
-end
-
 --[[ EPS is meant to help with Lua's floating point math in simple corner
 cases like almost_equals(1.1-0.1, 1), which may not work as-is (e.g. on numbers
 with rational binary representation) if the user doesn't provide some explicit
@@ -112,11 +70,6 @@ Options:
 --                 general utility functions
 --
 ----------------------------------------------------------------
-
--- Replace LuaUnit's calls to os exit to exit gracefully from luatest runner.
-local function os_exit(code)
-    error({type = 'LUAUNIT_EXIT', code = code})
-end
 
 local function randomize_table( t )
     -- randomize the item orders of the table t
@@ -767,9 +720,9 @@ M.LuaUnit.mt.shuffle = 'none'
             if arg == nil then
                 break
             elseif arg == '--help' or arg == '-h' then
-                M.LuaUnit.help()
+                result.help = true
             elseif arg == '--version' then
-                M.LuaUnit.version()
+                result.version = true
             elseif arg == '--verbose' or arg == '-v' then
                 result.verbosity = M.VERBOSITY.VERBOSE
             elseif arg == '--quiet' or arg == '-q' then
@@ -818,16 +771,6 @@ M.LuaUnit.mt.shuffle = 'none'
         return result
     end
 
-    function M.LuaUnit.help()
-        print(M.USAGE)
-        os_exit(0)
-    end
-
-    function M.LuaUnit.version()
-        print('luatest v'..M.VERSION)
-        os_exit(0)
-    end
-
 ----------------------------------------------------------------
 --                     class NodeStatus
 ----------------------------------------------------------------
@@ -864,7 +807,7 @@ M.LuaUnit.mt.shuffle = 'none'
                 skip = {},
             },
         }
-        self.output = self.output_type:new(self)
+        self.output.result = self.result
         self.output:start_suite()
     end
 
@@ -1023,10 +966,10 @@ M.LuaUnit.mt.shuffle = 'none'
         return result
     end
 
-    function M.LuaUnit.mt:find_test(groups, name)
+    function M.LuaUnit.mt:find_test(name)
         local group_name, method_name = M.LuaUnit.split_test_method_name(name)
         assert(group_name and method_name, 'Invalid test name: ' .. name)
-        local group = assert(groups[group_name], 'Group not found: ' .. group_name)
+        local group = assert(self.groups[group_name], 'Group not found: ' .. group_name)
         return self.class.build_test(group, method_name)
     end
 
@@ -1048,10 +991,16 @@ M.LuaUnit.mt.shuffle = 'none'
             math.randomseed(self.seed)
         end
 
-        local groups = M.groups
+        if not self.test_names then
+            self.test_names = {}
+            for name in sorted_pairs(self.groups) do
+                table.insert(self.test_names, name)
+            end
+        end
+
         local result = {}
         for _, name in ipairs(self.test_names) do
-            local group = groups[name]
+            local group = self.groups[name]
             if group then
                 local fns = self:expand_group(group)
                 if self.shuffle == 'group' then
@@ -1063,7 +1012,7 @@ M.LuaUnit.mt.shuffle = 'none'
                     table.insert(result, x)
                 end
             else
-                table.insert(result, self:find_test(groups, name))
+                table.insert(result, self:find_test(name))
             end
         end
 
@@ -1097,22 +1046,14 @@ M.LuaUnit.mt.shuffle = 'none'
             error('Invalid shuffle value')
         end
 
-        if not self.test_names then
-            self.test_names = {}
-            for name in sorted_pairs(M.groups) do
-                table.insert(self.test_names, name)
-            end
-        end
-
         if self.output then
             self.output = self.output:lower()
             if self.output == 'junit' and self.output_file_name == nil then
-                print('With junit output, a filename must be supplied with -n or --name')
-                os_exit(-1)
+                error('With junit output, a filename must be supplied with -n or --name')
             end
             local ok, output_type = pcall(require, 'luatest.output.' .. self.output)
             assert(ok, 'Can not load output module: ' .. self.output)
-            self.output_type = output_type
+            self.output = output_type:new(self)
         end
     end
 
@@ -1124,7 +1065,7 @@ M.LuaUnit.mt.shuffle = 'none'
         self:end_suite()
         if self.result.aborted then
             print("Test suite ABORTED because of --fail-fast option")
-            os_exit(-2)
+            return -2
         end
         return self.result.failures_count
     end

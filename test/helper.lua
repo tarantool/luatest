@@ -5,9 +5,9 @@ local runner = t.runner
 local helper = {}
 
 function helper.run_suite(load_tests, args)
-    local lu = dofile(package.search('luatest.luaunit'))
-    -- Need to supply any option to prevent luaunit from taking args from _G
-    return runner.run(args or {}, {luaunit = lu, load_tests = function(...) load_tests(lu, ...) end})
+    local luatest = dofile(package.search('luatest'))
+    -- Need to supply any option to prevent luatest from taking args from _G
+    return runner.run(args or {}, {luatest = luatest, load_tests = function(...) load_tests(luatest, ...) end})
 end
 
 function helper.assert_failure(...)

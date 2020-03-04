@@ -19,7 +19,7 @@ function Monitor.mt:synchronize(fn)
     end
     self.fiber_id = fiber_id
     self.count = self.count + 1
-    return utils.reraise_and_ensure(fn, function(err) return err end, function()
+    return utils.reraise_and_ensure(fn, nil, function()
         self.count = self.count - 1
         if self.count == 0 then
             self.fiber_id = nil

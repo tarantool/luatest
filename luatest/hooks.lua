@@ -1,6 +1,7 @@
 local utils = require('luatest.utils')
 
--- suite hooks
+local export = {}
+
 local function define_hooks(object, hooks_type)
     local hooks = {}
     object[hooks_type .. '_hooks'] = hooks
@@ -15,6 +16,21 @@ local function define_hooks(object, hooks_type)
             fn()
         end
     end
+end
+
+-- Define hooks on group.
+function export.define_group_hooks(group)
+    define_hooks(group, 'before_each')
+    define_hooks(group, 'after_each')
+    define_hooks(group, 'before_all')
+    define_hooks(group, 'after_all')
+    return group
+end
+
+-- Define suite hooks on luatest.
+function export.define_suite_hooks(luatest)
+    define_hooks(luatest, 'before_suite')
+    define_hooks(luatest, 'after_suite')
 end
 
 local function run_group_hooks(runner, group, hooks_type)
@@ -46,27 +62,14 @@ local function run_test_hooks(self, test, hooks_type, legacy_name)
     end
 end
 
--- Adds suite and test group hooks.
-return function(lu)
-    define_hooks(lu, 'before_suite')
-    define_hooks(lu, 'after_suite')
-
-    utils.patch(lu, 'group', function(super) return function(...)
-        local group = super(...)
-        define_hooks(group, 'before_each')
-        define_hooks(group, 'after_each')
-        define_hooks(group, 'before_all')
-        define_hooks(group, 'after_all')
-        return group
-    end end)
-
+function export.patch_runner(Runner)
     -- Last run test to set error for when group.after_all hook fails.
     local last_test = nil
 
     -- Run test hooks.
     -- If test's group hook failed with error, then test does not run and
     -- hook's error is copied for the test.
-    utils.patch(lu.LuaUnit.mt, 'invoke_test_function', function(super) return function(self, test, ...)
+    utils.patch(Runner.mt, 'invoke_test_function', function(super) return function(self, test, ...)
         last_test = test
         if test.group._before_all_hook_error then
             return self:update_status(test, test.group._before_all_hook_error)
@@ -79,13 +82,13 @@ return function(lu)
     end end)
 
     -- Run group hook and save possible error to the group object.
-    utils.patch(lu.LuaUnit.mt, 'start_group', function(super) return function(self, group)
+    utils.patch(Runner.mt, 'start_group', function(super) return function(self, group)
         super(self, group)
         group._before_all_hook_error = run_group_hooks(self, group, 'before_all')
     end end)
 
     -- Run group hook and save possible error to the `last_test`.
-    utils.patch(lu.LuaUnit.mt, 'end_group', function(super) return function(self, group)
+    utils.patch(Runner.mt, 'end_group', function(super) return function(self, group)
         local err = run_group_hooks(self, group, 'after_all')
         if err then
             err.message = 'Failure in after_all hook: ' .. tostring(err.message)
@@ -94,17 +97,18 @@ return function(lu)
         super(self, group)
     end end)
 
-    utils.patch(lu.LuaUnit.mt, 'run_tests', function(super) return function(self, tests)
+    -- Run suite hooks
+    utils.patch(Runner.mt, 'run_tests', function(super) return function(self, tests)
         if #tests == 0 then
             return
         end
         return utils.reraise_and_ensure(function()
-            lu.run_before_suite()
+            self.luatest.run_before_suite()
             super(self, tests)
-        end, function(err)
-            return err
-        end, function()
-            lu.run_after_suite()
+        end, nil, function()
+            self.luatest.run_after_suite()
         end)
     end end)
 end
+
+return export

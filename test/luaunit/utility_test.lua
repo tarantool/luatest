@@ -149,16 +149,6 @@ function g.test_strSplitWithNil()
     t.assert_equals(nil, t.private.strsplit('-', nil))
 end
 
-function g.test_protected_call()
-    local function boom() error("Something went wrong.") end
-    local err = t.LuaUnit.mt:protected_call(nil, boom, "kaboom")
-
-    -- check that err received the expected fields
-    t.assert_equals(err.status, "error")
-    t.assert_str_contains(err.message, "Something went wrong.")
-    t.assert_str_matches(err.trace, "^stack traceback:.*in %a+ 'kaboom'.*")
-end
-
 function g.test_equals_for_recursive_tables()
     local A, B, C = {}, {}, {}
 
