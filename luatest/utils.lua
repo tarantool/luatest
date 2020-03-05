@@ -45,4 +45,79 @@ function utils.reraise_and_ensure(fn, rescue, ensure)
     end
 end
 
+local error_class_name = 'LuatestError'
+
+function utils.luatest_error(status, message, level)
+    local _
+    _, message = pcall(error, message, (level or 1) + 2)
+    error({class = error_class_name, status = status, message = message})
+end
+
+function utils.is_luatest_error(err)
+    return type(err) == 'table' and err.class == error_class_name
+end
+
+-- Check if line of stack trace comes from inside luatest.
+local function is_luatest_internal_line(s)
+    return s:find('[/\\]luatest[/\\]') or s:find('bin[/\\]luatest')
+end
+
+function utils.strip_luatest_trace(trace)
+    local lines = trace:split('\n')
+    local result = {lines[1]} -- always keep 1st line
+    local keep = true
+    for i = 2, table.maxn(lines) do
+        local line = lines[i]
+        -- `[C]:` lines and `...` don't change context
+        if not line:find('^%s+%[C%]:') and not line:find('^%s+%.%.%.') then
+            keep = not is_luatest_internal_line(line)
+        end
+        if keep then
+            table.insert(result, line)
+        end
+    end
+    return table.concat(result, '\n')
+end
+
+function utils.randomize_table(t)
+    -- randomize the item orders of the table t
+    for i = #t, 2, -1 do
+        local j = math.random(i)
+        if i ~= j then
+            t[i], t[j] = t[j], t[i]
+        end
+    end
+end
+
+-- Run `expr` through the inclusion and exclusion rules defined in patterns
+-- and return true if expr shall be included, false for excluded.
+-- Inclusion pattern are defined as normal patterns, exclusions
+-- patterns start with `!` and are followed by a normal pattern
+function utils.pattern_filter(patterns, expr)
+    -- nil = UNKNOWN (not matched yet), true = ACCEPT, false = REJECT
+    local result = nil
+    -- true if no explicit "include" is found, set to false otherwise
+    local default = true
+
+    for _, pattern in ipairs(patterns or {}) do
+        local exclude = pattern:sub(1, 1) == '!'
+        if exclude then
+            pattern = pattern:sub(2)
+        else
+            -- at least one include pattern specified, a match is required
+            default = false
+        end
+
+        if string.find(expr, pattern) then
+            -- set result to false when excluding, true otherwise
+            result = not exclude
+        end
+    end
+
+    if result == nil then
+        result = default
+    end
+    return result
+end
+
 return utils

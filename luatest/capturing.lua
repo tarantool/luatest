@@ -69,7 +69,7 @@ return function(Runner)
     end end)
 
     -- Print captured output for any unexpected error.
-    utils.patch(Runner.mt, 'run_suite', function(super) return function(self, ...)
+    utils.patch(Runner.mt, 'run', function(super) return function(self, ...)
         local args = {self, ...}
         local _, code = xpcall(function() return super(unpack(args)) end, function(err)
             local message

@@ -106,7 +106,7 @@ To change default order use:
 ```lua
 -- test/helper.lua
 local t = require('luatest')
-t.defaults({shuffle = 'group'})
+t.configure({shuffle = 'group'})
 ```
 
 ## List of luatest functions

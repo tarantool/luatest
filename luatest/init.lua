@@ -3,10 +3,8 @@
 -- @module luatest
 local luatest = table.copy(require('luatest.luaunit'))
 
-luatest.runner = require('luatest.runner')
 luatest.Process = require('luatest.process')
 luatest.VERSION = require('luatest.VERSION')
-
 
 --- Helpers.
 -- @see luatest.helpers
@@ -45,6 +43,25 @@ function luatest.group(name)
     end
     luatest.groups[name] = group
     return group
+end
+
+local runner_config = {}
+
+--- Update default options.
+-- See @{luatest.runner:run} for the list of available options.
+--
+-- @tab[opt={}] options list of options to update
+-- @return options after update
+function luatest.configure(options)
+    for k, v in pairs(options or {}) do
+        runner_config[k] = v
+    end
+    return runner_config
+end
+
+function luatest.defaults(...)
+    require('log').warn('luatest.defaults is deprecated in favour of luatest.configure')
+    return luatest.configure(...)
 end
 
 --- Check that value is truthy.

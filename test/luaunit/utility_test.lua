@@ -2,6 +2,8 @@ local t = require('luatest')
 local g = t.group()
 
 local fun = require('fun')
+local Runner = require('luatest.runner')
+local utils = require('luatest.utils')
 
 local helper = require('test.helper')
 local assert_failure_matches = helper.assert_failure_matches
@@ -112,41 +114,11 @@ function g.test_randomize_table()
     end
     t.assert_equals(#tab, n)
 
-    t.private.randomize_table(tab)
+    utils.randomize_table(tab)
     t.assert_equals(#tab, n)
     t.assert_not_equals(tab, tref)
     table.sort(tab)
     t.assert_equals(tab, tref)
-end
-
-function g.test_strSplitOneCharDelim()
-    local tab = t.private.strsplit('\n', '122333')
-    t.assert_equals(tab[1], '122333')
-    t.assert_equals(#tab, 1)
-
-    tab = t.private.strsplit('\n', '1\n22\n333\n')
-    t.assert_equals(tab[1], '1')
-    t.assert_equals(tab[2], '22')
-    t.assert_equals(tab[3], '333')
-    t.assert_equals(tab[4], '')
-    t.assert_equals(#tab, 4)
-    -- test invalid (empty) delimiter
-    t.assert_error_msg_contains('delimiter is nil or empty string!',
-                              t.private.strsplit, '', '1\n22\n333\n')
-    t.assert_error_msg_contains('delimiter is nil or empty string!',
-                              t.private.strsplit, nil, '1\n22\n333\n')
-end
-
-function g.test_strSplit3CharDelim()
-    local tab = t.private.strsplit('2\n3', '1\n22\n332\n3')
-    t.assert_equals(tab[1], '1\n2')
-    t.assert_equals(tab[2], '3')
-    t.assert_equals(tab[3], '')
-    t.assert_equals(#tab, 3)
-end
-
-function g.test_strSplitWithNil()
-    t.assert_equals(nil, t.private.strsplit('-', nil))
 end
 
 function g.test_equals_for_recursive_tables()
@@ -552,21 +524,22 @@ function g.test_fail_fmt()
 end
 
 function g.test_split_test_method_name()
-    t.assert_equals(t.LuaUnit.split_test_method_name('toto'), nil)
-    t.assert_equals({t.LuaUnit.split_test_method_name('toto.tutu')},
-                     {'toto', 'tutu'})
+    local subject = Runner.split_test_method_name
+    t.assert_equals({subject('toto')}, {nil, 'toto'})
+    t.assert_equals({subject('toto.tutu')}, {'toto', 'tutu'})
 end
 
-function g.test_is_method_test_name()
-    t.assert_equals(t.LuaUnit.is_method_test_name('testToto'), true)
-    t.assert_equals(t.LuaUnit.is_method_test_name('TestToto'), true)
-    t.assert_equals(t.LuaUnit.is_method_test_name('TESTToto'), true)
-    t.assert_equals(t.LuaUnit.is_method_test_name('xTESTToto'), false)
-    t.assert_equals(t.LuaUnit.is_method_test_name(''), false)
+function g.test_is_test_name()
+    local subject = Runner.is_test_name
+    t.assert_equals(subject('testToto'), true)
+    t.assert_equals(subject('TestToto'), true)
+    t.assert_equals(subject('TESTToto'), true)
+    t.assert_equals(subject('xTESTToto'), false)
+    t.assert_equals(subject(''), false)
 end
 
 function g.test_parse_cmd_line()
-    local subject = t.LuaUnit.parse_cmd_line
+    local subject = Runner.parse_cmd_line
     local function assert_subject(args, expected)
         t.assert_equals(subject(args), expected)
     end
@@ -575,12 +548,13 @@ function g.test_parse_cmd_line()
     assert_subject({'someTest'}, {test_names={'someTest'}})
     assert_subject({'someTest', 'someOtherTest'}, {test_names={'someTest', 'someOtherTest'}})
 
+    local VERBOSITY = require('luatest.output.generic').VERBOSITY
     -- verbosity
-    assert_subject({'--verbose'}, {verbosity=t.VERBOSITY.VERBOSE})
-    assert_subject({'-v'}, {verbosity=t.VERBOSITY.VERBOSE})
-    assert_subject({'--quiet'}, {verbosity=t.VERBOSITY.QUIET})
-    assert_subject({'-q'}, {verbosity=t.VERBOSITY.QUIET})
-    assert_subject({'-v', '-q'}, {verbosity=t.VERBOSITY.QUIET})
+    assert_subject({'--verbose'}, {verbosity=VERBOSITY.VERBOSE})
+    assert_subject({'-v'}, {verbosity=VERBOSITY.VERBOSE})
+    assert_subject({'--quiet'}, {verbosity=VERBOSITY.QUIET})
+    assert_subject({'-q'}, {verbosity=VERBOSITY.QUIET})
+    assert_subject({'-v', '-q'}, {verbosity=VERBOSITY.QUIET})
 
     --output
     assert_subject({'--output', 'toto'}, {output='toto'})
@@ -616,7 +590,7 @@ function g.test_parse_cmd_line()
     --megamix
     assert_subject({'-p', 'toto', 'tutu', '-v', 'tata', '-o', 'tintin', '-p', 'tutu', 'prout', '-n', 'toto.xml'}, {
         tests_pattern = {'toto', 'tutu'},
-        verbosity = t.VERBOSITY.VERBOSE,
+        verbosity = VERBOSITY.VERBOSE,
         output = 'tintin',
         test_names = {'tutu', 'tata', 'prout'},
         output_file_name='toto.xml',
@@ -626,93 +600,98 @@ function g.test_parse_cmd_line()
 end
 
 function g.test_pattern_filter()
-    t.assert_equals(t.private.pattern_filter(nil, 'toto'), true)
-    t.assert_equals(t.private.pattern_filter({}, 'toto'), true)
+    local subject = utils.pattern_filter
+    t.assert_equals(subject(nil, 'toto'), true)
+    t.assert_equals(subject({}, 'toto'), true)
 
     -- positive pattern
-    t.assert_equals(t.private.pattern_filter({'toto'}, 'toto'), true)
-    t.assert_equals(t.private.pattern_filter({'toto'}, 'yyytotoxxx'), true)
-    t.assert_equals(t.private.pattern_filter({'tutu', 'toto'}, 'yyytotoxxx'), true)
-    t.assert_equals(t.private.pattern_filter({'tutu', 'toto'}, 'tutu'), true)
-    t.assert_equals(t.private.pattern_filter({'tutu', 'to..'}, 'yyytoxxx'), true)
+    t.assert_equals(subject({'toto'}, 'toto'), true)
+    t.assert_equals(subject({'toto'}, 'yyytotoxxx'), true)
+    t.assert_equals(subject({'tutu', 'toto'}, 'yyytotoxxx'), true)
+    t.assert_equals(subject({'tutu', 'toto'}, 'tutu'), true)
+    t.assert_equals(subject({'tutu', 'to..'}, 'yyytoxxx'), true)
 
     -- negative pattern
-    t.assert_equals(t.private.pattern_filter({'!toto'}, 'toto'), false)
-    t.assert_equals(t.private.pattern_filter({'!t.t.'}, 'tutu'), false)
-    t.assert_equals(t.private.pattern_filter({'!toto'}, 'tutu'), true)
-    t.assert_equals(t.private.pattern_filter({'!toto'}, 'yyytotoxxx'), false)
-    t.assert_equals(t.private.pattern_filter({'!tutu', '!toto'}, 'yyytotoxxx'), false)
-    t.assert_equals(t.private.pattern_filter({'!tutu', '!toto'}, 'tutu'), false)
-    t.assert_equals(t.private.pattern_filter({'!tutu', '!to..'}, 'yyytoxxx'), false)
+    t.assert_equals(subject({'!toto'}, 'toto'), false)
+    t.assert_equals(subject({'!t.t.'}, 'tutu'), false)
+    t.assert_equals(subject({'!toto'}, 'tutu'), true)
+    t.assert_equals(subject({'!toto'}, 'yyytotoxxx'), false)
+    t.assert_equals(subject({'!tutu', '!toto'}, 'yyytotoxxx'), false)
+    t.assert_equals(subject({'!tutu', '!toto'}, 'tutu'), false)
+    t.assert_equals(subject({'!tutu', '!to..'}, 'yyytoxxx'), false)
 
     -- combine patterns
-    t.assert_equals(t.private.pattern_filter({'foo'}, 'foo'), true)
-    t.assert_equals(t.private.pattern_filter({'foo', '!foo'}, 'foo'), false)
-    t.assert_equals(t.private.pattern_filter({'foo', '!foo', 'foo'}, 'foo'), true)
-    t.assert_equals(t.private.pattern_filter({'foo', '!foo', 'foo', '!foo'}, 'foo'), false)
+    t.assert_equals(subject({'foo'}, 'foo'), true)
+    t.assert_equals(subject({'foo', '!foo'}, 'foo'), false)
+    t.assert_equals(subject({'foo', '!foo', 'foo'}, 'foo'), true)
+    t.assert_equals(subject({'foo', '!foo', 'foo', '!foo'}, 'foo'), false)
 
-    t.assert_equals(t.private.pattern_filter({'!foo'}, 'foo'), false)
-    t.assert_equals(t.private.pattern_filter({'!foo', 'foo'}, 'foo'), true)
-    t.assert_equals(t.private.pattern_filter({'!foo', 'foo', '!foo'}, 'foo'), false)
-    t.assert_equals(t.private.pattern_filter({'!foo', 'foo', '!foo', 'foo'}, 'foo'), true)
+    t.assert_equals(subject({'!foo'}, 'foo'), false)
+    t.assert_equals(subject({'!foo', 'foo'}, 'foo'), true)
+    t.assert_equals(subject({'!foo', 'foo', '!foo'}, 'foo'), false)
+    t.assert_equals(subject({'!foo', 'foo', '!foo', 'foo'}, 'foo'), true)
 
-    t.assert_equals(t.private.pattern_filter({'f..', '!foo', '__foo__'}, 'toto'), false)
-    t.assert_equals(t.private.pattern_filter({'f..', '!foo', '__foo__'}, 'fii'), true)
-    t.assert_equals(t.private.pattern_filter({'f..', '!foo', '__foo__'}, 'foo'), false)
-    t.assert_equals(t.private.pattern_filter({'f..', '!foo', '__foo__'}, '__foo__'), true)
+    t.assert_equals(subject({'f..', '!foo', '__foo__'}, 'toto'), false)
+    t.assert_equals(subject({'f..', '!foo', '__foo__'}, 'fii'), true)
+    t.assert_equals(subject({'f..', '!foo', '__foo__'}, 'foo'), false)
+    t.assert_equals(subject({'f..', '!foo', '__foo__'}, '__foo__'), true)
 
-    t.assert_equals(t.private.pattern_filter({'!f..', 'foo', '!__foo__'}, 'toto'), false)
-    t.assert_equals(t.private.pattern_filter({'!f..', 'foo', '!__foo__'}, 'fii'), false)
-    t.assert_equals(t.private.pattern_filter({'!f..', 'foo', '!__foo__'}, 'foo'), true)
-    t.assert_equals(t.private.pattern_filter({'!f..', 'foo', '!__foo__'}, '__foo__'), false)
+    t.assert_equals(subject({'!f..', 'foo', '!__foo__'}, 'toto'), false)
+    t.assert_equals(subject({'!f..', 'foo', '!__foo__'}, 'fii'), false)
+    t.assert_equals(subject({'!f..', 'foo', '!__foo__'}, 'foo'), true)
+    t.assert_equals(subject({'!f..', 'foo', '!__foo__'}, '__foo__'), false)
 end
 
 function g.test_filter_tests()
+    local subject = function(...)
+        local result = Runner.filter_tests(...)
+        return result[true], result[false]
+    end
     local dummy = function() end
     local testset = {
         {name = 'toto.foo', dummy}, {name = 'toto.bar', dummy},
         {name = 'tutu.foo', dummy}, {name = 'tutu.bar', dummy},
         {name = 'tata.foo', dummy}, {name = 'tata.bar', dummy},
         {name = 'foo.bar', dummy}, {name = 'foobar.test', dummy},
-  }
+    }
 
     -- default action: include everything
-    local included, excluded = t.LuaUnit.filter_tests(testset, nil)
+    local included, excluded = subject(testset, nil)
     t.assert_equals(#included, 8)
     t.assert_equals(excluded, {})
 
     -- single exclude pattern (= select anything not matching "bar")
-    included, excluded = t.LuaUnit.filter_tests(testset, {'!bar'})
+    included, excluded = subject(testset, {'!bar'})
     t.assert_equals(included, {testset[1], testset[3], testset[5]})
     t.assert_equals(#excluded, 5)
 
     -- single include pattern
-    included, excluded = t.LuaUnit.filter_tests(testset, {'t.t.'})
+    included, excluded = subject(testset, {'t.t.'})
     t.assert_equals(#included, 6)
     t.assert_equals(excluded, {testset[7], testset[8]})
 
     -- single include and exclude patterns
-    included, excluded = t.LuaUnit.filter_tests(testset, {'foo', '!test'})
+    included, excluded = subject(testset, {'foo', '!test'})
     t.assert_equals(included, {testset[1], testset[3], testset[5], testset[7]})
     t.assert_equals(#excluded, 4)
 
     -- multiple (specific) includes
-    included, excluded = t.LuaUnit.filter_tests(testset, {'toto', 'tutu'})
+    included, excluded = subject(testset, {'toto', 'tutu'})
     t.assert_equals(included, {testset[1], testset[2], testset[3], testset[4]})
     t.assert_equals(#excluded, 4)
 
     -- multiple excludes
-    included, excluded = t.LuaUnit.filter_tests(testset, {'!tata', '!%.bar'})
+    included, excluded = subject(testset, {'!tata', '!%.bar'})
     t.assert_equals(included, {testset[1], testset[3], testset[8]})
     t.assert_equals(#excluded, 5)
 
     -- combined test
-    included, excluded = t.LuaUnit.filter_tests(testset, {'t[oai]', 'bar$', 'test', '!%.b', '!tutu'})
+    included, excluded = subject(testset, {'t[oai]', 'bar$', 'test', '!%.b', '!tutu'})
     t.assert_equals(included, {testset[1], testset[5], testset[8]})
     t.assert_equals(#excluded, 5)
 
     --[[ Combining positive and negative filters ]]--
-    included, excluded = t.LuaUnit.filter_tests(testset, {'foo', 'bar', '!t.t.', '%.bar'})
+    included, excluded = subject(testset, {'foo', 'bar', '!t.t.', '%.bar'})
     t.assert_equals(included, {testset[2], testset[4], testset[6], testset[7], testset[8]})
     t.assert_equals(#excluded, 3)
 end
@@ -731,7 +710,11 @@ function g.test_str_match()
 end
 
 function g.test_expand_group()
-    t.assert_equals(t.LuaUnit.mt:expand_group({}), {})
+    local function subject(...)
+        return Runner:expand_group(...)
+    end
+
+    t.assert_equals(subject({}), {})
 
     local MyTestToto1 = {name = 'MyTestToto1'}
     MyTestToto1.test1 = function() end
@@ -740,7 +723,7 @@ function g.test_expand_group()
     MyTestToto1.testa = function() end
     MyTestToto1.test2 = function() end
     MyTestToto1.not_test = function() end
-    t.assert_equals(fun.iter(t.LuaUnit.mt:expand_group(MyTestToto1)):map(function(x) return x.name end):totable(), {
+    t.assert_equals(fun.iter(subject(MyTestToto1)):map(function(x) return x.name end):totable(), {
         'MyTestToto1.test1',
         'MyTestToto1.test2',
         'MyTestToto1.test3',
@@ -769,7 +752,9 @@ function g.test_xml_c_data_escape()
 end
 
 function g.test_stripStackTrace()
-    local realStackTrace=[[stack traceback:
+    local subject = utils.strip_luatest_trace
+
+    t.assert_equals(subject([[stack traceback:
     example_with_luaunit.lua:130: in function 'test2_withFailure'
     ./luatest/luaunit.lua:1449: in function <./luatest/luaunit.lua:1449>
     [C]: in function 'xpcall'
@@ -778,9 +763,13 @@ function g.test_stripStackTrace()
     ./luatest/luaunit.lua:1596: in function 'run_suite_by_instances'
     ./luatest/luaunit.lua:1660: in function 'run_suite_by_names'
     ./luatest/luaunit.lua:1736: in function 'run_suite']]
+        ),
+        [[stack traceback:
+    example_with_luaunit.lua:130: in function 'test2_withFailure']]
+    )
 
 
-    local realStackTrace2=[[stack traceback:
+    t.assert_equals(subject([[stack traceback:
     ./luatest/luaunit.lua:545: in function 't.assert_equals'
     example_with_luaunit.lua:58: in function 'TestToto.test7'
     ./luatest/luaunit.lua:1517: in function <./luatest/luaunit.lua:1517>
@@ -790,8 +779,12 @@ function g.test_stripStackTrace()
     ./luatest/luaunit.lua:1677: in function 'run_suite_by_instances'
     ./luatest/luaunit.lua:1730: in function 'run_suite_by_names'
     ./luatest/luaunit.lua:1806: in function 'run_suite']]
+        ),
+        [[stack traceback:
+    example_with_luaunit.lua:58: in function 'TestToto.test7']]
+    )
 
-    local realStackTrace3 = [[stack traceback:
+    t.assert_equals(subject([[stack traceback:
     luaunit2/example_with_luaunit.lua:124: in function 'test1_withFailure'
     luaunit2/luatest/luaunit.lua:1532: in function <luaunit2/luatest/luaunit.lua:1532>
     [C]: in function 'xpcall'
@@ -800,26 +793,10 @@ function g.test_stripStackTrace()
     luaunit2/luatest/luaunit.lua:1679: in function 'run_suite_by_instances'
     luaunit2/luatest/luaunit.lua:1743: in function 'run_suite_by_names'
     luaunit2/luatest/luaunit.lua:1819: in function 'run_suite']]
-
-
-    local strippedStackTrace=t.private.strip_luaunit_trace(realStackTrace)
-    -- print(strippedStackTrace)
-
-    local expectedStackTrace=[[stack traceback:
-    example_with_luaunit.lua:130: in function 'test2_withFailure']]
-    t.assert_equals(strippedStackTrace, expectedStackTrace)
-
-    strippedStackTrace=t.private.strip_luaunit_trace(realStackTrace2)
-    expectedStackTrace=[[stack traceback:
-    example_with_luaunit.lua:58: in function 'TestToto.test7']]
-    t.assert_equals(strippedStackTrace, expectedStackTrace)
-
-    strippedStackTrace=t.private.strip_luaunit_trace(realStackTrace3)
-    expectedStackTrace=[[stack traceback:
+        ),
+        [[stack traceback:
     luaunit2/example_with_luaunit.lua:124: in function 'test1_withFailure']]
-    t.assert_equals(strippedStackTrace, expectedStackTrace)
-
-
+    )
 end
 
 function g.test_eps_value()
