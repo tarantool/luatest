@@ -1,18 +1,20 @@
 local t = require('luatest')
-t.defaults({shuffle = 'group'})
-local runner = t.runner
+local Runner = require('luatest.runner')
+local utils = require('luatest.utils')
+
+t.configure({shuffle = 'group'})
 
 local helper = {}
 
 function helper.run_suite(load_tests, args)
     local luatest = dofile(package.search('luatest'))
     -- Need to supply any option to prevent luatest from taking args from _G
-    return runner.run(args or {}, {luatest = luatest, load_tests = function(...) load_tests(luatest, ...) end})
+    return Runner.run(args or {}, {luatest = luatest, load_tests = function(...) load_tests(luatest, ...) end})
 end
 
 function helper.assert_failure(...)
     local err = t.assert_error(...)
-    t.assert_equals(err.class, 'LuaUnitError', err)
+    t.assert(utils.is_luatest_error(err), err)
     return err
 end
 
