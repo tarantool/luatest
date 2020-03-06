@@ -221,7 +221,7 @@ g.test_suite_and_group_hooks_dont_run_when_no_tests_running = function()
     t.assert_equals(hooks, {})
 end
 
-g.test_suite_and_group_hooks_dont_run_when_luaunit_stops_before_suite = function()
+g.test_suite_and_group_hooks_dont_run_when_suite_is_not_launched = function()
     local hooks = {}
 
     local suite = function(lu2)
