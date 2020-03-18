@@ -52,13 +52,16 @@ g.test_run_without_capture = function()
     t.assert_equals(result, 0)
 end
 
-local function get_run_order(options)
+local function get_run_order(options, extra_loader)
     local result = {}
     local status = helper.run_suite(function(lu2)
         for i = 1, 3 do
             local g2 = lu2.group('g' .. i)
             g2.test_a = function() table.insert(result, '' .. i .. '-a') end
             g2.test_b = function() table.insert(result, '' .. i .. '-b') end
+        end
+        if extra_loader then
+            extra_loader(lu2)
         end
     end, options)
     return result, status
@@ -145,6 +148,24 @@ g.test_running_selected_files = function()
         table.insert(run_paths, path)
     end, path_args)
     t.assert_equals(run_paths, path_args)
+end
+
+g.test_fail_fast = function()
+    t.assert_equals({get_run_order({'--fail-fast'})}, {{
+        '1-a',
+        '1-b',
+        '2-a',
+        '2-b',
+        '3-a',
+        '3-b',
+    }, 0})
+    t.assert_equals({get_run_order({'--fail-fast'}, function(lu2)
+        lu2.groups.g2.test_b = function() error('fail') end
+    end)}, {{
+        '1-a',
+        '1-b',
+        '2-a',
+    }, -2})
 end
 
 g.test_show_version = function()

@@ -90,8 +90,7 @@ Options:
   -v, --verbose:          Increase verbosity
   -q, --quiet:            Set verbosity to minimum
   -c                      Disable capture
-  -e, --error:            Stop on first error
-  -f, --failure:          Stop on first failure or error
+  -f, --fail-fast:        Stop on first failure or error
   --shuffle VALUE:        Set execution order:
                             - group[:seed] - shuffle tests within group
                             - all[:seed] - shuffle all tests
@@ -1778,10 +1777,8 @@ M.LuaUnit.mt.shuffle = 'none'
                 result.verbosity = M.VERBOSITY_VERBOSE
             elseif option == '--quiet' or option == '-q' then
                 result.verbosity = M.VERBOSITY_QUIET
-            elseif option == '--error' or option == '-e' then
-                result.quit_on_error = true
-            elseif option == '--failure' or option == '-f' then
-                result.quit_on_failure = true
+            elseif option == '--fail-fast' or option == '-f' then
+                result.fail_fast = true
             elseif option == '--shuffle' or option == '-s' then
                 return 'SET_SHUFFLE'
             elseif option == '--seed' then
@@ -1984,10 +1981,8 @@ M.LuaUnit.mt.shuffle = 'none'
         node.start_time = nil
         self.output:end_test(node)
 
-        if node:is('error') then
-            self.result.aborted = self.quit_on_error or self.quit_on_failure
-        elseif node:is('fail') then
-            self.result.aborted = self.quit_on_failure
+        if node:is('error') or node:is('fail') then
+            self.result.aborted = self.fail_fast
         elseif not node:is('success') and not node:is('skip') then
             error('No such node status: ' .. prettystr(node.status))
         end
@@ -2078,7 +2073,7 @@ M.LuaUnit.mt.shuffle = 'none'
             end
             self:run_test(test)
             if self.result.aborted then
-                break -- "--error" or "--failure" option triggered
+                break
             end
         end
         if last_group then
@@ -2164,8 +2159,7 @@ M.LuaUnit.mt.shuffle = 'none'
     -- Available options are:
     --
     --   - verbosity
-    --   - quit_on_error
-    --   - quit_on_failure
+    --   - fail_fast
     --   - output_file_name
     --   - exe_repeat
     --   - tests_pattern
@@ -2209,7 +2203,7 @@ M.LuaUnit.mt.shuffle = 'none'
         self:run_tests(filtered_list)
         self:end_suite()
         if self.result.aborted then
-            print("Test suite ABORTED (as requested by --error or --failure option)")
+            print("Test suite ABORTED because of --fail-fast option")
             os_exit(-2)
         end
         return self.result.failures_count
