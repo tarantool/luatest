@@ -16,10 +16,7 @@ local function patch_luatest(lu)
             require(runner.HELPER_MODULE)
         end
 
-        local paths = options.paths
-        if #options.paths == 0 then
-            paths = {runner.SOURCE_DIR}
-        end
+        local paths = options.paths or {runner.SOURCE_DIR}
         local load_tests = options.load_tests or loader.require_tests
         for _, path in pairs(paths) do
             load_tests(path)

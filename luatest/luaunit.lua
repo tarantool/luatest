@@ -1758,108 +1758,70 @@ M.LuaUnit.mt.shuffle = 'none'
         return string.sub(s, 1, 4):lower() == 'test'
     end
 
-    function M.LuaUnit.parse_cmd_line( cmdLine )
-        -- parse the command line
-        -- See M.USAGE for supported options.
+    function M.LuaUnit.parse_cmd_line(args)
+        local result = {}
 
-        local result, state = {paths = {}}, nil
-
-        if cmdLine == nil then
-            return result
-        end
-
-        local function parse_option( option )
-            if option == '--help' or option == '-h' then
-                M.LuaUnit.help()
-            elseif option == '--version' then
-                M.LuaUnit.version()
-            elseif option == '--verbose' or option == '-v' then
-                result.verbosity = M.VERBOSITY_VERBOSE
-            elseif option == '--quiet' or option == '-q' then
-                result.verbosity = M.VERBOSITY_QUIET
-            elseif option == '--fail-fast' or option == '-f' then
-                result.fail_fast = true
-            elseif option == '--shuffle' or option == '-s' then
-                return 'SET_SHUFFLE'
-            elseif option == '--seed' then
-                return 'SET_SEED'
-            elseif option == '--output' or option == '-o' then
-                return 'SET_OUTPUT'
-            elseif option == '--name' or option == '-n' then
-                return 'SET_OUTPUT_FILENAME'
-            elseif option == '--repeat' or option == '-r' then
-                return 'SET_REPEAT'
-            elseif option == '--pattern' or option == '-p' then
-                return 'SET_PATTERN'
-            elseif option == '--exclude' or option == '-x' then
-                return 'SET_EXCLUDE'
-            elseif option == '-c' then
-                result.enable_capture = false
-            elseif option == '--coverage' then
-                result.coverage_report = true
-            else
-                error('Unknown option: '..option,3)
+        local arg_n = 0
+        local function next_arg(optional)
+            arg_n = arg_n + 1
+            local arg = args and args[arg_n]
+            if arg == nil and not optional then
+                error('Missing argument after ' .. args[#args])
             end
+            return arg
         end
 
-        local function set_arg(cmdArg)
-            if state == 'SET_OUTPUT' then
-                result.output = cmdArg
-            elseif state == 'SET_OUTPUT_FILENAME' then
-                result.output_file_name = cmdArg
-            elseif state == 'SET_REPEAT' then
-                result.exe_repeat = tonumber(cmdArg)
-                                     or error('Malformed -r argument: '..cmdArg)
-            elseif state == 'SET_PATTERN' then
-                if result.tests_pattern then
-                    table.insert( result.tests_pattern, cmdArg )
-                else
-                    result.tests_pattern = { cmdArg }
-                end
-            elseif state == 'SET_EXCLUDE' then
-                local notArg = '!'..cmdArg
-                if result.tests_pattern then
-                    table.insert( result.tests_pattern,  notArg )
-                else
-                    result.tests_pattern = { notArg }
-                end
-            elseif state == 'SET_SHUFFLE' then
+        while true do
+            local arg = next_arg(true)
+            if arg == nil then
+                break
+            elseif arg == '--help' or arg == '-h' then
+                M.LuaUnit.help()
+            elseif arg == '--version' then
+                M.LuaUnit.version()
+            elseif arg == '--verbose' or arg == '-v' then
+                result.verbosity = M.VERBOSITY_VERBOSE
+            elseif arg == '--quiet' or arg == '-q' then
+                result.verbosity = M.VERBOSITY_QUIET
+            elseif arg == '--fail-fast' or arg == '-f' then
+                result.fail_fast = true
+            elseif arg == '--shuffle' or arg == '-s' then
                 local seed
-                result.shuffle, seed = unpack(cmdArg:split(':'))
+                result.shuffle, seed = unpack(next_arg():split(':'))
                 if seed then
                     result.seed = tonumber(seed) or error('Invalid seed value')
                 end
-            elseif state == 'SET_SEED' then
-                result.seed = tonumber(cmdArg) or error('Invalid seed value')
-            else
-                error('Unknown parse state: '.. state)
-            end
-        end
-
-
-        for _, cmdArg in ipairs(cmdLine) do
-            if state ~= nil then
-                set_arg(cmdArg)
-                state = nil
-            else
-                if cmdArg:sub(1,1) == '-' then
-                    state = parse_option( cmdArg )
+            elseif arg == '--seed' then
+                result.seed = tonumber(next_arg()) or error('Invalid seed value')
+            elseif arg == '--output' or arg == '-o' then
+                result.output = next_arg()
+            elseif arg == '--name' or arg == '-n' then
+                result.output_file_name = next_arg()
+            elseif arg == '--repeat' or arg == '-r' then
+                result.exe_repeat = tonumber(next_arg()) or error('Invalid value for -r option. Integer required.')
+            elseif arg == '--pattern' or arg == '-p' then
+                result.tests_pattern = result.tests_pattern or {}
+                table.insert(result.tests_pattern, next_arg())
+            elseif arg == '--exclude' or arg == '-x' then
+                result.tests_pattern = result.tests_pattern or {}
+                table.insert(result.tests_pattern, '!' .. next_arg())
+            elseif arg == '-b' then
+                result.full_backtrace = true
+            elseif arg == '-c' then
+                result.enable_capture = false
+            elseif arg == '--coverage' then
+                result.coverage_report = true
+            elseif arg:sub(1,1) == '-' then
+                error('Unknown option: ' .. arg)
+            elseif arg:find('/') then
                 -- If argument contains / then it's treated as file path.
                 -- This assumption to support luaunit's test names along with file paths.
-                elseif cmdArg:find('/') then
-                    table.insert(result.paths, cmdArg)
-                else
-                    if result.test_names then
-                        table.insert( result.test_names, cmdArg )
-                    else
-                        result.test_names = { cmdArg }
-                    end
-                end
+                result.paths = result.paths or {}
+                table.insert(result.paths, arg)
+            else
+                result.test_names = result.test_names or {}
+                table.insert(result.test_names, arg)
             end
-        end
-
-        if state ~= nil then
-            error('Missing argument after '..cmdLine[ #cmdLine ],2 )
         end
 
         return result

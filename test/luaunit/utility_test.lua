@@ -568,9 +568,9 @@ function g.test_is_method_test_name()
 end
 
 function g.test_parse_cmd_line()
+    local subject = t.LuaUnit.parse_cmd_line
     local function assert_subject(args, expected)
-        expected.paths = {}
-        t.assert_equals(t.LuaUnit.parse_cmd_line(args), expected)
+        t.assert_equals(subject(args), expected)
     end
     --test names
     assert_subject(nil, {})
@@ -587,29 +587,29 @@ function g.test_parse_cmd_line()
     --output
     assert_subject({'--output', 'toto'}, {output='toto'})
     assert_subject({'-o', 'toto'}, {output='toto'})
-    t.assert_error_msg_contains('Missing argument after -o', t.LuaUnit.parse_cmd_line, {'-o',})
+    t.assert_error_msg_contains('Missing argument after -o', subject, {'-o',})
 
     --name
     assert_subject({'--name', 'toto'}, {output_file_name='toto'})
     assert_subject({'-n', 'toto'}, {output_file_name='toto'})
-    t.assert_error_msg_contains('Missing argument after -n', t.LuaUnit.parse_cmd_line, {'-n',})
+    t.assert_error_msg_contains('Missing argument after -n', subject, {'-n',})
 
     --patterns
     assert_subject({'--pattern', 'toto'}, {tests_pattern={'toto'}})
     assert_subject({'-p', 'toto'}, {tests_pattern={'toto'}})
     assert_subject({'-p', 'tutu', '-p', 'toto'}, {tests_pattern={'tutu', 'toto'}})
-    t.assert_error_msg_contains('Missing argument after -p', t.LuaUnit.parse_cmd_line, {'-p',})
+    t.assert_error_msg_contains('Missing argument after -p', subject, {'-p',})
     assert_subject({'--exclude', 'toto'}, {tests_pattern={'!toto'}})
     assert_subject({'-x', 'toto'}, {tests_pattern={'!toto'}})
     assert_subject({'-x', 'tutu', '-x', 'toto'}, {tests_pattern={'!tutu', '!toto'}})
     assert_subject({'-x', 'tutu', '-p', 'foo', '-x', 'toto'}, {tests_pattern={'!tutu', 'foo', '!toto'}})
-    t.assert_error_msg_contains('Missing argument after -x', t.LuaUnit.parse_cmd_line, {'-x',})
+    t.assert_error_msg_contains('Missing argument after -x', subject, {'-x',})
 
     -- repeat
     assert_subject({'--repeat', '123'}, {exe_repeat=123})
     assert_subject({'-r', '123'}, {exe_repeat=123})
-    t.assert_error_msg_contains('Malformed -r argument', t.LuaUnit.parse_cmd_line, {'-r', 'bad'})
-    t.assert_error_msg_contains('Missing argument after -r', t.LuaUnit.parse_cmd_line, {'-r',})
+    t.assert_error_msg_contains('Invalid value for -r option. Integer required', subject, {'-r', 'bad'})
+    t.assert_error_msg_contains('Missing argument after -r', subject, {'-r',})
 
     -- shuffle
     assert_subject({'--shuffle', 'all'}, {shuffle='all'})
@@ -624,7 +624,7 @@ function g.test_parse_cmd_line()
         output_file_name='toto.xml',
     })
 
-    t.assert_error_msg_contains('option: -$', t.LuaUnit.parse_cmd_line, {'-$',})
+    t.assert_error_msg_contains('option: -$', subject, {'-$',})
 end
 
 function g.test_pattern_filter()
