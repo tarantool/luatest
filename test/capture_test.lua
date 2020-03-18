@@ -158,3 +158,11 @@ g.test_wrap_nested = function()
     t.assert_equals(capture:flush(), {stdout = 'test-out-2', stderr = 'test-err-2'})
     t.assert_equals(test_capture:flush(), {stdout = 'test-out', stderr = 'test-err'})
 end
+
+g.test_re_enable_disable = function()
+    capture:enable()
+    t.assert_error_msg_contains('Already capturing', function() capture:enable(true) end)
+    capture:disable()
+    capture:disable()
+    t.assert_error_msg_contains('Not capturing', function() capture:disable(true) end)
+end

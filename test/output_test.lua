@@ -41,10 +41,14 @@ group-name.test_3
     t.assert_not_str_contains(captured.stdout, 'group-name.test_4')
 end
 
-local output_presets = {verbose = {'-v'}}
-for output_type in pairs(t.OutputTypes) do
-    output_presets[output_type] = {'-o', output_type, '-n', 'tmp/test_junit'}
-end
+local output_presets = {
+    verbose = {'-v'},
+    text = {'-o', 'text'},
+    junit = {'-o', 'junit', '-n', 'tmp/test_junit'},
+    tap = {'-o', 'tap'},
+    tap_verbose = {'-o', 'tap', '-v'},
+    ['nil'] = {'-o', 'nil'},
+}
 
 for output_type, options in pairs(output_presets) do
     g['test_' .. output_type .. '_output'] = function()
@@ -69,6 +73,11 @@ for output_type, options in pairs(output_presets) do
             g2.test_6 = function() lu2.success() end
             g2.test_7 = function() lu2.success('success-msg') end
             g2.test_8 = function() end
+        end, options), 0)
+
+        t.assert_equals(helper.run_suite(function(lu2)
+            local g2 = lu2.group('group-name')
+            g2.test_2 = function() end
         end, options), 0)
     end
 end

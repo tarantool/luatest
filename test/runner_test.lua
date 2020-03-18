@@ -1,6 +1,7 @@
 local t = require('luatest')
 local g = t.group('runner')
 
+local Capture = require('luatest.capture')
 local helper = require('test.helper')
 
 g.test_run_pass = function()
@@ -98,6 +99,14 @@ g.test_run_shuffle = function()
         '1-a',
         '1-b',
     })
+    t.assert_equals(get_run_order({'--shuffle', 'all', '--seed', '1'}), {
+        '3-b',
+        '2-a',
+        '3-a',
+        '2-b',
+        '1-a',
+        '1-b',
+    })
 end
 
 g.test_pattern_and_exclude = function()
@@ -127,4 +136,35 @@ end
 g.test_running_invalid_selected_tests = function()
     t.assert_equals({get_run_order({'g-invalid'})}, {{}, -1})
     t.assert_equals({get_run_order({'g1.test_invlid'})}, {{}, -1})
+end
+
+g.test_running_selected_files = function()
+    local run_paths = {}
+    local path_args = {'a/b/c', 'd/e.lua'}
+    helper.run_suite(function(_, path)
+        table.insert(run_paths, path)
+    end, path_args)
+    t.assert_equals(run_paths, path_args)
+end
+
+g.test_show_version = function()
+    local capture = Capture:new()
+    capture:wrap(true, function()
+        helper.run_suite(function()
+            error('must not be called')
+        end, {'--version'})
+    end)
+    local captured = capture:flush()
+    t.assert_equals(captured.stdout, 'luatest v' .. t.VERSION .. '\n')
+end
+
+g.test_show_help = function()
+    local capture = Capture:new()
+    capture:wrap(true, function()
+        helper.run_suite(function()
+            error('must not be called')
+        end, {'--help'})
+    end)
+    local captured = capture:flush()
+    t.assert_str_contains(captured.stdout, 'Usage: luatest')
 end
