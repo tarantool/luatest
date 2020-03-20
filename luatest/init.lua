@@ -1,7 +1,7 @@
 --- Tool for testing tarantool applications.
 --
 -- @module luatest
-local luatest = table.copy(require('luatest.luaunit'))
+local luatest = setmetatable({}, {__index = require('luatest.assertions')})
 
 luatest.Process = require('luatest.process')
 luatest.VERSION = require('luatest.VERSION')
