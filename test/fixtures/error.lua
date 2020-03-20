@@ -1,5 +1,5 @@
 local t = require('luatest')
-local g = t.group('pass')
+local g = t.group('fixtures.error')
 
 g.test_1 = function()
   t.assert_equals(1, 1)

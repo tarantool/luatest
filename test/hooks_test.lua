@@ -1,5 +1,5 @@
 local t = require('luatest')
-local g = t.group('hooks')
+local g = t.group()
 
 local helper = require('test.helper')
 

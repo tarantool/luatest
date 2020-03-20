@@ -2,7 +2,7 @@ local fio = require('fio')
 local json = require('json')
 
 local t = require('luatest')
-local g = t.group('server')
+local g = t.group()
 
 local Process = t.Process
 local Server = t.Server
