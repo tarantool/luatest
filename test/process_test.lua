@@ -1,5 +1,5 @@
 local t = require('luatest')
-local g = t.group('process')
+local g = t.group()
 
 local fiber = require('fiber')
 local fio = require('fio')
