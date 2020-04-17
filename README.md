@@ -186,7 +186,11 @@ server:start()
 -- http requests
 server:http_request('get', '/path')
 server:http_request('post', '/path', {body = 'text'})
-server:http_request('post', '/path', {json = {field = value}})
+server:http_request('post', '/path', {json = {field = value}, http = {
+    -- http client options
+    headers = {Authorization = 'Basic ' .. credentials},
+    timeout = 1,
+}})
 
 -- This method throws error when response status is outside of then range 200..299.
 -- To change this behaviour, path `raise = false`:
