@@ -68,8 +68,8 @@ function utils.strip_luatest_trace(trace)
     local keep = true
     for i = 2, table.maxn(lines) do
         local line = lines[i]
-        -- `[C]:` lines and `...` don't change context
-        if not line:find('^%s+%[C%]:') and not line:find('^%s+%.%.%.') then
+        -- `[C]:` lines don't change context
+        if not line:find('^%s+%[C%]:') then
             keep = not is_luatest_internal_line(line)
         end
         if keep then

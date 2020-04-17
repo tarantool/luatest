@@ -4,6 +4,7 @@
 - String values in errors are printed as valid Lua strings (with `%q` formatter).
 - Add `TARANTOOL_DIR` to rockspec build.variables
 - Replace `--error` and  `--failure` options with `--fail-fast`.
+- Fix stripping luatest trace from backtrace.
 
 # 0.5.0
 

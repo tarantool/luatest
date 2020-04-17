@@ -785,6 +785,21 @@ function g.test_stripStackTrace()
     )
 
     t.assert_equals(subject([[stack traceback:
+    ...suffix/luatest/luaunit.lua:545: in function 't.assert_equals'
+    ...suffix/test/example_with_luaunit.lua:58: in function 'TestToto.test7'
+    ...suffix/luatest/luaunit.lua:1517: in function <...suffix/luatest/luaunit.lua:1517>
+    [C]: in function 'xpcall'
+    ...suffix/luatest/luaunit.lua:1517: in function 'protected_call'
+    ...suffix/luatest/luaunit.lua:1578: in function 'exec_one_function'
+    ...suffix/luatest/luaunit.lua:1677: in function 'run_suite_by_instances'
+    ...suffix/luatest/luaunit.lua:1730: in function 'run_suite_by_names'
+    ...suffix/luatest/luaunit.lua:1806: in function 'run_suite']]
+        ),
+        [[stack traceback:
+    ...suffix/test/example_with_luaunit.lua:58: in function 'TestToto.test7']]
+    )
+
+    t.assert_equals(subject([[stack traceback:
     luaunit2/example_with_luaunit.lua:124: in function 'test1_withFailure'
     luaunit2/luatest/luaunit.lua:1532: in function <luaunit2/luatest/luaunit.lua:1532>
     [C]: in function 'xpcall'
