@@ -1,5 +1,7 @@
 # Unreleased
 
+# 0.5.1
+
 - Assertions pretty-prints non-string extra messages (useful for custom errors as tables).
 - String values in errors are printed as valid Lua strings (with `%q` formatter).
 - Add `TARANTOOL_DIR` to rockspec build.variables

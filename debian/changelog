@@ -1,3 +1,14 @@
+luatest (0.5.1-1) unstable; urgency=medium
+
+  * Assertions pretty-prints non-string extra messages (useful for custom errors as tables).
+  * String values in errors are printed as valid Lua strings (with `%q` formatter).
+  * Add `TARANTOOL_DIR` to rockspec build.variables
+  * Replace `--error` and  `--failure` options with `--fail-fast`.
+  * Fix stripping luatest trace from backtrace.
+  * Fix luarocks 3 test engine installation.
+
+ -- Maxim Melentiev <m.melentiev@corp.mail.ru>  Tue, 21 Apr 2020 13:00:00 +0300
+
 luatest (0.5.0-1) unstable; urgency=medium
 
   * `assert_is` treats `box.NULL` and `nil` as different values.
