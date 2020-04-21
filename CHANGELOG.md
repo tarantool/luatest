@@ -5,6 +5,7 @@
 - Add `TARANTOOL_DIR` to rockspec build.variables
 - Replace `--error` and  `--failure` options with `--fail-fast`.
 - Fix stripping luatest trace from backtrace.
+- Fix luarocks 3 test engine installation.
 
 # 0.5.0
 
