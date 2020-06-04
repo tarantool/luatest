@@ -158,6 +158,16 @@ function Server:connect_net_box()
     self.net_box = connection
 end
 
+local function is_header_set(headers, name)
+    name = name:lower()
+    for key in pairs(headers) do
+        if name == tostring(key):lower() then
+            return true
+        end
+    end
+    return false
+end
+
 --- Perform HTTP request.
 -- @string method
 -- @string path
@@ -177,8 +187,15 @@ function Server:http_request(method, path, options)
     if options.raw ~= nil then
         error('`raw` option for http_request is removed, please replace `raw = true` => `raise = false`')
     end
-    local body = options.body or (options.json and json.encode(options.json))
     local http_options = options.http or {}
+    local body = options.body
+    if not body and options.json then
+        body = json.encode(options.json)
+        http_options.headers = http_options.headers or {}
+        if not is_header_set(http_options.headers, 'Content-Type') then
+            http_options.headers['Content-Type'] = 'application/json'
+        end
+    end
     local url = 'http://localhost:' .. self.http_port .. path
     local response = self.http_client:request(method, url, body, http_options)
     local ok, json_body = pcall(json.decode, response.body)
