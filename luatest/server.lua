@@ -9,6 +9,7 @@ local log = require('log')
 local net_box = require('net.box')
 local _, luacov_runner = pcall(require, 'luacov.runner') -- luacov may not be installed
 
+local HTTPResponse = require('luatest.http_response')
 local Process = require('luatest.process')
 local utils = require('luatest.utils')
 
@@ -176,8 +177,8 @@ end
 -- @param[opt] options.json data to encode as JSON into request body
 -- @tab[opt] options.http other options for HTTP-client
 -- @bool[opt] options.raise raise error when status is not in 200..299. Default to true.
--- @return response object from HTTP client.
---   If response body is valid JSON it's parsed into `json` field.
+-- @return response object from HTTP client with helper methods.
+-- @see luatest.http_response
 -- @raise HTTPRequest error when response status is not 200.
 function Server:http_request(method, path, options)
     if not self.http_client then
@@ -197,12 +198,9 @@ function Server:http_request(method, path, options)
         end
     end
     local url = 'http://localhost:' .. self.http_port .. path
-    local response = self.http_client:request(method, url, body, http_options)
-    local ok, json_body = pcall(json.decode, response.body)
-    if ok then
-        response.json = json_body
-    end
-    if response.status < 200 or response.status > 299 then
+    local raw_response = self.http_client:request(method, url, body, http_options)
+    local response = HTTPResponse:from(raw_response)
+    if not response:is_successful() then
         if options.raise == nil or options.raise then
             error({type = 'HTTPRequest', response = response})
         end
