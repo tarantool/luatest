@@ -1,5 +1,7 @@
 # Unreleased
 
+- Set `Content-Type: application/json` for `:http_request(..., {json = ...})` requests.
+
 # 0.5.1
 
 - Assertions pretty-prints non-string extra messages (useful for custom errors as tables).

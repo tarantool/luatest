@@ -30,7 +30,10 @@ httpd:route({path = '/test', method = 'GET'}, function()
 end)
 
 httpd:route({path = '/echo', method = 'post'}, function(request)
-    return {status = 200, body = request:read()}
+    return {status = 200, body = json.encode({
+        body = request:read(),
+        request_headers = request.headers,
+    })}
 end)
 
 httpd:route({path = '/test', method = 'post'}, function(request)

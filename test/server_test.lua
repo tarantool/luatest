@@ -63,10 +63,30 @@ g.test_http_request = function()
     t.assert_equals(response.json, expected)
 end
 
+g.test_http_request_post_body = function()
+    local value = "{field = 'data'}"
+    local response = server:http_request('post', '/echo', {body = value})
+    t.assert_equals(response.json.body, value)
+    t.assert_equals(response.json.request_headers['content-type'], 'application/x-www-form-urlencoded')
+end
+
 g.test_http_request_post_json = function()
     local value = {field = 'data'}
     local response = server:http_request('post', '/echo', {json = value})
-    t.assert_equals(response.json, value)
+    t.assert_equals(response.json.body, json.encode(value))
+    t.assert_equals(response.json.request_headers['content-type'], 'application/json')
+end
+
+g.test_http_request_post_json_with_custom_headers = function()
+    local value = {field = 'data'}
+    local response = server:http_request('post', '/echo', {json = value, http = {headers = {head_key = 'head_val'}}})
+    t.assert_equals(response.json.body, json.encode(value))
+    t.assert_equals(response.json.request_headers['content-type'], 'application/json')
+    t.assert_equals(response.json.request_headers.head_key, 'head_val')
+
+    response = server:http_request('post', '/echo', {json = value, http = {headers = {['Content-Type'] = 'head_val'}}})
+    t.assert_equals(response.json.body, json.encode(value))
+    t.assert_equals(response.json.request_headers['content-type'], 'head_val')
 end
 
 g.test_http_request_post_created = function()
