@@ -18,7 +18,7 @@ function export.gc_sandboxed(fn)
         filter(function(x) return not original[x] end):
         totable()
     for _, name in pairs(new_packages) do
-        package.loaded[name] = nil -- luacheck: no global
+        package.loaded[name] = nil
     end
     collectgarbage()
     return result

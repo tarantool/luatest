@@ -182,6 +182,10 @@ local server = luatest.Server:new({
     net_box_credentials = {user = 'username', password = 'secret'},
 })
 server:start()
+-- Wait until server is ready to accept conections.
+-- This may vary from app to app: for one server:connect_net_box() is enough,
+-- for another more complex checks are required.
+luatest.helpers.retrying({}, function() server:http_request('get', '/ping') end)
 
 -- http requests
 server:http_request('get', '/path')
