@@ -1,5 +1,6 @@
-sudo: false
-language: minimal
+os: linux
+dist: xenial
+language: shell
 services:
   - docker
 
@@ -8,16 +9,18 @@ env:
     - ROCK_NAME=luatest
     - PRODUCT=luatest
 
+stages:
+  - test
+  - name: deploy
+    if: (type = push) AND (branch = master OR tag IS present)
+
 before_script:
   - git describe --long
 
 _test: &test
   before_install:
-    - curl http://download.tarantool.org/tarantool/$TARANTOOL_VERSION/gpgkey | sudo apt-key add -
-    - echo "deb http://download.tarantool.org/tarantool/$TARANTOOL_VERSION/ubuntu/ xenial main" |
-      sudo tee /etc/apt/sources.list.d/tarantool.list
-    - sudo apt-get -y update
-    - sudo apt-get install -y tarantool tarantool-dev
+    - curl -L https://tarantool.io/installer.sh | VER=2.3 sudo -E bash
+    - sudo apt install tarantool-dev
   script:
     - cmake .
     - make lint test_with_coverage_report
@@ -29,7 +32,6 @@ _deploy_to_packagecloud: &deploy_to_packagecloud
   dist: $OS/$DIST
   package_glob: build/*.{rpm,deb}
   skip_cleanup: true
-  # Deploy only tags
   on:
     tags: true
 
@@ -49,6 +51,8 @@ _packpack: &packpack
       repository: '2x'
     - <<: *deploy_to_packagecloud
       repository: '2_2'
+    - <<: *deploy_to_packagecloud
+      repository: '2_3'
 
 jobs:
   include:
@@ -77,6 +81,7 @@ jobs:
       env: OS=el DIST=7
     - <<: *packpack
       env: OS=el DIST=8
+      stage: test # test rpm packaging
     - <<: *packpack
       env: OS=fedora DIST=30
     - <<: *packpack
@@ -85,6 +90,7 @@ jobs:
       env: OS=ubuntu DIST=xenial
     - <<: *packpack
       env: OS=ubuntu DIST=bionic
+      stage: test # test deb packaging
     - <<: *packpack
       env: OS=ubuntu DIST=eoan
     - <<: *packpack
