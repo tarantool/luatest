@@ -1,5 +1,5 @@
 Name: luatest
-Version: 0.5.1
+Version: 0.5.2
 Release: 1%{?dist}
 Summary: Tarantool test framework
 Group: Applications/Databases
@@ -36,6 +36,10 @@ ctest -VV
 %license LICENSE
 
 %changelog
+* Thu Jun 25 2020 Maxim Melentiev <m.melentiev@corp.mail.ru> 0.5.2-1
+- Throw parser error when .json is accessed on response with invalid body.
+- Set `Content-Type: application/json` for `:http_request(..., {json = ...})` requests.
+
 * Tue Apr 21 2020 Maxim Melentiev <m.melentiev@corp.mail.ru> 0.5.1-1
 - Assertions pretty-prints non-string extra messages (useful for custom errors as tables).
 - String values in errors are printed as valid Lua strings (with `%q` formatter).

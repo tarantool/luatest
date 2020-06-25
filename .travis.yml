@@ -69,6 +69,7 @@ jobs:
             https://$ROCKS_USERNAME:$ROCKS_PASSWORD@rocks.tarantool.org
         - on:
             tags: true
+            all_branches: true
           provider: script
           script: cat $ROCK_NAME-scm-1.rockspec |
             sed -E

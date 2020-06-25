@@ -1,5 +1,7 @@
 # Unreleased
 
+# 0.5.2
+
 - Throw parser error when .json is accessed on response with invalid body.
 - Set `Content-Type: application/json` for `:http_request(..., {json = ...})` requests.
 

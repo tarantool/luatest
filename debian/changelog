@@ -1,3 +1,10 @@
+luatest (0.5.2-1) unstable; urgency=medium
+
+- Throw parser error when .json is accessed on response with invalid body.
+- Set `Content-Type: application/json` for `:http_request(..., {json = ...})` requests.
+
+ -- Maxim Melentiev <m.melentiev@corp.mail.ru>  Thu, 25 Jun 2020 13:00:00 +0300
+
 luatest (0.5.1-1) unstable; urgency=medium
 
   * Assertions pretty-prints non-string extra messages (useful for custom errors as tables).
