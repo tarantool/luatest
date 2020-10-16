@@ -24,8 +24,7 @@ local function find_closest_matching_frame(pattern)
     end
 end
 
---- Instance methods
--- @section
+-- @section Instance methods
 
 --- Add callback to run once before all tests in the group.
 -- @function Group.mt.before_all

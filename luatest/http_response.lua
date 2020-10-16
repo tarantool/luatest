@@ -14,9 +14,7 @@ function HTTPResponse.mt:__index(method_name)
     end
 end
 
---- Instance getter methods
---
--- @section
+-- @section Instance getter methods
 
 -- For backward compatibility this methods should be accessed
 -- as object's fields (eg., `response.json.id`).
@@ -32,8 +30,7 @@ function HTTPResponse.getters:json()
     return self.json
 end
 
---- Instance methods
--- @section
+-- @section Instance methods
 
 --- Check that status code is 2xx.
 function HTTPResponse.mt:is_successful()
