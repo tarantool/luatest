@@ -207,8 +207,7 @@ function Runner:expand_group(group)
     return result
 end
 
---- Instance methods
--- @section
+-- @section Instance methods
 
 function Runner.mt:initialize()
     if self.coverage_report then
