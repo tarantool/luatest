@@ -9,9 +9,9 @@ Highlights:
 - executable to run tests in directory or specific files,
 - before/after suite hooks,
 - before/after test group hooks,
-- :ref:`output capturing <capturing-output>`,
-- :ref:`helpers <test-helpers>` for testing tarantool applications,
-- :ref:`luacov integration <luacov-integration>`.
+- `output capturing <Capturing output_>`_,
+- `helpers <Test helpers_>`_ for testing tarantool applications,
+- `luacov integration <luacov integration_>`_.
 
 ---------------------------------
 Requirements
@@ -23,7 +23,7 @@ Requirements
 Installation
 ---------------------------------
 
-.. code-block:: none
+.. code-block:: bash
 
     tarantoolctl rocks install luatest
 
@@ -70,20 +70,19 @@ Define tests.
 
 Run them.
 
-.. code-block:: none
+.. code-block:: bash
 
-    luatest                               # all in ./test directory
-    luatest test/feature_test.lua         # by file
-    luatest test/integration              # all within directory
-    luatest feature other.test_example_2  # by group or test name
-    luatest --help # list available options
+    luatest --help                        # list available options
+    luatest                               # run all in ./test directory
+    luatest test/feature_test.lua         # run test by file
+    luatest test/integration              # run all within directory
+    luatest feature other.test_example_2  # run by group or test name
 
 Luatest automatically requires ``test/helper.lua`` file if it's present.
 You can configure luatest or run any bootstrap code there.
 
-See test directory template in
-`cartridge-cli repo <https://github.com/tarantool/cartridge-cli/tree/master/templates/cartridge/test>`_
-or in its `getting-started example <https://github.com/tarantool/cartridge-cli/tree/master/examples/getting-started-app/test>`_.
+See the `getting-started example <https://github.com/tarantool/cartridge-cli/tree/master/examples/getting-started-app/test>`_
+in cartridge-cli repo.
 
 ---------------------------------
 Tests order
@@ -103,7 +102,7 @@ are defined (eventually they are ordered by functions line numbers).
 
 With ``group`` and ``all`` you can also specify a ``seed`` to reproduce specific order.
 
-.. code-block:: none
+.. code-block:: bash
 
     --shuffle none
     --shuffle group
