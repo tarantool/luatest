@@ -1,4 +1,4 @@
-# luatest
+# Overview
 
 [![Build Status](https://travis-ci.com/tarantool/luatest.svg?branch=master)](https://travis-ci.com/tarantool/luatest)
 
@@ -161,7 +161,7 @@ Capturing can be disabled with `-c` flag.
 
 There are helpers to run tarantool applications and perform basic interaction with it.
 If application follows configuration conventions it's possible to use
-options to confegure server instance and helpers at the same time. For example
+options to configure server instance and helpers at the same time. For example
 `http_port` is used to perform http request in tests and passed in `TARANTOOL_HTTP_PORT`
 to server process.
 
@@ -182,7 +182,7 @@ local server = luatest.Server:new({
     net_box_credentials = {user = 'username', password = 'secret'},
 })
 server:start()
--- Wait until server is ready to accept conections.
+-- Wait until server is ready to accept connections.
 -- This may vary from app to app: for one server:connect_net_box() is enough,
 -- for another more complex checks are required.
 luatest.helpers.retrying({}, function() server:http_request('get', '/ping') end)
@@ -244,7 +244,7 @@ However this has some limitations:
 - Check out the repo.
 - Prepare makefile with `cmake .`.
 - Install dependencies with `make bootstrap`.
-- Run it with `make lint` before commiting changes.
+- Run it with `make lint` before committing changes.
 - Run tests with `bin/luatest`.
 
 ## Contributing

@@ -1,5 +1,4 @@
---- Tool for testing tarantool applications.
---
+---
 -- @module luatest
 local luatest = setmetatable({}, {__index = require('luatest.assertions')})
 
@@ -7,10 +6,12 @@ luatest.Process = require('luatest.process')
 luatest.VERSION = require('luatest.VERSION')
 
 --- Helpers.
+--
 -- @see luatest.helpers
 luatest.helpers = require('luatest.helpers')
 
 --- Class to manage tarantool instances.
+--
 -- @see luatest.server
 luatest.Server = require('luatest.server')
 
