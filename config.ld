@@ -7,9 +7,5 @@ file = {
     'luatest/runner.lua',
     'luatest/server.lua',
 }
-topics = {
-    'README.md',
-    'CHANGELOG.md',
-}
 format = 'markdown'
 sort = true

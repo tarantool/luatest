@@ -166,7 +166,7 @@ function Runner.parse_cmd_line(args)
     return result
 end
 
--- Split `some.group.name.method` into `some.group.name` and `method`.
+--- Split `some.group.name.method` into `some.group.name` and `method`.
 -- Returns `nil, input` if input value does not have a dot.
 function Runner.split_test_method_name(someName)
     local separator
@@ -182,7 +182,7 @@ function Runner.split_test_method_name(someName)
     return nil, someName
 end
 
--- Check that string matches the name of a test method.
+--- Check that string matches the name of a test method.
 -- Default rule is that is starts with 'test'
 function Runner.is_test_name(s)
     return string.sub(s, 1, 4):lower() == 'test'
@@ -196,7 +196,7 @@ function Runner.filter_tests(tests, patterns)
     return result
 end
 
--- Exrtact all test methods from group.
+--- Exrtact all test methods from group.
 function Runner:expand_group(group)
     local result = {}
     for method_name in sorted_pairs(group) do
@@ -207,7 +207,8 @@ function Runner:expand_group(group)
     return result
 end
 
--- @section Instance methods
+--- Instance methods
+-- @section methods
 
 function Runner.mt:initialize()
     if self.coverage_report then
