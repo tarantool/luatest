@@ -14,9 +14,10 @@ function HTTPResponse.mt:__index(method_name)
     end
 end
 
--- @section Instance getter methods
+--- Instance getter methods
+-- @section methods
 
--- For backward compatibility this methods should be accessed
+--- For backward compatibility this methods should be accessed
 -- as object's fields (eg., `response.json.id`).
 --
 -- They are not assigned to object's fields on initialization

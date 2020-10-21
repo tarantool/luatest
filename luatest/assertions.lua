@@ -1,5 +1,5 @@
 --- Module with assertion methods.
--- This methods are available in the root luatest module.
+-- These methods are available in the root luatest module.
 --
 -- @submodule luatest
 
@@ -18,7 +18,9 @@ local M = {}
 -- private exported functions (for testing)
 M.private = {}
 
---[[ EPS is meant to help with Lua's floating point math in simple corner
+--[[--
+
+EPS is meant to help with Lua's floating point math in simple corner
 cases like almost_equals(1.1-0.1, 1), which may not work as-is (e.g. on numbers
 with rational binary representation) if the user doesn't provide some explicit
 error margin.
@@ -408,8 +410,7 @@ local function _assert_error_msg_equals(stripFileAndLine, expectedMsg, func, ...
     end
 end
 
----
--- Checks full error: location and text.
+--- Checks full error: location and text.
 --
 -- @string expected
 -- @func fn
@@ -418,8 +419,7 @@ function M.assert_error_msg_equals(expected, fn, ...)
     _assert_error_msg_equals(false, expected, fn, ...)
 end
 
----
--- Strips location info from message text.
+--- Strips location info from message text.
 --
 -- @string expected
 -- @func fn
