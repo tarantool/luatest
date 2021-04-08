@@ -24,6 +24,14 @@ function comparator.equals(a, b, recursions)
     end
 end
 
+function comparator.lt(a, b)
+    return a < b
+end
+
+function comparator.le(a, b)
+    return a <= b
+end
+
 -- Checks that actual is subset of expected.
 -- Returns number of elements that are present in expected but not in actual.
 function comparator.is_subset(actual, expected)

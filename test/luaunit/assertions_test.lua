@@ -968,3 +968,114 @@ function g.test_assertTableAdditions()
     t.assert_not_equals({1,x=2,3}, {1,x=2,3,y=4})
     t.assert_not_equals({1,x=2,3,y=4}, {1,x=2,3})
 end
+
+g.test_assert_comparisons = function()
+    -- assert_lt
+    t.assert_lt(1.9, 2)
+    t.assert_lt(1ULL, 2ULL)
+    t.assert_lt(1, 2LL)
+    t.assert_lt(1LL, 2ULL)
+
+    assert_failure_contains("oh no", t.assert_lt, 2, 1, "oh no")
+    assert_failure_contains('Assertion failed: 3ULL < 1', t.assert_lt, 3ULL, 1)
+    assert_failure_contains('Assertion failed: 3 < 1ULL', t.assert_lt, 3, 1ULL)
+    assert_failure_contains('Assertion failed: 1LL < 1ULL', t.assert_lt, 1LL, 1ULL)
+    assert_failure_contains("must supply only number arguments", t.assert_lt, 1, "foobar")
+    assert_failure_contains("must supply only number arguments", t.assert_lt, 1, nil)
+
+    -- assert_le
+    t.assert_le(1.9, 2)
+    t.assert_le(2, 2)
+    t.assert_le(2.1, 2.1)
+    t.assert_le(1ULL, 2ULL)
+    t.assert_le(2, 2LL)
+    t.assert_le(1LL, 2ULL)
+
+    assert_failure_contains("oh no", t.assert_le, 2, 1, "oh no")
+    assert_failure_contains('Assertion failed: 3ULL <= 1', t.assert_le, 3ULL, 1)
+    assert_failure_contains('Assertion failed: 3 <= 1ULL', t.assert_le, 3, 1ULL)
+    assert_failure_contains("must supply only number arguments", t.assert_le, 1, "foobar")
+    assert_failure_contains("must supply only number arguments", t.assert_le, 1, nil)
+
+    -- assert_gt
+    t.assert_gt(2, 1.9)
+    t.assert_gt(2ULL, 1ULL)
+    t.assert_gt(2, 1LL)
+    t.assert_gt(2LL, 1ULL)
+
+    assert_failure_contains("oh no", t.assert_gt, 1, 2, "oh no")
+    assert_failure_contains('Assertion failed: 1ULL > 2', t.assert_gt, 1ULL, 2)
+    assert_failure_contains('Assertion failed: 1 > 2ULL', t.assert_gt, 1, 2ULL)
+    assert_failure_contains('Assertion failed: 1LL > 1ULL', t.assert_gt, 1LL, 1ULL)
+    assert_failure_contains("must supply only number arguments", t.assert_gt, 1, "foobar")
+    assert_failure_contains("must supply only number arguments", t.assert_gt, 1, nil)
+
+    -- assert_ge
+    t.assert_ge(2, 1.9)
+    t.assert_ge(2, 2)
+    t.assert_ge(2ULL, 1ULL)
+    t.assert_ge(2, 1LL)
+    t.assert_ge(2LL, 1ULL)
+
+    assert_failure_contains("oh no", t.assert_ge, 1, 2, "oh no")
+    assert_failure_contains('Assertion failed: 1ULL >= 2', t.assert_ge, 1ULL, 2)
+    assert_failure_contains('Assertion failed: 1 >= 2ULL', t.assert_ge, 1, 2ULL)
+    assert_failure_contains("must supply only number arguments", t.assert_ge, 1, "foobar")
+    assert_failure_contains("must supply only number arguments", t.assert_ge, 1, nil)
+end
+
+g.test_assert_comparisons_nan = function()
+    assert_failure_contains('Assertion failed: 1 < nan', t.assert_lt, 1, 0 / 0)
+    assert_failure_contains('Assertion failed: 1 <= nan', t.assert_le, 1, 0 / 0)
+    assert_failure_contains('Assertion failed: 1 > nan', t.assert_gt, 1, 0 / 0)
+    assert_failure_contains('Assertion failed: 1 >= nan', t.assert_ge, 1, 0 / 0)
+
+    assert_failure_contains('Assertion failed: nan < 1', t.assert_lt, 0 / 0, 1)
+    assert_failure_contains('Assertion failed: nan <= 1', t.assert_le, 0 / 0, 1)
+    assert_failure_contains('Assertion failed: nan > 1', t.assert_gt, 0 / 0, 1)
+    assert_failure_contains('Assertion failed: nan >= 1', t.assert_ge, 0 / 0, 1)
+
+    assert_failure_contains('Assertion failed: nan < nan', t.assert_lt, 0 / 0, 0 / 0)
+    assert_failure_contains('Assertion failed: nan <= nan', t.assert_le, 0 / 0, 0 / 0)
+    assert_failure_contains('Assertion failed: nan > nan', t.assert_gt, 0 / 0, 0 / 0)
+    assert_failure_contains('Assertion failed: nan >= nan', t.assert_ge, 0 / 0, 0 / 0)
+end
+
+g.test_assert_comparisons_inf = function()
+    local inf = math.huge
+    -- assert_lt
+    t.assert_lt(1, inf)
+    t.assert_lt(-inf, inf)
+
+    assert_failure_contains('Assertion failed: inf < inf', t.assert_lt, inf, inf)
+    assert_failure_contains('Assertion failed: -inf < -inf', t.assert_lt, -inf, -inf)
+    assert_failure_contains('Assertion failed: nan < inf', t.assert_lt, 0 / 0, inf)
+    assert_failure_contains('Assertion failed: nan < -inf', t.assert_lt, 0 / 0, -inf)
+
+    -- assert_le
+    t.assert_le(1, inf)
+    t.assert_le(-inf, inf)
+    t.assert_le(inf, inf)
+    t.assert_le(-inf, -inf)
+
+    assert_failure_contains('Assertion failed: nan <= inf', t.assert_le, 0 / 0, inf)
+    assert_failure_contains('Assertion failed: nan <= -inf', t.assert_le, 0 / 0, -inf)
+
+    -- assert_gt
+    t.assert_gt(inf, 1)
+    t.assert_gt(inf, -inf)
+
+    assert_failure_contains('Assertion failed: inf > inf', t.assert_gt, inf, inf)
+    assert_failure_contains('Assertion failed: -inf > -inf', t.assert_gt, -inf, -inf)
+    assert_failure_contains('Assertion failed: nan > inf', t.assert_gt, 0 / 0, inf)
+    assert_failure_contains('Assertion failed: nan > -inf', t.assert_gt, 0 / 0, -inf)
+
+    -- assert_ge
+    t.assert_ge(inf, 1)
+    t.assert_ge(inf, -inf)
+    t.assert_ge(inf, inf)
+    t.assert_ge(-inf, -inf)
+
+    assert_failure_contains('Assertion failed: nan >= inf', t.assert_ge, 0 / 0, inf)
+    assert_failure_contains('Assertion failed: nan >= -inf', t.assert_ge, 0 / 0, -inf)
+end
