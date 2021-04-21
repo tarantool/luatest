@@ -14,7 +14,7 @@ g.test_custom_errors = function()
     assert_no_exception(function() error({a = 1}) end)
 end
 
-g.test_assert_eqals_for_cdata = function()
+g.test_assert_equals_for_cdata = function()
     t.assert_equals(1, 1ULL)
     t.assert_equals(1ULL, 1ULL)
     t.assert_equals(1, 1LL)
@@ -31,7 +31,7 @@ g.test_assert_eqals_for_cdata = function()
     t.assert_not_equals(1ULL, box.NULL)
 end
 
-g.test_assert_almost_eqals_for_cdata = function()
+g.test_assert_almost_equals_for_cdata = function()
     t.assert_almost_equals(1, 2ULL, 1)
     t.assert_almost_equals(1LL, 2, 1)
 

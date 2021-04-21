@@ -188,6 +188,67 @@ function M.assert_almost_equals(actual, expected, margin, message)
     end
 end
 
+--- Check that left is less than right.
+--
+-- @number left
+-- @number right
+-- @string[opt] message
+function M.assert_lt(left, right, message)
+    if not tonumber(left) or not tonumber(right) then
+        print(prettystr(right))
+        fail_fmt(2, 'assert_lt: must supply only number arguments.\nArguments supplied: %s, %s',
+            prettystr(left), prettystr(right))
+    end
+    if not comparator.lt(tonumber(left), tonumber(right)) then
+        fail_fmt(2, message, 'Assertion failed: %s < %s', left, right)
+    end
+end
+
+--- Check that left is greater than right.
+--
+-- @number left
+-- @number right
+-- @string[opt] message
+function M.assert_gt(left, right, message)
+    if not tonumber(left) or not tonumber(right) then
+        fail_fmt(2, 'assert_gt: must supply only number arguments.\nArguments supplied: %s, %s',
+            prettystr(left), prettystr(right))
+    end
+    if not comparator.lt(tonumber(right), tonumber(left)) then
+        fail_fmt(2, message, 'Assertion failed: %s > %s', left, right)
+    end
+end
+
+--- Check that left is less than or equal to right.
+--
+-- @number left
+-- @number right
+-- @string[opt] message
+function M.assert_le(left, right, message)
+    if not tonumber(left) or not tonumber(right) then
+        fail_fmt(2, 'assert_le: must supply only number arguments.\nArguments supplied: %s, %s',
+            prettystr(left), prettystr(right))
+    end
+    if not (comparator.le(tonumber(left), tonumber(right))) then
+        fail_fmt(2, message, 'Assertion failed: %s <= %s', left, right)
+    end
+end
+
+--- Check that left is greater than or equal to right.
+--
+-- @number left
+-- @number right
+-- @string[opt] message
+function M.assert_ge(left, right, message)
+    if not tonumber(left) or not tonumber(right) then
+        fail_fmt(2, 'assert_ge: must supply only number arguments.\nArguments supplied: %s, %s',
+            prettystr(left), prettystr(right))
+    end
+    if not (comparator.le(tonumber(right), tonumber(left))) then
+        fail_fmt(2, message, 'Assertion failed: %s >= %s', left, right)
+    end
+end
+
 --- Check that two values are not equal.
 -- Tables are compared by value.
 --
