@@ -1,0 +1,36 @@
+name: Run tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  run-tests-ce:
+    if: |
+      github.event_name == 'push' ||
+      github.event_name == 'pull_request' && github.event.pull_request.head.repo.owner.login != 'tarantool'
+    strategy:
+      matrix:
+        tarantool-version: ["1.10", "2.6", "2.7", "2.8"]
+      fail-fast: false
+    runs-on: [ubuntu-latest]
+    steps:
+      - uses: actions/checkout@master
+
+      - name: Install requirements for community
+        run: |
+          curl -L https://tarantool.io/installer.sh | sudo VER=${{ matrix.tarantool-version }} bash
+          sudo apt install -y tarantool-dev
+          tarantool --version
+          cmake .
+          make bootstrap
+
+      # This server starts and listen on 8084 port that is used for tests
+      - name: Stop Mono server
+        run: sudo kill -9 $(sudo lsof -t -i tcp:8084) || true
+
+      - name: Run linter
+        run: make lint
+
+      - name: Run tests
+        run: bin/luatest -v
