@@ -23,6 +23,8 @@ end
 function Output.mt:end_test(node)
     if node:is('success') then
         if self.verbosity >= self.class.VERBOSITY.VERBOSE then
+            local duration = string.format("(%0.3fs) ", node.duration)
+            io.stdout:write(duration)
             io.stdout:write("Ok\n")
         else
             io.stdout:write(".")
@@ -30,7 +32,8 @@ function Output.mt:end_test(node)
         end
     else
         if self.verbosity >= self.class.VERBOSITY.VERBOSE then
-            print(node.status)
+            local duration = string.format("(%0.3fs) ", node.duration)
+            print(duration .. node.status)
             print(node.message)
         else
             -- write only the first character of status E, F or S

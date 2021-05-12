@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Add `_le`, `_lt`, `_ge`, `_gt` assertions.
+- Write execution time for each test in the verbose mode.
+
 ## 0.5.2
 
 - Throw parser error when .json is accessed on response with invalid body.
