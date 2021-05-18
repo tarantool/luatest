@@ -163,6 +163,13 @@ function Runner.parse_cmd_line(args)
         end
     end
 
+    -- end_test will repeat test name for prettier output when capture
+    -- is disabled.
+    if result.enable_capture == false
+    and result.verbosity == GenericOutput.VERBOSITY.VERBOSE then
+        result.verbosity = GenericOutput.VERBOSITY.REPEAT
+    end
+
     return result
 end
 

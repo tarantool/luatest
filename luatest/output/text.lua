@@ -17,12 +17,18 @@ end
 function Output.mt:start_test(test) -- luacheck: no unused
     if self.verbosity >= self.class.VERBOSITY.VERBOSE then
         io.stdout:write("    ", test.name, " ... ")
+        if self.verbosity >= self.class.VERBOSITY.REPEAT then
+            io.stdout:write("\n")
+        end
     end
 end
 
 function Output.mt:end_test(node)
     if node:is('success') then
         if self.verbosity >= self.class.VERBOSITY.VERBOSE then
+            if self.verbosity >= self.class.VERBOSITY.REPEAT then
+                io.stdout:write("    ", node.name, " ... ")
+            end
             local duration = string.format("(%0.3fs) ", node.duration)
             io.stdout:write(duration)
             io.stdout:write("Ok\n")
@@ -32,6 +38,9 @@ function Output.mt:end_test(node)
         end
     else
         if self.verbosity >= self.class.VERBOSITY.VERBOSE then
+            if self.verbosity >= self.class.VERBOSITY.REPEAT then
+                io.stdout:write("    ", node.name, " ... ")
+            end
             local duration = string.format("(%0.3fs) ", node.duration)
             print(duration .. node.status)
             print(node.message)

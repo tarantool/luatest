@@ -5,6 +5,7 @@ local Output = require('luatest.class').new({
         QUIET   = 0,
         LOW     = 1,
         VERBOSE = 20,
+        REPEAT  = 21,
     },
 })
 

@@ -4,6 +4,8 @@
 
 - Add `_le`, `_lt`, `_ge`, `_gt` assertions.
 - Write execution time for each test in the verbose mode.
+- When capture is disabled and verbose mode is on test names are printed
+  twice: at the start and at the end with result.
 
 ## 0.5.2
 
