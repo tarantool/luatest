@@ -434,7 +434,10 @@ end
 local function _assert_error_msg_equals(stripFileAndLine, expectedMsg, func, ...)
     local no_error, error_msg = pcall(func, ...)
     if no_error then
-        failure('No error generated when calling function but expected error: ' .. prettystr(expectedMsg), nil, 3)
+        local failure_message = string.format(
+            'Function successfully returned: %s\nExpected error: %s',
+            prettystr(error_msg), prettystr(expectedMsg))
+        failure(failure_message, nil, 3)
     end
     if type(expectedMsg) == "string" and type(error_msg) ~= "string" then
         -- table are converted to string automatically
@@ -496,8 +499,10 @@ end
 function M.assert_error_msg_contains(expected_partial, fn, ...)
     local no_error, error_msg = pcall(fn, ...)
     if no_error then
-        failure('No error generated when calling function but expected error containing: ' ..
-            prettystr(expected_partial), nil, 2)
+        local failure_message = string.format(
+            'Function successfully returned: %s\nExpected error containing: %s',
+            prettystr(error_msg), prettystr(expected_partial))
+        failure(failure_message, nil, 2)
     end
     if type(error_msg) ~= "string" then
         error_msg = tostring(error_msg)
@@ -516,7 +521,10 @@ end
 function M.assert_error_msg_matches(pattern, fn, ...)
     local no_error, error_msg = pcall(fn, ...)
     if no_error then
-        failure('No error generated when calling function but expected error matching: "' .. pattern .. '"', nil, 2)
+        local failure_message = string.format(
+            'Function successfully returned: %s\nExpected error matching: %s',
+            prettystr(error_msg), prettystr(pattern))
+        failure(failure_message, nil, 2)
     end
     if type(error_msg) ~= "string" then
         error_msg = tostring(error_msg)

@@ -276,8 +276,12 @@ function g.test_assert_error()
 end
 
 function g.test_assert_error_msg_equals()
-    assert_failure_equals('No error generated when calling function but expected error: "bla bla bla"' ,
+    assert_failure_equals('Function successfully returned: nil\nExpected error: "bla bla bla"' ,
+        t.assert_error_msg_equals, 'bla bla bla', function() end)
+    assert_failure_equals('Function successfully returned: 4\nExpected error: "bla bla bla"' ,
         t.assert_error_msg_equals, 'bla bla bla', function(v) return v+1 end, 3)
+    assert_failure_equals('Function successfully returned: {4, 5, 6}\nExpected error: "bla bla bla"' ,
+        t.assert_error_msg_equals, 'bla bla bla', function(v) return {v+1, v+2, v+3} end, 3)
     assert_failure_equals('Error message expected: "bla bla bla"\n' ..
                         'Error message received: "toto xxx"\n' ,
         t.assert_error_msg_equals, 'bla bla bla', function() error('toto xxx',2) end, 3)
@@ -290,16 +294,23 @@ Error message received: {details = "ble ble ble"}
 end
 
 function g.test_assert_errorMsgContains()
-    assert_failure_equals('No error generated when calling function but expected error containing: "bla bla bla"' ,
+    assert_failure_equals('Function successfully returned: nil\nExpected error containing: "bla bla bla"' ,
+        t.assert_error_msg_contains, 'bla bla bla', function() end)
+    assert_failure_equals('Function successfully returned: 4\nExpected error containing: "bla bla bla"' ,
         t.assert_error_msg_contains, 'bla bla bla', function(v) return v+1 end, 3)
+    assert_failure_equals('Function successfully returned: {4, 5, 6}\nExpected error containing: "bla bla bla"' ,
+        t.assert_error_msg_contains, 'bla bla bla', function(v) return {v+1, v+2, v+3} end, 3)
     assert_failure_equals('Error message does not contain: "bla bla bla"\nError message received: "toto xxx"\n' ,
         t.assert_error_msg_contains, 'bla bla bla', function() error('toto xxx',2) end, 3)
 end
 
 function g.test_assert_errorMsgMatches()
-    assert_failure_equals('No error generated when calling function but expected error matching: "bla bla bla"' ,
+    assert_failure_equals('Function successfully returned: nil\nExpected error matching: "bla bla bla"' ,
+        t.assert_error_msg_matches, 'bla bla bla', function() end)
+    assert_failure_equals('Function successfully returned: 4\nExpected error matching: "bla bla bla"' ,
         t.assert_error_msg_matches, 'bla bla bla', function(v) return v+1 end, 3)
-
+    assert_failure_equals('Function successfully returned: {4, 5, 6}\nExpected error matching: "bla bla bla"' ,
+        t.assert_error_msg_matches, 'bla bla bla', function(v) return {v+1, v+2, v+3} end, 3)
     assert_failure_equals('Error message does not match pattern: "bla bla bla"\n' ..
                         'Error message received: "toto xxx"\n' ,
         t.assert_error_msg_matches, 'bla bla bla', function() error('toto xxx',2) end, 3)
