@@ -189,3 +189,8 @@ g.test_show_help = function()
     local captured = capture:flush()
     t.assert_str_contains(captured.stdout, 'Usage: luatest')
 end
+
+g.test_sandbox = function()
+    local status = os.execute('bin/luatest test/fixtures/mock.lua --sandbox')
+    t.assert_equals(status, 0)
+end
