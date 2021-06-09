@@ -404,7 +404,7 @@ end
 function Runner.mt:invoke_test_function(test, iteration)
     local err = self:protected_call(test.group, test.method, test.name)
     if iteration > 1 and err.status ~= 'success' then
-        err.message = tostring(err.message) .. '\nIteration ' .. self.test_iteration
+        err.message = tostring(err.message) .. '\nIteration ' .. iteration
     end
     self:update_status(test, err)
 end
