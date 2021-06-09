@@ -28,8 +28,12 @@ g.test_run_error = function()
     t.assert_equals(result, 1)
 end
 
-local function run_file(file)
-    return os.execute('bin/luatest test/fixtures/' .. file)
+local function run_file(file, opts)
+    local cmd = 'bin/luatest test/fixtures/' .. file
+    if opts then
+        cmd = cmd .. ' ' .. opts
+    end
+    return os.execute(cmd)
 end
 
 g.test_executable_pass = function()
@@ -42,6 +46,10 @@ end
 
 g.test_executable_error = function()
     t.assert_equals(run_file('error.lua'), 256) -- luajit multiplies result by 256
+end
+
+g.test_repeat = function()
+    t.assert_equals(run_file('flaky.lua', '-r 2'), 256)
 end
 
 g.test_run_without_capture = function()
