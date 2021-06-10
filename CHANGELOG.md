@@ -2,11 +2,14 @@
 
 ## Unreleased
 
+## 0.5.3
+
 - Add `_le`, `_lt`, `_ge`, `_gt` assertions.
 - Write execution time for each test in the verbose mode.
 - When capture is disabled and verbose mode is on test names are printed
   twice: at the start and at the end with result.
-- `assert_error_msg_` assertions print return values if no error is generated
+- `assert_error_msg_` assertions print return values if no error is generated.
+- Fix `--repeat` runner option.
 
 ## 0.5.2
 

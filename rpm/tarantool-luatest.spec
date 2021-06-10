@@ -1,5 +1,5 @@
 Name: luatest
-Version: 0.5.2
+Version: 0.5.3
 Release: 1%{?dist}
 Summary: Tarantool test framework
 Group: Applications/Databases
@@ -36,6 +36,14 @@ ctest -VV
 %license LICENSE
 
 %changelog
+* Thu Jun 10 2021 Aleksandr Shemenev <a.shemenev@corp.mail.ru> 0.5.3-1
+- Add `_le`, `_lt`, `_ge`, `_gt` assertions.
+- Write execution time for each test in the verbose mode.
+- When capture is disabled and verbose mode is on test names are printed
+  twice: at the start and at the end with result.
+- `assert_error_msg_` assertions print return values if no error is generated.
+- Fix `--repeat` runner option.
+
 * Thu Jun 25 2020 Maxim Melentiev <m.melentiev@corp.mail.ru> 0.5.2-1
 - Throw parser error when .json is accessed on response with invalid body.
 - Set `Content-Type: application/json` for `:http_request(..., {json = ...})` requests.
