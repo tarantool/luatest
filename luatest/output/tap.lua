@@ -2,6 +2,7 @@
 local Output = require('luatest.output.generic'):new_class()
 
 function Output.mt:start_suite()
+    print("TAP version 13")
     print("1.."..self.result.selected_count)
     print('# Started on ' .. os.date(nil, self.result.start_time))
 end
