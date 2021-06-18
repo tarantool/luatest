@@ -75,10 +75,11 @@ Options:
   -v, --verbose:          Increase verbosity
   -q, --quiet:            Set verbosity to minimum
   -c                      Disable capture
+  --sandbox               Sandbox group of tests
   -b                      Print full backtrace (don't remove luatest frames)
   -e, --error:            Stop on first error
   -f, --failure:          Stop on first failure or error
-  --shuffle VALUE:        Set execution order:
+  -s, --shuffle VALUE:        Set execution order:
                             - group[:seed] - shuffle tests within group
                             - all[:seed] - shuffle all tests
                             - none - sort tests within group by line number (default)
@@ -148,6 +149,8 @@ function Runner.parse_cmd_line(args)
             result.full_backtrace = true
         elseif arg == '-c' then
             result.enable_capture = false
+        elseif arg == '--sandbox' then
+            result.enable_sandbox = true
         elseif arg == '--coverage' then
             result.coverage_report = true
         elseif arg:sub(1,1) == '-' then
@@ -280,7 +283,32 @@ function Runner.mt:start_suite(selected_count, not_selected_count)
     self.output:start_suite()
 end
 
+function Runner.mt:enter_sandbox()
+    assert(self.packages_snap == nil, 'Already in sandbox')
+
+    self.packages_snap = table.deepcopy(package.loaded)
+end
+
+function Runner.mt:exit_sandbox()
+    assert(self.packages_snap, 'Not in a sandbox')
+
+    for name, _ in pairs(package.loaded) do
+        if self.packages_snap[name] == nil then
+            package.loaded[name] = nil
+        end
+    end
+
+    for name, content in pairs(self.packages_snap) do
+        package.loaded[name] = content
+    end
+
+    self.packages_snap = nil
+end
+
 function Runner.mt:start_group(group)
+    if self.enable_sandbox then
+        self:enter_sandbox()
+    end
     self.output:start_group(group)
 end
 
@@ -320,6 +348,9 @@ end
 
 function Runner.mt:end_group(group)
     self.output:end_group(group)
+    if self.enable_sandbox then
+        self:exit_sandbox()
+    end
 end
 
 function Runner.mt:end_suite()
