@@ -127,6 +127,17 @@ function Server:start()
     log.debug('Started server PID: ' .. self.process.pid)
 end
 
+--- Restart server process.
+function Server:restart(args)
+    if not self.process then
+        log.warn("Process isn't running")
+    end
+    self:stop()
+    self.args = args or {}
+    self:start()
+    log.debug('Restarted server PID: ' .. self.process.pid)
+end
+
 --- Stop server process.
 function Server:stop()
     if self.net_box then
