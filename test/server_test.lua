@@ -51,6 +51,37 @@ g.test_start_stop = function()
     t.assert_equals(s.args, orig_args)
 end
 
+g.test_restart = function()
+--     Start server. Restart with same args. Check it was started. Check args
+    local workdir = fio.pathjoin(datadir, 'restart')
+    fio.mktree(workdir)
+    local s = Server:new({command = command, workdir = workdir})
+    local orig_args = table.copy(s.args)
+    s:start()
+    local pid = s.process.pid
+    t.helpers.retrying({timeout = 0.5}, function()
+        t.assert(Process.is_pid_alive(pid))
+    end)
+    s:restart()
+    t.helpers.retrying({timeout = 0.5}, function()
+        t.assert_not(Process.is_pid_alive(pid))
+    end)
+    t.assert_equals(s.args, orig_args)
+
+--     Restart with another args. Check it was started. Check args
+    local new_args = {'test', 'args'}
+    s:restart(new_args)
+    pid = s.process.pid
+    t.helpers.retrying({timeout = 0.5}, function()
+        t.assert(Process.is_pid_alive(pid))
+    end)
+    t.assert_equals(s.args, new_args)
+    s:stop()
+    t.helpers.retrying({timeout = 0.5}, function()
+        t.assert_not(Process.is_pid_alive(pid))
+    end)
+end
+
 g.test_http_request = function()
     local response = server:http_request('get', '/test')
     local expected = {
