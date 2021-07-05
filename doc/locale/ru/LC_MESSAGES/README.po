@@ -1,0 +1,424 @@
+
+msgid "Overview"
+msgstr ""
+
+msgid ""
+"Tool for testing tarantool applications. (`Build Status <https://travis-"
+"ci.com/tarantool/luatest.svg?branch=master)](https://travis-"
+"ci.com/tarantool/luatest>`_)."
+msgstr ""
+
+msgid "Highlights:"
+msgstr ""
+
+msgid "executable to run tests in directory or specific files,"
+msgstr ""
+
+msgid "before/after suite hooks,"
+msgstr ""
+
+msgid "before/after test group hooks,"
+msgstr ""
+
+msgid "`output capturing <Capturing output_>`_,"
+msgstr ""
+
+msgid "`helpers <Test helpers_>`_ for testing tarantool applications,"
+msgstr ""
+
+msgid "`luacov integration <luacov integration_>`_."
+msgstr ""
+
+msgid "Requirements"
+msgstr ""
+
+msgid ""
+"Tarantool (it requires tarantool-specific ``fio`` module and ``ffi`` from "
+"LuaJIT)."
+msgstr ""
+
+msgid "Installation"
+msgstr ""
+
+msgid "Usage"
+msgstr ""
+
+msgid "Define tests."
+msgstr ""
+
+msgid "Run them."
+msgstr ""
+
+msgid ""
+"Luatest automatically requires ``test/helper.lua`` file if it's present. You"
+" can configure luatest or run any bootstrap code there."
+msgstr ""
+
+msgid ""
+"See the `getting-started example <https://github.com/tarantool/cartridge-"
+"cli/tree/master/examples/getting-started-app/test>`_ in cartridge-cli repo."
+msgstr ""
+
+msgid "Tests order"
+msgstr ""
+
+msgid ""
+"Use the ``--shuffle`` option to tell luatest how to order the tests. The "
+"available ordering schemes are ``group``, ``all`` and ``none``."
+msgstr ""
+
+msgid "``group`` shuffles tests within the groups."
+msgstr ""
+
+msgid ""
+"``all`` randomizes execution order across all available tests. Be careful: "
+"``before_all/after_all`` hooks run always when test group is changed, so it "
+"may run multiple time."
+msgstr ""
+
+msgid ""
+"``none`` is the default, which executes examples within the group in the "
+"order they are defined (eventually they are ordered by functions line "
+"numbers)."
+msgstr ""
+
+msgid ""
+"With ``group`` and ``all`` you can also specify a ``seed`` to reproduce "
+"specific order."
+msgstr ""
+
+msgid "To change default order use:"
+msgstr ""
+
+msgid "List of luatest functions"
+msgstr ""
+
+msgid "**Assertions**"
+msgstr ""
+
+msgid "``assert (value[, message])``"
+msgstr ""
+
+msgid "Check that value is truthy."
+msgstr ""
+
+msgid "``assert_almost_equals (actual, expected, margin[, message])``"
+msgstr ""
+
+msgid "Check that two floats are close by margin."
+msgstr ""
+
+msgid "``assert_covers (actual, expected[, message])``"
+msgstr ""
+
+msgid "Checks that actual map includes expected one."
+msgstr ""
+
+msgid "``assert_lt (left, right[, message])``"
+msgstr ""
+
+msgid "Compare numbers."
+msgstr ""
+
+msgid "``assert_le (left, right[, message])``"
+msgstr ""
+
+msgid "``assert_gt (left, right[, message])``"
+msgstr ""
+
+msgid "``assert_ge (left, right[, message])``"
+msgstr ""
+
+msgid "``assert_equals (actual, expected[, message[, deep_analysis]])``"
+msgstr ""
+
+msgid "Check that two values are equal."
+msgstr ""
+
+msgid "``assert_error (fn, ...)``"
+msgstr ""
+
+msgid "Check that calling fn raises an error."
+msgstr ""
+
+msgid "``assert_error_msg_contains (expected_partial, fn, ...)``"
+msgstr ""
+
+msgid "``assert_error_msg_content_equals (expected, fn, ...)``"
+msgstr ""
+
+msgid "Strips location info from message text."
+msgstr ""
+
+msgid "``assert_error_msg_equals (expected, fn, ...)``"
+msgstr ""
+
+msgid "Checks full error: location and text."
+msgstr ""
+
+msgid "``assert_error_msg_matches (pattern, fn, ...)``"
+msgstr ""
+
+msgid "``assert_eval_to_false (value[, message])``"
+msgstr ""
+
+msgid "Alias for assert_not."
+msgstr ""
+
+msgid "``assert_eval_to_true (value[, message])``"
+msgstr ""
+
+msgid "Alias for assert."
+msgstr ""
+
+msgid "``assert_items_include (actual, expected[, message])``"
+msgstr ""
+
+msgid "Checks that actual includes all items of expected."
+msgstr ""
+
+msgid "``assert_is (actual, expected[, message])``"
+msgstr ""
+
+msgid "Check that values are the same."
+msgstr ""
+
+msgid "``assert_is_not (actual, expected[, message])``"
+msgstr ""
+
+msgid "Check that values are not the same."
+msgstr ""
+
+msgid "``assert_items_equals (actual, expected[, message])``"
+msgstr ""
+
+msgid "Checks equality of tables regardless of the order of elements."
+msgstr ""
+
+msgid "``assert_nan (value[, message])``"
+msgstr ""
+
+msgid "``assert_not (value[, message])``"
+msgstr ""
+
+msgid "Check that value is falsy."
+msgstr ""
+
+msgid "``assert_not_almost_equals (actual, expected, margin[, message])``"
+msgstr ""
+
+msgid "Check that two floats are not close by margin"
+msgstr ""
+
+msgid "``assert_not_covers (actual, expected[, message])``"
+msgstr ""
+
+msgid "Checks that map does not contain the other one."
+msgstr ""
+
+msgid "``assert_not_equals (actual, expected[, message])``"
+msgstr ""
+
+msgid "Check that two values are not equal."
+msgstr ""
+
+msgid "``assert_not_nan (value[, message])``"
+msgstr ""
+
+msgid ""
+"``assert_not_str_contains (actual, expected[, is_pattern[, message]])``"
+msgstr ""
+
+msgid "Case-sensitive strings comparison."
+msgstr ""
+
+msgid "``assert_not_str_icontains (value, expected[, message])``"
+msgstr ""
+
+msgid "Case-insensitive strings comparison."
+msgstr ""
+
+msgid "``assert_str_contains (value, expected[, is_pattern[, message]])``"
+msgstr ""
+
+msgid "``assert_str_icontains (value, expected[, message])``"
+msgstr ""
+
+msgid ""
+"``assert_str_matches (value, pattern[, start=1[, final=value:len() [, "
+"message]]])``"
+msgstr ""
+
+msgid "Verify a full match for the string."
+msgstr ""
+
+msgid "``assert_type (value, expected_type[, message])``"
+msgstr ""
+
+msgid "Check value's type."
+msgstr ""
+
+msgid "**Flow control**"
+msgstr ""
+
+msgid "``fail (message)``"
+msgstr ""
+
+msgid "Stops a test due to a failure."
+msgstr ""
+
+msgid "``fail_if (condition, message)``"
+msgstr ""
+
+msgid "Stops a test due to a failure if condition is met."
+msgstr ""
+
+msgid "``skip (message)``"
+msgstr ""
+
+msgid "Skip a running test."
+msgstr ""
+
+msgid "``skip_if (condition, message)``"
+msgstr ""
+
+msgid "Skip a running test if condition is met."
+msgstr ""
+
+msgid "``success ()``"
+msgstr ""
+
+msgid "Stops a test with a success."
+msgstr ""
+
+msgid "``success_if (condition)``"
+msgstr ""
+
+msgid "Stops a test with a success if condition is met."
+msgstr ""
+
+msgid "**Suite and groups**"
+msgstr ""
+
+msgid "``after_suite (fn)``"
+msgstr ""
+
+msgid "Add after suite hook."
+msgstr ""
+
+msgid "``before_suite (fn)``"
+msgstr ""
+
+msgid "Add before suite hook."
+msgstr ""
+
+msgid "``group (name)``"
+msgstr ""
+
+msgid "Create group of tests."
+msgstr ""
+
+msgid "Capturing output"
+msgstr ""
+
+msgid ""
+"By default runner captures all stdout/stderr output and shows it only for "
+"failed tests. Capturing can be disabled with ``-c`` flag."
+msgstr ""
+
+msgid "Test helpers"
+msgstr ""
+
+msgid ""
+"There are helpers to run tarantool applications and perform basic "
+"interaction with it. If application follows configuration conventions it is "
+"possible to use options to configure server instance and helpers at the same"
+" time. For example ``http_port`` is used to perform http request in tests "
+"and passed in ``TARANTOOL_HTTP_PORT`` to server process."
+msgstr ""
+
+msgid ""
+"``luatest.Process:start(path, args, env)`` provides low-level interface to "
+"run any other application."
+msgstr ""
+
+msgid "There are several small helpers for common actions:"
+msgstr ""
+
+msgid "luacov integration"
+msgstr ""
+
+msgid ""
+"Install `luacov <https://github.com/keplerproject/luacov>`_ with "
+"``tarantoolctl rocks install luacov``"
+msgstr ""
+
+msgid "Configure it with ``.luacov`` file"
+msgstr ""
+
+msgid "Clean old reports ``rm -f luacov.*.out*``"
+msgstr ""
+
+msgid "Run luatest with ``--coverage`` option"
+msgstr ""
+
+msgid "Generate report with ``.rocks/bin/luacov .``"
+msgstr ""
+
+msgid "Show summary with ``grep -A999 '^Summary' luacov.report.out``"
+msgstr ""
+
+msgid ""
+"When running integration tests with coverage collector enabled, luatest "
+"automatically starts new tarantool instances with luacov enabled. So "
+"coverage is collected from all the instances. However this has some "
+"limitations:"
+msgstr ""
+
+msgid "It works only for instances started with ``Server`` helper."
+msgstr ""
+
+msgid ""
+"Process command should be executable lua file or tarantool with script "
+"argument."
+msgstr ""
+
+msgid ""
+"Instance must be stopped with ``server:stop()``, because this is the point "
+"where stats are saved."
+msgstr ""
+
+msgid "Don't save stats concurrently to prevent corruption."
+msgstr ""
+
+msgid "Development"
+msgstr ""
+
+msgid "Check out the repo."
+msgstr ""
+
+msgid "Prepare makefile with ``cmake .``."
+msgstr ""
+
+msgid "Install dependencies with ``make bootstrap``."
+msgstr ""
+
+msgid "Run it with ``make lint`` before committing changes."
+msgstr ""
+
+msgid "Run tests with ``bin/luatest``."
+msgstr ""
+
+msgid "Contributing"
+msgstr ""
+
+msgid ""
+"Bug reports and pull requests are welcome on at "
+"https://github.com/tarantool/luatest."
+msgstr ""
+
+msgid "License"
+msgstr ""
+
+msgid "MIT"
+msgstr ""
