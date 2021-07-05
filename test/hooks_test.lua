@@ -28,18 +28,25 @@ g.test_hooks = function()
             t2.after_all(function() table.insert(hooks, 'after_all2_' .. v) end)
             t2.before_each(function() table.insert(hooks, 'before_each2_' .. v) end)
             t2.after_each(function() table.insert(hooks, 'after_each2_' .. v) end)
+
+            t2.before_test('test_1', function() table.insert(hooks, 'before_test1' .. v) end)
+            t2.after_test('test_2', function() table.insert(hooks, 'after_test2' .. v) end)
+
             t2.test_1 = function() table.insert(hooks, 'test_1' .. v) end
             t2.test_2 = function() table.insert(hooks, 'test_2' .. v) end
+
             table.insert(expected, 'before_all' .. v)
             table.insert(expected, 'before_all2_' .. v)
             table.insert(expected, 'before_each' .. v)
             table.insert(expected, 'before_each2_' .. v)
+            table.insert(expected, 'before_test1' .. v)
             table.insert(expected, 'test_1' .. v)
             table.insert(expected, 'after_each' .. v)
             table.insert(expected, 'after_each2_' .. v)
             table.insert(expected, 'before_each' .. v)
             table.insert(expected, 'before_each2_' .. v)
             table.insert(expected, 'test_2' .. v)
+            table.insert(expected, 'after_test2' .. v)
             table.insert(expected, 'after_each' .. v)
             table.insert(expected, 'after_each2_' .. v)
             table.insert(expected, 'after_all' .. v)
@@ -237,4 +244,70 @@ g.test_suite_and_group_hooks_dont_run_when_suite_is_not_launched = function()
     t.assert_equals(hooks, {})
     t.assert_equals(helper.run_suite(suite, {'--invalid'}), -1)
     t.assert_equals(hooks, {})
+end
+
+g.test_wrong_before_and_after = function()
+    local hooks = {}
+
+    local result = helper.run_suite(function(lu2)
+        local t2 = lu2.group('test')
+        t2.before_test('test', function() table.insert(hooks, 'before_test') end)
+        t2.before_test('wrong_test', function() table.insert(hooks, 'before_wrong_test') end)
+        t2.after_test('test', function() table.insert(hooks, 'after_test') end)
+        t2.after_test('wrong_test', function() table.insert(hooks, 'after_wrong_test') end)
+        t2.test = function() table.insert(hooks, 'test') end
+    end)
+
+    t.assert_equals(result, 0)
+    t.assert_equals(hooks, {'before_test', 'test', 'after_test'})
+end
+
+g.test_before_and_after_failed_test = function()
+    local hooks = {}
+
+    local result = helper.run_suite(function(lu2)
+        local t2 = lu2.group('test')
+        t2.before_test('test', function() table.insert(hooks, 'before_test') end)
+        t2.after_test('test', function() table.insert(hooks, 'after_test') end)
+        t2.test = function() t.assert_equals(1, 2) table.insert(hooks, 'test') end
+    end)
+
+    t.assert_equals(result, 1)
+    t.assert_equals(hooks, {'before_test', 'after_test'})
+end
+
+g.test_before_and_after_error = function()
+    local hooks = {}
+
+    local result = helper.run_suite(function(lu2)
+        local t2 = lu2.group('test')
+        t2.before_test('test', function() table.insert(hooks, 'before_test1') end)
+        t2.before_test('test', function() error('custom-error') end)
+        t2.before_test('test', function() table.insert(hooks, 'before_test3') end)
+        t2.after_test('test', function() table.insert(hooks, 'after_test1') end)
+        t2.after_test('test', function() error('custom-error') end)
+        t2.after_test('test', function() table.insert(hooks, 'after_test3') end)
+        t2.test = function() table.insert(hooks, 'test') end
+    end)
+
+    t.assert_equals(result, 1)
+    t.assert_equals(hooks, {'before_test1', 'after_test1'})
+end
+
+g.test_each_error = function()
+    local hooks = {}
+
+    local result = helper.run_suite(function(lu2)
+        local t2 = lu2.group('test')
+        t2.before_each(function() table.insert(hooks, 'before_each1') end)
+        t2.before_each(function() error('custom-error') end)
+        t2.before_each(function() table.insert(hooks, 'before_each3') end)
+        t2.after_each(function() table.insert(hooks, 'after_each1') end)
+        t2.after_each(function() error('custom-error') end)
+        t2.after_each(function() table.insert(hooks, 'after_each3') end)
+        t2.test = function() table.insert(hooks, 'test') end
+    end)
+
+    t.assert_equals(result, 1)
+    t.assert_equals(hooks, {'before_each1', 'after_each1'})
 end

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add ``after_test`` and ``before_test`` hooks.
+
 ## 0.5.3
 
 - Add `_le`, `_lt`, `_ge`, `_gt` assertions.
