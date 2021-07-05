@@ -2,7 +2,6 @@
 .luarocks
 .rocks
 .idea
-/doc
 
 /tmp/*
 !/tmp/.keep
@@ -17,3 +16,5 @@ build
 build.luarocks
 Testing
 /rst/
+doc/output
+doc/locale/en/
