@@ -60,6 +60,12 @@ Define tests.
     g.before_each(function() ... end)
     g.after_each(function() ... end)
 
+    -- Hooks to run for a specified test in group
+    g.before_test('test_example_1', function() ... end)
+    g.after_test('test_example_2', function() ... end)
+    -- before_test runs after before_each
+    -- after_test runs before after_each
+
     -- test/other_test.lua
     local t = require('luatest')
     local g = t.group('other')

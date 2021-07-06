@@ -18,12 +18,39 @@ local function define_hooks(object, hooks_type)
     end
 end
 
+local function define_named_hooks(object, hooks_type)
+    local hooks = {}
+    object[hooks_type .. '_hooks'] = hooks
+
+    object[hooks_type] = function(test_name, fn)
+        test_name = object.name .. '.' .. test_name
+        if not hooks[test_name] then
+            hooks[test_name] = {}
+        end
+        table.insert(hooks[test_name], fn)
+    end
+
+    object['run_' .. hooks_type] = function(test)
+        local test_name = test.name
+        if not hooks[test_name] then
+            return
+        end
+
+        for _, fn in ipairs(hooks[test_name]) do
+            fn()
+        end
+    end
+end
+
 -- Define hooks on group.
 function export.define_group_hooks(group)
     define_hooks(group, 'before_each')
     define_hooks(group, 'after_each')
     define_hooks(group, 'before_all')
     define_hooks(group, 'after_all')
+
+    define_named_hooks(group, 'before_test')
+    define_named_hooks(group, 'after_test')
     return group
 end
 
@@ -62,6 +89,14 @@ local function run_test_hooks(self, test, hooks_type, legacy_name)
     end
 end
 
+local function run_named_test_hooks(self, test, hooks_type)
+    local group = test.group
+    local hook = group['run_' .. hooks_type]
+    if hook then
+        self:update_status(test, self:protected_call(test, hook))
+    end
+end
+
 function export.patch_runner(Runner)
     -- Last run test to set error for when group.after_all hook fails.
     local last_test = nil
@@ -75,9 +110,11 @@ function export.patch_runner(Runner)
             return self:update_status(test, test.group._before_all_hook_error)
         end
         run_test_hooks(self, test, 'before_each', 'setup')
+        run_named_test_hooks(self, test, 'before_test')
         if test:is('success') then
             super(self, test, ...)
         end
+        run_named_test_hooks(self, test, 'after_test')
         run_test_hooks(self, test, 'after_each', 'teardown')
     end end)
 
