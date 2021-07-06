@@ -208,8 +208,13 @@ function Server:http_request(method, path, options)
     return response
 end
 
+function Server:eval(...)
+    assert(self.net_box, 'net_box is not connected')
+    return self.net_box:eval(...)
+end
+
 function Server:coverage(action)
-    self.net_box:eval('require("luatest.coverage_utils").' .. action .. '()')
+    self:eval('require("luatest.coverage_utils").' .. action .. '()')
 end
 
 return Server

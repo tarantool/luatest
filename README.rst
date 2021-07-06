@@ -277,7 +277,7 @@ to server process.
 
     -- using net_box
     server:connect_net_box()
-    server.net_box:eval('return do_something(...)', {arg1, arg2})
+    server:eval('return do_something(...)', {arg1, arg2})
 
     server:stop()
 
