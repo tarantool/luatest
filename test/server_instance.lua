@@ -11,7 +11,7 @@ box.cfg({
     listen = listen
 })
 
-box.schema.user.grant('guest', 'read,write,execute', 'universe')
+box.schema.user.grant('guest', 'read,write,execute', 'universe', nil, {if_not_exists=true})
 
 local httpd = require('http.server').new('0.0.0.0', http_port)
 

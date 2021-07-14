@@ -23,6 +23,7 @@ local Server = {
 
         http_port = '?number',
         net_box_port = '?number',
+        net_box_uri = '?string',
         net_box_credentials = '?table',
 
         alias = '?string',
@@ -60,7 +61,7 @@ function Server:initialize()
     if self.http_port then
         self.http_client = http_client.new()
     end
-    if self.net_box_port then
+    if self.net_box_uri == nil and self.net_box_port then
         self.net_box_uri = 'localhost:' .. self.net_box_port
     end
     self.env = utils.merge(self:build_env(), self.env or {})
@@ -101,7 +102,7 @@ function Server:build_env()
     return {
         TARANTOOL_WORKDIR = self.workdir,
         TARANTOOL_HTTP_PORT = self.http_port,
-        TARANTOOL_LISTEN = self.net_box_port,
+        TARANTOOL_LISTEN = self.net_box_port or self.net_box_uri,
     }
 end
 

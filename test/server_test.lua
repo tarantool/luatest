@@ -28,9 +28,7 @@ g.before_all = function()
 end
 
 g.after_all = function()
-    if server.process then
-        server:stop()
-    end
+    server:stop()
     fio.rmtree(datadir)
 end
 
@@ -64,7 +62,7 @@ g.test_restart = function()
     end)
     s:restart()
     t.helpers.retrying({timeout = 0.5}, function()
-        t.assert_not(Process.is_pid_alive(pid))
+        t.assert(Process.is_pid_alive(pid))
     end)
     t.assert_equals(s.args, orig_args)
 
@@ -154,4 +152,22 @@ g.test_inherit = function()
     local child = Server:inherit({})
     local instance = child:new({command = 'test-cmd', workdir = 'test-dir'})
     t.assert_equals(instance.start, Server.start)
+end
+
+g.test_unix_socket = function()
+    local workdir = fio.pathjoin(datadir, 'unix_socket')
+    fio.mktree(workdir)
+    local s = Server:new({
+        command = command,
+        workdir = workdir,
+        net_box_uri = fio.pathjoin(workdir, '/test_socket.sock'),
+        http_port = 0, -- unused
+    })
+    s:start()
+    t.helpers.retrying({}, function() s:connect_net_box() end)
+    t.assert_str_matches(
+        s:eval('return box.info.status'),
+        'running'
+    )
+    s:stop()
 end
