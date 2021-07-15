@@ -139,12 +139,15 @@ end
 
 g.test_net_box = function()
     server:connect_net_box()
-    t.assert_equals(server.net_box:eval('return os.getenv("custom_env")'), 'test_value')
+    t.assert_equals(server:eval('return os.getenv("custom_env")'), 'test_value')
 
     server.net_box:close()
     t.assert_equals(server.net_box.state, 'closed')
     server:connect_net_box()
     t.assert_equals(server.net_box.state, 'active')
+
+    server:eval('function f(x,y) return {x, y} end;')
+    t.assert_equals(server:call('f', {1,'test'}), {1, 'test'})
 end
 
 g.test_inherit = function()
