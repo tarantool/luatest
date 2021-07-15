@@ -28,9 +28,7 @@ g.before_all = function()
 end
 
 g.after_all = function()
-    if server.process then
-        server:stop()
-    end
+    server:stop()
     fio.rmtree(datadir)
 end
 
@@ -154,4 +152,42 @@ g.test_inherit = function()
     local child = Server:inherit({})
     local instance = child:new({command = 'test-cmd', workdir = 'test-dir'})
     t.assert_equals(instance.start, Server.start)
+end
+
+g.before_test('test_socket_as_port', function()
+    server:stop()
+    g.server_snap = table.deepcopy(server)
+    fio.rmtree(datadir)
+    fio.mktree(fio.pathjoin(datadir, 'common'))
+    server.net_box_port = nil
+    server.net_box_uri = fio.pathjoin(datadir, 'common', '/test_socket.sock')
+    server.env = {
+        TARANTOOL_LISTEN = server.net_box_uri,
+        TARANTOOL_WORKDIR = server.workdir,
+        TARANTOOL_HTTP_PORT = server.http_port,
+    }
+end)
+
+g.after_test('test_socket_as_port', function()
+    server = g.server_snap
+    g.server_snap = nil
+    fio.rmtree(datadir)
+    fio.mktree(fio.pathjoin(datadir, 'common'))
+    server:start()
+    t.helpers.retrying({timeout = 2}, function() server:http_request('get', '/ping') end)
+end)
+
+g.test_socket_as_port = function()
+    server:start()
+    t.helpers.retrying({timeout = 2}, function() server:http_request('get', '/ping') end)
+    server:connect_net_box()
+    t.assert_str_matches(server.net_box:eval('return box.info.status'), 'running')
+    local pid = server.process.pid
+    t.helpers.retrying({timeout = 0.5}, function()
+        t.assert(Process.is_pid_alive(pid))
+    end)
+    server:stop()
+    t.helpers.retrying({timeout = 0.5}, function()
+        t.assert_not(Process.is_pid_alive(pid))
+    end)
 end
