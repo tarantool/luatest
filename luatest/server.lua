@@ -102,6 +102,7 @@ function Server:build_env()
         TARANTOOL_WORKDIR = self.workdir,
         TARANTOOL_HTTP_PORT = self.http_port,
         TARANTOOL_LISTEN = self.net_box_port,
+        TARANTOOL_ALIAS = self.alias,
     }
 end
 
