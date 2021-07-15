@@ -278,7 +278,7 @@ to server process.
     -- using net_box
     server:connect_net_box()
     server:eval('return do_something(...)', {arg1, arg2})
-
+    server:call('function_name', {arg1, arg2})
     server:stop()
 
 ``luatest.Process:start(path, args, env)`` provides low-level interface to run any other application.

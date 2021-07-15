@@ -213,6 +213,11 @@ function Server:eval(...)
     return self.net_box:eval(...)
 end
 
+function Server:call(...)
+    assert(self.net_box, 'net_box is not connected')
+    return self.net_box:call(...)
+end
+
 function Server:coverage(action)
     self:eval('require("luatest.coverage_utils").' .. action .. '()')
 end
