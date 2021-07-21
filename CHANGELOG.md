@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Add ``after_test`` and ``before_test`` hooks.
+- Server args are updated on start.
 
 ## 0.5.3
 

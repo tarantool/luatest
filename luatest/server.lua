@@ -131,12 +131,32 @@ function Server:start()
 end
 
 --- Restart server process.
-function Server:restart(args)
+function Server:restart(params)
+    checks('table', {
+        command = '?string',
+        workdir = '?string',
+        chdir = '?string',
+        env = '?table',
+        args = '?table',
+
+        http_port = '?number',
+        net_box_port = '?number',
+        net_box_uri = '?string',
+        net_box_credentials = '?table',
+
+        alias = '?string',
+
+        coverage_report = '?string',
+    })
     if not self.process then
-        log.warn("Process isn't running")
+        log.warn("Process wasn't started")
     end
     self:stop()
-    self.args = args or {}
+
+    for param, value in pairs(params or {}) do
+        self[param] = value
+    end
+
     self:start()
     log.debug('Restarted server PID: ' .. self.process.pid)
 end

@@ -50,12 +50,14 @@ g.test_start_stop = function()
 end
 
 g.test_restart = function()
---     Start server. Restart with same args. Check it was started. Check args
     local workdir = fio.pathjoin(datadir, 'restart')
     fio.mktree(workdir)
-    local s = Server:new({command = command, workdir = workdir})
+    local s = Server:new({command = command, workdir = workdir, alias = 'Bob'})
     local orig_args = table.copy(s.args)
+
     s:start()
+
+    -- Restart server with the same args
     local pid = s.process.pid
     t.helpers.retrying({timeout = 0.5}, function()
         t.assert(Process.is_pid_alive(pid))
@@ -66,18 +68,17 @@ g.test_restart = function()
     end)
     t.assert_equals(s.args, orig_args)
 
---     Restart with another args. Check it was started. Check args
+    -- Restart server with another args
     local new_args = {'test', 'args'}
-    s:restart(new_args)
+    s:restart({args = new_args, alias = 'Tom'})
     pid = s.process.pid
     t.helpers.retrying({timeout = 0.5}, function()
         t.assert(Process.is_pid_alive(pid))
     end)
     t.assert_equals(s.args, new_args)
+    t.assert_equals(s.env.TARANTOOL_ALIAS, 'Tom')
+
     s:stop()
-    t.helpers.retrying({timeout = 0.5}, function()
-        t.assert_not(Process.is_pid_alive(pid))
-    end)
 end
 
 g.test_http_request = function()
