@@ -154,6 +154,23 @@ g.test_inherit = function()
     t.assert_equals(instance.start, Server.start)
 end
 
+g.test_update_params = function()
+    local workdir = fio.pathjoin(datadir, 'update')
+    fio.mktree(workdir)
+    local s = Server:new({command = command, workdir = workdir, alias = 'Bob'})
+    -- env is initialized when server is built
+    t.assert_equals(s.env.TARANTOOL_ALIAS, 'Bob')
+    s.alias = 'Tom'
+    -- env is not updated on the fly. It must be done manually
+    -- or server should be restarted.
+    t.assert_not_equals(s.env.TARANTOOL_ALIAS, 'Tom')
+    s:start()
+    -- After server restart its params are updated just as
+    -- during initial building
+    t.assert_equals(s.env.TARANTOOL_ALIAS, 'Tom')
+    s:stop()
+end
+
 g.test_unix_socket = function()
     local workdir = fio.pathjoin(datadir, 'unix_socket')
     fio.mktree(workdir)
