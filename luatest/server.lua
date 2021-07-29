@@ -64,7 +64,7 @@ function Server:initialize()
     if self.net_box_uri == nil and self.net_box_port then
         self.net_box_uri = 'localhost:' .. self.net_box_port
     end
-    self.env = utils.merge(self:build_env(), self.env or {})
+    self.env = utils.merge(self.env or {}, self:build_env())
     self.args = self.args or {}
     -- Enable coverage_report if it's enabled when server is instantiated
     -- and it's not disabled explicitly.
@@ -109,6 +109,7 @@ end
 
 --- Start server process.
 function Server:start()
+    self:initialize()
     local env = table.copy(os.environ())
     local log_cmd = {}
     for k, v in pairs(self.env) do
@@ -130,12 +131,32 @@ function Server:start()
 end
 
 --- Restart server process.
-function Server:restart(args)
+function Server:restart(params)
+    checks('table', {
+        command = '?string',
+        workdir = '?string',
+        chdir = '?string',
+        env = '?table',
+        args = '?table',
+
+        http_port = '?number',
+        net_box_port = '?number',
+        net_box_uri = '?string',
+        net_box_credentials = '?table',
+
+        alias = '?string',
+
+        coverage_report = '?string',
+    })
     if not self.process then
-        log.warn("Process isn't running")
+        log.warn("Process wasn't started")
     end
     self:stop()
-    self.args = args or {}
+
+    for param, value in pairs(params or {}) do
+        self[param] = value
+    end
+
     self:start()
     log.debug('Restarted server PID: ' .. self.process.pid)
 end
