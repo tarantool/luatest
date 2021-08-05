@@ -1,5 +1,5 @@
 Name: luatest
-Version: 0.5.3
+Version: 0.5.4
 Release: 1%{?dist}
 Summary: Tarantool test framework
 Group: Applications/Databases
@@ -36,6 +36,15 @@ ctest -VV
 %license LICENSE
 
 %changelog
+* Thu Aug 5 2021 Aleksandr Shemenev <a.shemenev@corp.mail.ru> 0.5.4-1
+- Add `after_test` and `before_test` hooks.
+- Add tap version to the output.
+- New `restart` server method.
+- Add new `eval` and `call` server methods for convenient net_box calls.
+- Server can use a unix socket as a listen port.
+- Add `TARANTOOL_ALIAS` in the server env space.
+- Server args are updated on start.
+
 * Thu Jun 10 2021 Aleksandr Shemenev <a.shemenev@corp.mail.ru> 0.5.3-1
 - Add `_le`, `_lt`, `_ge`, `_gt` assertions.
 - Write execution time for each test in the verbose mode.

@@ -2,7 +2,14 @@
 
 ## Unreleased
 
-- Add ``after_test`` and ``before_test`` hooks.
+## 0.5.4
+
+- Add `after_test` and `before_test` hooks.
+- Add tap version to the output.
+- New `restart` server method.
+- Add new `eval` and `call` server methods for convenient net_box calls.
+- Server can use a unix socket as a listen port.
+- Add `TARANTOOL_ALIAS` in the server env space.
 - Server args are updated on start.
 
 ## 0.5.3
