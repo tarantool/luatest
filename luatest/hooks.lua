@@ -2,18 +2,77 @@ local utils = require('luatest.utils')
 
 local export = {}
 
+local function table_len(t)
+    local counter = 0
+    for _, _ in pairs(t) do
+        counter = counter + 1
+    end
+    return counter
+end
+
+local function arrange_hooks(object, hooks, hooks_type, test_name)
+    local active_hooks_name = 'active_' .. hooks_type
+    if test_name then
+        active_hooks_name = active_hooks_name .. '_' .. test_name
+        hooks = hooks[test_name]
+    end
+    active_hooks_name = active_hooks_name .. '_hooks'
+
+    if object[active_hooks_name] then
+        return object[active_hooks_name]
+    end
+
+    local active_hooks = {}
+    for _, entry in ipairs(hooks) do
+        local params_is_ok = true
+        for name, value in pairs(entry[2]) do
+            if object.params
+            and object.params[name] ~= value then
+                params_is_ok = false
+                break
+            end
+        end
+
+        if params_is_ok then
+            table.insert(active_hooks, entry)
+        end
+    end
+
+    local comparator
+    if string.find(hooks_type, 'after') then
+        comparator = function(a, b)
+            return (table_len(a[2])) > (table_len(b[2]))
+        end
+    else
+        comparator = function(a, b)
+            return (table_len(a[2])) < (table_len(b[2]))
+        end
+    end
+    table.sort(active_hooks, comparator)
+
+    object[active_hooks_name] = {}
+    for _, entry in ipairs(active_hooks) do
+        table.insert(object[active_hooks_name], entry[1])
+    end
+
+    return object[active_hooks_name]
+end
+
 local function define_hooks(object, hooks_type)
     local hooks = {}
     object[hooks_type .. '_hooks'] = hooks
 
-    object[hooks_type] = function(fn)
-        table.insert(hooks, fn)
+    object[hooks_type] = function(fn, params)
+        params = params or {}
+        table.insert(hooks, {fn, params})
     end
     object['_original_' .. hooks_type] = object[hooks_type] -- for leagacy hooks support
 
     object['run_' .. hooks_type] = function()
-        for _, fn in ipairs(hooks) do
-            fn()
+        local hooks = object[hooks_type .. '_hooks']
+        local active_hooks = arrange_hooks(object, hooks, hooks_type)
+        for _, hook in ipairs(active_hooks) do
+            hook(object)
         end
     end
 end
@@ -22,22 +81,35 @@ local function define_named_hooks(object, hooks_type)
     local hooks = {}
     object[hooks_type .. '_hooks'] = hooks
 
-    object[hooks_type] = function(test_name, fn)
+    object[hooks_type] = function(test_name, fn, params)
         test_name = object.name .. '.' .. test_name
+        params = params or {}
         if not hooks[test_name] then
             hooks[test_name] = {}
         end
-        table.insert(hooks[test_name], fn)
+        table.insert(hooks[test_name], {fn, params})
     end
 
     object['run_' .. hooks_type] = function(test)
+        local hooks = object[hooks_type .. '_hooks']
         local test_name = test.name
+
+        -- When parametrized groups are defined named hooks saved by
+        -- super group test name. When they are called test name is
+        -- specific to the parametrized group. So, it should be
+        -- converted back to the super one.
+        if object.super_group then
+            local test_name_parts, parts_amount = utils.split_test_name(test_name)
+            test_name = object.super_group.name .. '.' .. test_name_parts[parts_amount]
+        end
+
         if not hooks[test_name] then
             return
         end
 
-        for _, fn in ipairs(hooks[test_name]) do
-            fn()
+        local active_hooks = arrange_hooks(object, hooks, hooks_type, test_name)
+        for _, hook in ipairs(active_hooks) do
+            hook(object)
         end
     end
 end

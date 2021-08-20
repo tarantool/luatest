@@ -120,4 +120,9 @@ function utils.pattern_filter(patterns, expr)
     return result
 end
 
+function utils.split_test_name(test_name)
+    local test_name_parts = string.split(test_name, '.')
+    return test_name_parts, #test_name_parts
+end
+
 return utils
