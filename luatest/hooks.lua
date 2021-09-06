@@ -1,19 +1,45 @@
 local utils = require('luatest.utils')
+local comparator = require('luatest.comparator')
 
 local export = {}
+
+local function check_params(required, actual)
+    for param_name, param_val in pairs(required) do
+        if not comparator.equals(param_val, actual[param_name]) then
+            return false
+        end
+    end
+
+    return true
+end
 
 local function define_hooks(object, hooks_type)
     local hooks = {}
     object[hooks_type .. '_hooks'] = hooks
 
-    object[hooks_type] = function(fn)
-        table.insert(hooks, fn)
+    object[hooks_type] = function(...)
+        local params, fn = ...
+        if fn == nil then
+            fn = params
+            params = {}
+        end
+
+        assert(type(params) == 'table',
+            string.format('params should be table, got %s', type(params)))
+        assert(type(fn) == 'function',
+            string.format('hook should be function, got %s', type(fn)))
+
+        params = params or {}
+        table.insert(hooks, {fn, params})
     end
     object['_original_' .. hooks_type] = object[hooks_type] -- for leagacy hooks support
 
     object['run_' .. hooks_type] = function()
-        for _, fn in ipairs(hooks) do
-            fn()
+        local active_hooks = object[hooks_type .. '_hooks']
+        for _, hook in ipairs(active_hooks) do
+            if check_params(hook[2], object.params) then
+                hook[1](object)
+            end
         end
     end
 end
@@ -22,22 +48,49 @@ local function define_named_hooks(object, hooks_type)
     local hooks = {}
     object[hooks_type .. '_hooks'] = hooks
 
-    object[hooks_type] = function(test_name, fn)
+    object[hooks_type] = function(...)
+        local test_name, params, fn = ...
+        if fn == nil then
+            fn = params
+            params = {}
+        end
+
+        assert(type(test_name) == 'string',
+            string.format('test name should be string, got %s', type(test_name)))
+        assert(type(params) == 'table',
+            string.format('params should be table, got %s', type(params)))
+        assert(type(fn) == 'function',
+            string.format('hook should be function, got %s', type(fn)))
+
         test_name = object.name .. '.' .. test_name
+        params = params or {}
         if not hooks[test_name] then
             hooks[test_name] = {}
         end
-        table.insert(hooks[test_name], fn)
+        table.insert(hooks[test_name], {fn, params})
     end
 
     object['run_' .. hooks_type] = function(test)
+        local active_hooks = object[hooks_type .. '_hooks']
         local test_name = test.name
-        if not hooks[test_name] then
+
+        -- When parametrized groups are defined named hooks saved by
+        -- super group test name. When they are called test name is
+        -- specific to the parametrized group. So, it should be
+        -- converted back to the super one.
+        if object.super_group then
+            local test_name_parts, parts_amount = utils.split_test_name(test_name)
+            test_name = object.super_group.name .. '.' .. test_name_parts[parts_amount]
+        end
+
+        if not active_hooks[test_name] then
             return
         end
 
-        for _, fn in ipairs(hooks[test_name]) do
-            fn()
+        for _, hook in ipairs(active_hooks[test_name]) do
+            if check_params(hook[2], object.params) then
+                hook[1](object)
+            end
         end
     end
 end

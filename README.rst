@@ -73,6 +73,18 @@ Define tests.
     g.test_example_2 = function() ... end
     g.test_example_m = function() ... end
 
+    -- Define parametrized groups
+    local pg = t.group('pgroup', t.helpers.matrix({param_1 = {1, 2}, param_2 = {3, 4}}))
+    pg.test_example_1 = function(cg) ... end
+    -- type(cg.params.param_1) == 'number'
+    pg.test_example_n = function(cg) ... end
+
+    -- Hooks can be specified for one parameter
+    pg.before_all(function() ... end)
+    pg.before_each({param_1 = 1}, function() ... end)
+    pg.after_each({param_2 = 3}, function() ... end)
+    pg.after_test('test_example_1', {param_1 = 2, param_2 = 4}, function() ... end)
+
 
 Run them.
 
@@ -231,6 +243,58 @@ Capturing output
 
 By default runner captures all stdout/stderr output and shows it only for failed tests.
 Capturing can be disabled with ``-c`` flag.
+
+.. _parametrization:
+
+---------------------------------
+Parametrization
+---------------------------------
+
+Test group can be parametrized.
+
+.. code-block:: Lua
+
+    local g = t.group('pgroup', {{a = 1, b = 4}, {a = 2, b = 3}})
+
+    g.test_params = function(cg)
+        ...
+        local param_a_val = cg.params.a
+        local param_b_val = cg.params.b
+        ...
+    end
+
+Group can be parametrized with a matrix of parameters using helper.
+
+.. code-block:: Lua
+
+    local g = t.group('pgroup', t.helpers.matrix({a = {1, 2}, b = {3, 4}}))
+
+
+Each test will be performed for every params combination. Hooks will work as usual
+unless there are specified params. The order of execution in the hook group is
+determined by the order of declaration.
+
+.. code-block:: Lua
+
+    -- called before every test
+    g.before_each(function(cg) ... end)
+
+    -- called before tests when a == 1
+    g.before_each({a = 1}, function(cg) ... end)
+
+    -- called only before the test when a == 1 and b == 3
+    g.before_each({a = 1, b = 3}, function(cg) ... end)
+
+    -- called before test named 'test_something' when a == 1
+    g.before_test('test_something', {a = 1}, function(cg) ... end)
+
+    --etc
+
+Test with specific params can be called from command line.
+
+.. code-block:: Bash
+
+    luatest path-to-file pgroup.a:1.b:3.test_params
 
 .. _test-helpers:
 
