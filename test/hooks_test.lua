@@ -288,7 +288,7 @@ g.test_before_and_after_error = function()
         t2.after_test('test', function() error('custom-error') end)
         t2.after_test('test', function() table.insert(hooks, 'after_test3') end)
         t2.test = function() table.insert(hooks, 'test') end
-    end)
+    end, {'--repeat', '2'})
 
     t.assert_equals(result, 1)
     t.assert_equals(hooks, {'before_test1', 'after_test1'})
@@ -306,8 +306,42 @@ g.test_each_error = function()
         t2.after_each(function() error('custom-error') end)
         t2.after_each(function() table.insert(hooks, 'after_each3') end)
         t2.test = function() table.insert(hooks, 'test') end
-    end)
+    end, {'--repeat', '2'})
 
     t.assert_equals(result, 1)
     t.assert_equals(hooks, {'before_each1', 'after_each1'})
+end
+
+g.test_each_repeat = function()
+    local hooks = {}
+
+    local result = helper.run_suite(function(lu2)
+        local t2 = lu2.group('test')
+        local counter = 0
+        t2.before_all(function() table.insert(hooks, 'before_all') end)
+        t2.before_each(function() table.insert(hooks, 'before_each') end)
+        t2.before_test('test_a', function() table.insert(hooks, 'before_test') end)
+        t2.after_each(function() table.insert(hooks, 'after_each') end)
+        t2.after_test('test_b', function() table.insert(hooks, 'after_test') end)
+        t2.after_all(function() table.insert(hooks, 'after_all') end)
+        t2.test_a = function()
+            if counter >= 1 then
+                error('The time has come')
+            end
+
+            counter = counter + 1
+            table.insert(hooks, 'test_a')
+        end
+        t2.test_b = function() table.insert(hooks, 'test_b') end
+    end, {'--repeat', '2'})
+
+    t.assert_equals(result, 1)
+    t.assert_equals(hooks, {
+        'before_all',
+        'before_each', 'before_test', 'test_a', 'after_each',
+        'before_each', 'before_test', 'after_each',
+        'before_each', 'test_b', 'after_test', 'after_each',
+        'before_each', 'test_b', 'after_test', 'after_each',
+        'after_all'
+    })
 end

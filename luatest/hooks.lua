@@ -109,13 +109,22 @@ function export.patch_runner(Runner)
         if test.group._before_all_hook_error then
             return self:update_status(test, test.group._before_all_hook_error)
         end
-        run_test_hooks(self, test, 'before_each', 'setup')
-        run_named_test_hooks(self, test, 'before_test')
-        if test:is('success') then
-            super(self, test, ...)
+
+        for _ = 1, self.exe_repeat or 1 do
+            if not test:is('success') then
+                break
+            end
+
+            run_test_hooks(self, test, 'before_each', 'setup')
+            run_named_test_hooks(self, test, 'before_test')
+
+            if test:is('success') then
+                super(self, test, ...)
+            end
+
+            run_named_test_hooks(self, test, 'after_test')
+            run_test_hooks(self, test, 'after_each', 'teardown')
         end
-        run_named_test_hooks(self, test, 'after_test')
-        run_test_hooks(self, test, 'after_each', 'teardown')
     end end)
 
     -- Run group hook and save possible error to the group object.

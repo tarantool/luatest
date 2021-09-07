@@ -392,20 +392,12 @@ end
 
 function Runner.mt:run_test(test)
     self:start_test(test)
-    for iteration = 1, self.exe_repeat or 1 do
-        if not test:is('success') then
-            break
-        end
-        self:invoke_test_function(test, iteration)
-    end
+    self:invoke_test_function(test)
     self:end_test(test)
 end
 
-function Runner.mt:invoke_test_function(test, iteration)
+function Runner.mt:invoke_test_function(test)
     local err = self:protected_call(test.group, test.method, test.name)
-    if iteration > 1 and err.status ~= 'success' then
-        err.message = tostring(err.message) .. '\nIteration ' .. iteration
-    end
     self:update_status(test, err)
 end
 
