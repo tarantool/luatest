@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Repeat `_each` and `_test` hooks when `--repeat` is specified
+
 ## 0.5.4
 
 - Add `after_test` and `before_test` hooks.
