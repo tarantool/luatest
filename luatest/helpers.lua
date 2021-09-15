@@ -80,10 +80,12 @@ end
 --
 --     helpers.matrix({a = {1, 2}, b = {3, 4}})
 --
---     {{a = 1, b = 3},
---      {a = 2, b = 3},
---      {a = 1, b = 4},
---      {a = 2, b = 4}}
+--     {
+--       {a = 1, b = 3},
+--       {a = 2, b = 3},
+--       {a = 1, b = 4},
+--       {a = 2, b = 4},
+--     }
 --
 -- @tab parameters_values
 function helpers.matrix(parameters_values)

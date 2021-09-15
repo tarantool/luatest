@@ -35,6 +35,7 @@ luatest.groups = {}
 --- Create group of tests.
 --
 -- @string[opt] name
+-- @table[opt] params
 -- @return Group object
 -- @see luatest.group
 function luatest.group(name,  params)

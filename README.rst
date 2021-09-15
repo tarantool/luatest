@@ -74,16 +74,18 @@ Define tests.
     g.test_example_m = function() ... end
 
     -- Define parametrized groups
-    local pg = t.group('pgroup', t.helpers.matrix({param_1 = {1, 2}, param_2 = {3, 4}}))
-    pg.test_example_1 = function(cg) ... end
-    -- type(cg.params.param_1) == 'number'
-    pg.test_example_n = function(cg) ... end
+    local pg = t.group('pgroup', {{engine = 'memtx'}, {engine = 'vinyl'}})
+    pg.test_example_3 = function(cg)
+        -- Use cg.params here
+        box.schema.space.create('test', {
+            engine = cg.params.engine,
+        })
+    end
 
     -- Hooks can be specified for one parameter
-    pg.before_all(function() ... end)
-    pg.before_each({param_1 = 1}, function() ... end)
-    pg.after_each({param_2 = 3}, function() ... end)
-    pg.after_test('test_example_1', {param_1 = 2, param_2 = 4}, function() ... end)
+    pg.before_all({engine = 'memtx'}, function() ... end)
+    pg.before_each({engine = 'memtx'}, function() ... end)
+    pg.before_test('test_example_3', {engine = 'vinyl'}, function() ... end)
 
 
 Run them.
@@ -258,17 +260,21 @@ Test group can be parametrized.
 
     g.test_params = function(cg)
         ...
-        local param_a_val = cg.params.a
-        local param_b_val = cg.params.b
+        log.info('a = %s', cg.params.a)
+        log.info('b = %s', cg.params.b)
         ...
     end
 
-Group can be parametrized with a matrix of parameters using helper.
+Group can be parametrized with a matrix of parameters using `luatest.helpers`:
 
 .. code-block:: Lua
 
     local g = t.group('pgroup', t.helpers.matrix({a = {1, 2}, b = {3, 4}}))
-
+    -- Will run:
+    -- * a = 1, b = 3
+    -- * a = 1, b = 4
+    -- * a = 2, b = 3
+    -- * a = 2, b = 4
 
 Each test will be performed for every params combination. Hooks will work as usual
 unless there are specified params. The order of execution in the hook group is
