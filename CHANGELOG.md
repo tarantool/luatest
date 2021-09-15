@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Repeat `_each` and `_test` hooks when `--repeat` is specified
+- Add group parametrization
 
 ## 0.5.4
 

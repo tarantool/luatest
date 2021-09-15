@@ -75,4 +75,43 @@ function helpers.retrying(config, fn, ...)
     end
 end
 
+--- Return all combinations of parameters.
+-- Accepts params' names and thier every possible value.
+--
+--     helpers.matrix({a = {1, 2}, b = {3, 4}})
+--
+--     {
+--       {a = 1, b = 3},
+--       {a = 2, b = 3},
+--       {a = 1, b = 4},
+--       {a = 2, b = 4},
+--     }
+--
+-- @tab parameters_values
+function helpers.matrix(parameters_values)
+    local combinations = {}
+
+    local params_names = {}
+    for name, _ in pairs(parameters_values) do
+        table.insert(params_names, name)
+    end
+    table.sort(params_names)
+
+    local function combinator(_params, ind, ...)
+        if ind < 1 then
+            local combination = {}
+            for _, entry in ipairs({...}) do
+                combination[entry[1]] = entry[2]
+            end
+            table.insert(combinations, combination)
+        else
+            local name = params_names[ind]
+            for i=1,#(_params[name]) do combinator(_params, ind - 1, {name, _params[name][i]}, ...) end
+        end
+    end
+
+    combinator(parameters_values, #params_names)
+    return combinations
+end
+
 return helpers

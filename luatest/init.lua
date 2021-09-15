@@ -17,6 +17,7 @@ luatest.Server = require('luatest.server')
 
 local Group = require('luatest.group')
 local hooks = require('luatest.hooks')
+local parametrizer = require('luatest.parametrizer')
 
 --- Add before suite hook.
 --
@@ -34,15 +35,29 @@ luatest.groups = {}
 --- Create group of tests.
 --
 -- @string[opt] name
+-- @table[opt] params
 -- @return Group object
 -- @see luatest.group
-function luatest.group(name)
+function luatest.group(name,  params)
     local group = Group:new(name)
     name = group.name
     if luatest.groups[name] then
         error('Test group already exists: ' .. name ..'.')
     end
-    luatest.groups[name] = group
+
+    if params then
+        parametrizer.parametrize(group, params)
+    end
+
+    -- Register all parametrized groups
+    if group.pgroups then
+        for _, pgroup in ipairs(group.pgroups) do
+            luatest.groups[pgroup.name] = pgroup
+        end
+    else
+        luatest.groups[name] = group
+    end
+
     return group
 end
 
