@@ -28,16 +28,24 @@ jobs:
     steps:
       - uses: actions/checkout@master
 
+      - uses: tarantool/setup-tarantool@v1
+        with:
+          tarantool-version: '2.5'
+
       # https://stackoverflow.com/questions/58177786/get-the-current-pushed-tag-in-github-actions
       - name: Set env
         run: echo "GIT_TAG=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
 
-      - name: Create release rockspec
-        run: |
-          sed \
-            -e "s/branch = '.\+'/tag = '${GIT_TAG}'/g" \
-            -e "s/version = '.\+'/version = '${GIT_TAG}-1'/g" \
-            ${{ env.ROCK_NAME }}-scm-1.rockspec > ${{ env.ROCK_NAME }}-${GIT_TAG}-1.rockspec
+      - run: tarantoolctl rocks new_version --tag ${GIT_TAG}
+      - run: tarantoolctl rocks make ${{ env.ROCK_NAME }}-${GIT_TAG}-1.rockspec
+
+      # - name: Create release rockspec
+      #   run: |
+      #     sed \
+      #       -e "s/branch = '.\+'/tag = '${GIT_TAG}'/g" \
+      #       -e "s/version = '.\+'/version = '${GIT_TAG}-1'/g" \
+      #       ${{ env.ROCK_NAME }}-scm-1.rockspec > ${{ env.ROCK_NAME }}-${GIT_TAG}-1.rockspec
+
       - run: tarantoolctl rocks pack ${{ env.ROCK_NAME }} ${GIT_TAG}
 
       - uses: tarantool/rocks.tarantool.org/github-action@master
