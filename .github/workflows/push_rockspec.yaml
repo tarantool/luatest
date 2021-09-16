@@ -38,6 +38,9 @@ jobs:
             -e "s/branch = '.\+'/tag = '${GIT_TAG}'/g" \
             -e "s/version = '.\+'/version = '${GIT_TAG}-1'/g" \
             ${{ env.ROCK_NAME }}-scm-1.rockspec > ${{ env.ROCK_NAME }}-${GIT_TAG}-1.rockspec
+      - uses: tarantool/setup-tarantool@v1
+        with:
+          tarantool-version: '2.5'
       - run: tarantoolctl rocks pack ${{ env.ROCK_NAME }} ${GIT_TAG}
 
       - uses: tarantool/rocks.tarantool.org/github-action@master
