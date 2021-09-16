@@ -1,5 +1,5 @@
 Name: luatest
-Version: 0.5.4
+Version: 0.5.5
 Release: 1%{?dist}
 Summary: Tarantool test framework
 Group: Applications/Databases
@@ -36,6 +36,10 @@ ctest -VV
 %license LICENSE
 
 %changelog
+* Thu Sept 16 2021 Aleksandr Shemenev <a.shemenev@corp.mail.ru> 0.5.5-1
+- Repeat `_each` and `_test` hooks when `--repeat` is specified.
+- Add group parametrization.
+
 * Thu Aug 5 2021 Aleksandr Shemenev <a.shemenev@corp.mail.ru> 0.5.4-1
 - Add `after_test` and `before_test` hooks.
 - Add tap version to the output.
