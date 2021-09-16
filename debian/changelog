@@ -1,3 +1,10 @@
+luatest (0.5.5-1) unstable; urgency=medium
+
+  * Repeat `_each` and `_test` hooks when `--repeat` is specified.
+  * Add group parametrization.
+
+ -- Aleksandr Shemenev <a.shemenev@corp.mail.ru>  Thu, 16 Sept 2021 13:00:00 +0300
+
 luatest (0.5.4-1) unstable; urgency=medium
 
   * Add `after_test` and `before_test` hooks.
