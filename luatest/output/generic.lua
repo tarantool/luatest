@@ -59,20 +59,26 @@ local function conditional_plural(number, singular)
 end
 
 function Output.mt:status_line(colors)
-    colors = colors or {success = '', failure = '', reset = ''}
+    colors = colors or {success = '', failure = '', reset = '', xfail = ''}
     -- return status line string according to results
     local tests = self.result.tests
     local s = {
         string.format('Ran %d tests in %0.3f seconds', #tests.all - #tests.skip, self.result.duration),
         colors.success .. conditional_plural(#tests.success, 'success') .. colors.reset,
     }
+    if #tests.xfail > 0 then
+        table.insert(s, colors.xfail .. conditional_plural(#tests.xfail, 'xfail') .. colors.reset)
+    end
+    if #tests.xsuccess > 0 then
+        table.insert(s, colors.failure .. conditional_plural(#tests.xsuccess, 'xsuccess') .. colors.reset)
+    end
     if #tests.fail > 0 then
         table.insert(s, colors.failure .. conditional_plural(#tests.fail, 'fail') .. colors.reset)
     end
     if #tests.error > 0 then
         table.insert(s, colors.failure .. conditional_plural(#tests.error, 'error') .. colors.reset)
     end
-    if #tests.fail == 0 and #tests.error == 0 then
+    if #tests.fail == 0 and #tests.error == 0 and #tests.xsuccess == 0 then
         table.insert(s, '0 failures')
     end
     if #tests.skip > 0 then

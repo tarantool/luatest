@@ -3,6 +3,7 @@ local Output = require('luatest.output.generic'):new_class()
 Output.BOLD_CODE = '\x1B[1m'
 Output.ERROR_COLOR_CODE = Output.BOLD_CODE .. '\x1B[31m' -- red
 Output.SUCCESS_COLOR_CODE = Output.BOLD_CODE .. '\x1B[32m' -- green
+Output.WARN_COLOR_CODE = Output.BOLD_CODE .. '\x1B[33m' -- yellow
 Output.RESET_TERM = '\x1B[0m'
 
 function Output.mt:start_suite()
@@ -24,14 +25,17 @@ function Output.mt:start_test(test) -- luacheck: no unused
 end
 
 function Output.mt:end_test(node)
-    if node:is('success') then
+    if node:is('success') or node:is('xfail') then
         if self.verbosity >= self.class.VERBOSITY.VERBOSE then
             if self.verbosity >= self.class.VERBOSITY.REPEAT then
                 io.stdout:write("    ", node.name, " ... ")
             end
             local duration = string.format("(%0.3fs) ", node.duration)
             io.stdout:write(duration)
-            io.stdout:write("Ok\n")
+            io.stdout:write(node:is('xfail') and "xfail\n" or "Ok\n")
+            if node:is('xfail') then
+                print(node.message)
+            end
         else
             io.stdout:write(".")
             io.stdout:flush()
@@ -45,7 +49,7 @@ function Output.mt:end_test(node)
             print(duration .. node.status)
             print(node.message)
         else
-            -- write only the first character of status E, F or S
+            -- write only the first character of status E, F, S or X
             io.stdout:write(string.sub(node.status, 1, 1):upper())
             io.stdout:flush()
         end
@@ -83,6 +87,18 @@ function Output.mt:display_failed_tests()
     end
 end
 
+function Output.mt:display_xsucceeded_tests()
+    if #self.result.tests.xsuccess > 0 then
+        print(self.class.BOLD_CODE)
+        print("Tests with an unexpected success:")
+        print("-------------")
+        print(self.class.RESET_TERM)
+        for i, v in ipairs(self.result.tests.xsuccess) do
+            self:display_one_failed_test(i, v)
+        end
+    end
+end
+
 function Output.mt:end_suite()
     if self.verbosity >= self.class.VERBOSITY.VERBOSE then
         print("=========================================================")
@@ -91,10 +107,12 @@ function Output.mt:end_suite()
     end
     self:display_errored_tests()
     self:display_failed_tests()
+    self:display_xsucceeded_tests()
     print(self:status_line({
         success = self.class.SUCCESS_COLOR_CODE,
         failure = self.class.ERROR_COLOR_CODE,
         reset = self.class.RESET_TERM,
+        xfail = self.class.WARN_COLOR_CODE,
     }))
     if self.result.notSuccessCount == 0 then
         print('OK')

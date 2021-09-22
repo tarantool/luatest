@@ -12,6 +12,10 @@ function Output.mt:start_group(group) -- luacheck: no unused
 end
 
 function Output.mt:update_status(node)
+    if node:is('xfail') then
+        return
+    end
+
     if node:is('skip') then
         io.stdout:write("ok ", node.serial_number, "\t# SKIP ", node.message or '', "\n")
         return
@@ -30,6 +34,9 @@ end
 function Output.mt:end_test(node) -- luacheck: no unused
     if node:is('success') then
         io.stdout:write("ok     ", node.serial_number, "\t", node.name, "\n")
+    end
+    if node:is('xfail') then
+        io.stdout:write("ok     ", node.serial_number, "\t# XFAIL ", node.message or '', "\n")
     end
 end
 
