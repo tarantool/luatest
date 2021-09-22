@@ -10,6 +10,7 @@ function TestInstance:build(group, method_name)
         method_name = method_name,
         method = method,
         line = debug.getinfo(method).linedefined or 0,
+        xfail = group.xfail and group.xfail[method_name] or false,
     })
 end
 

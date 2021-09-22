@@ -237,6 +237,23 @@ List of luatest functions
 | ``group (name)``                                                   | Create group of tests.                        |
 +--------------------------------------------------------------------+-----------------------------------------------+
 
+.. _xfail
+
+---------------------------------
+XFail
+---------------------------------
+
+Test can be marked as xfail. It will be treated as failed when succeeded.
+
+.. code-block:: Lua
+
+    local g = t.group()
+
+    g.xfail['test_fail_1'] = true
+    g.xfail['test_fail_2'] = 'Must fail no matter what'
+    g.test_fail_1 = function() t.assert_equals(1, 2) end
+    g.test_fail_2 = function() t.assert_equals(3, 4) end
+
 .. _capturing-output:
 
 ---------------------------------

@@ -274,6 +274,8 @@ function Runner.mt:start_suite(selected_count, not_selected_count)
             fail = {},
             error = {},
             skip = {},
+            xfail = {},
+            xsuccess = {},
         },
     }
     self.output.result = self.result
@@ -298,7 +300,8 @@ function Runner.mt:update_status(node, err)
     -- if the node is already in failure/error, just don't report the new error (see above)
     elseif not node:is('success') then
         return
-    elseif err.status == 'fail' or err.status == 'error' or err.status == 'skip' then
+    elseif err.status == 'fail' or err.status == 'error' or err.status == 'skip'
+        or err.status == 'xfail' or err.status == 'xsuccess' then
         node:update_status(err.status, err.message, err.trace)
     else
         error('No such status: ' .. pp.tostring(err.status))
@@ -311,9 +314,10 @@ function Runner.mt:end_test(node)
     node.start_time = nil
     self.output:end_test(node)
 
-    if node:is('error') or node:is('fail') then
+    if node:is('error') or node:is('fail') or node:is('xsuccess') then
         self.result.aborted = self.fail_fast
-    elseif not node:is('success') and not node:is('skip') then
+    elseif not node:is('success') and not node:is('skip')
+        and not node:is('xfail') then
         error('No such node status: ' .. pp.tostring(node.status))
     end
 end
@@ -330,11 +334,11 @@ function Runner.mt:end_suite()
     for _, test in pairs(self.result.tests.all) do
         table.insert(self.result.tests[test.status], test)
     end
-    self.result.failures_count = #self.result.tests.fail + #self.result.tests.error
+    self.result.failures_count = #self.result.tests.fail + #self.result.tests.error + #self.result.tests.xsuccess
     self.output:end_suite()
 end
 
-function Runner.mt:protected_call(instance, method, pretty_name)
+function Runner.mt:protected_call(instance, method, pretty_name, xfail)
     local _, err = xpcall(function()
         method(instance)
         return {status = 'success'}
@@ -352,8 +356,20 @@ function Runner.mt:protected_call(instance, method, pretty_name)
         err.message = pp.tostring(err.message)
     end
 
-    if err.status == 'success' or err.status == 'skip' then
+    if (err.status == 'success' and not xfail) or err.status == 'skip' then
         err.trace = nil
+        return err
+    end
+
+    if xfail and err.status ~= 'error' and err.status ~= 'skip' then
+        err.status = 'x' .. err.status
+
+        if err.status == 'xsuccess' then
+            err.trace = ''
+            err.message = type(xfail) == 'string' and xfail
+            or 'Test expected to fail has succeeded. Consider removing xfail.'
+        end
+
         return err
     end
 
@@ -397,7 +413,7 @@ function Runner.mt:run_test(test)
 end
 
 function Runner.mt:invoke_test_function(test)
-    local err = self:protected_call(test.group, test.method, test.name)
+    local err = self:protected_call(test.group, test.method, test.name, test.xfail)
     self:update_status(test, err)
 end
 
