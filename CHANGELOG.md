@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Add `xfail` option
+- Add `xfail` test marks support.
 
 ## 0.5.5
 

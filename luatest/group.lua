@@ -61,7 +61,6 @@ function Group.mt:initialize(name)
         error('Group name must not contain `/`: ' .. name)
     end
     self.name = name
-    self.xfail = {}
     hooks.define_group_hooks(self)
 end
 

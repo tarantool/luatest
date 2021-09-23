@@ -15,8 +15,16 @@ local prettystr_pairs = pp.tostring_pair
 
 local M = {}
 
+local xfail = false
+
 -- private exported functions (for testing)
 M.private = {}
+
+function M.private.is_xfail()
+    local xfail_status = xfail
+    xfail = false
+    return xfail_status
+end
 
 --[[--
 
@@ -141,6 +149,23 @@ end
 function M.success_if(condition)
     if condition and condition ~= nil then
         utils.luatest_error('success', 2)
+    end
+end
+
+--- Mark a test as xfail.
+--
+-- @string message
+function M.xfail(message)
+    xfail = message or true
+end
+
+--- Mark a test as xfail if condition is met
+--
+-- @param condition
+-- @string message
+function M.xfail_if(condition, message)
+    if condition and condition ~= nil then
+        xfail = message or true
     end
 end
 

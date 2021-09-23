@@ -4,6 +4,7 @@
 
 local clock = require('clock')
 
+local assertions = require('luatest.assertions')
 local capturing = require('luatest.capturing')
 local Class = require('luatest.class')
 local GenericOutput = require('luatest.output.generic')
@@ -338,7 +339,7 @@ function Runner.mt:end_suite()
     self.output:end_suite()
 end
 
-function Runner.mt:protected_call(instance, method, pretty_name, xfail)
+function Runner.mt:protected_call(instance, method, pretty_name)
     local _, err = xpcall(function()
         method(instance)
         return {status = 'success'}
@@ -351,6 +352,9 @@ function Runner.mt:protected_call(instance, method, pretty_name, xfail)
             return {status = 'error', message = e, trace = trace}
         end
     end)
+
+    -- check if test was marked as xfail and reset xfail flag
+    local xfail = assertions.private.is_xfail()
 
     if type(err.message) ~= 'string' then
         err.message = pp.tostring(err.message)
@@ -413,7 +417,7 @@ function Runner.mt:run_test(test)
 end
 
 function Runner.mt:invoke_test_function(test)
-    local err = self:protected_call(test.group, test.method, test.name, test.xfail)
+    local err = self:protected_call(test.group, test.method, test.name)
     self:update_status(test, err)
 end
 

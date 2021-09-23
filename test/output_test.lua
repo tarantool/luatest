@@ -25,16 +25,13 @@ end
 g.test_fails_summary_on_failure = function()
     local result = helper.run_suite(function(lu2)
         local g2 = lu2.group('group-name')
-        g2.xfail['test_5'] = 'Nooo'
-        g2.xfail['test_6'] = 'Impossible. It shouldn\'t be happening'
-        g2.xfail['test_7'] = true
         g2.test_1 = function() error('custom') end
         g2.test_2 = function() end
         g2.test_3 = function() lu2.assert_equals(1, 2) end
         g2.test_4 = function() end
-        g2.test_5 = function() end
-        g2.test_6 = function() lu2.assert_equals(1, 2) end
-        g2.test_7 = function() end
+        g2.test_5 = function() lu2.xfail_if(true, 'Nooo') end
+        g2.test_6 = function() lu2.xfail('Impossible.') lu2.assert_equals(1, 2) end
+        g2.test_7 = function() lu2.xfail() end
     end)
     t.assert_equals(result, 4)
     local captured = capture:flush()
@@ -50,7 +47,7 @@ g.test_fails_summary_on_failure = function()
     t.assert_not_str_contains(captured.stdout, 'group-name.test_2')
     t.assert_not_str_contains(captured.stdout, 'group-name.test_4')
     t.assert_not_str_contains(captured.stdout, 'group-name.test_6')
-    t.assert_not_str_contains(captured.stdout, 'Impossible. It shouldn\'t be happening')
+    t.assert_not_str_contains(captured.stdout, 'Impossible.')
 end
 
 local output_presets = {

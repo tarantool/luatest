@@ -6,9 +6,9 @@ local helper = require('test.helper')
 g.test_failed = function()
     local result = helper.run_suite(function(lu2)
         local pg = lu2.group('xfail')
-        pg.xfail['test_fail'] = true
         pg.test_fail = function()
-            t.assert_equals(2 + 2, 5)
+            lu2.xfail()
+            lu2.assert_equals(2 + 2, 5)
         end
     end)
 
@@ -18,9 +18,9 @@ end
 g.test_succeeded = function()
     local result = helper.run_suite(function(lu2)
         local pg = lu2.group('xfail')
-        pg.xfail['test_success'] = true
         pg.test_success = function()
-            t.assert_equals(2 + 3, 5)
+            lu2.xfail()
+            lu2.assert_equals(2 + 3, 5)
         end
     end)
 
@@ -30,8 +30,8 @@ end
 g.test_error = function()
     local result = helper.run_suite(function(lu2)
         local pg = lu2.group('xfail')
-        pg.xfail['test_error'] = true
         pg.test_error = function()
+            lu2.xfail()
             error('Boom!')
         end
     end)
