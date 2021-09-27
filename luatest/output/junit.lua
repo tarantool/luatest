@@ -60,7 +60,7 @@ function Output.mt:start_test(test) -- luacheck: no unused
 end
 
 function Output.mt:update_status(node) -- luacheck: no unused
-    if node:is('fail') then
+    if node:is('fail') or node:is('xsuccess') then
         print('#   Failure: ' .. node.message:gsub('\n', '\n#   '))
         -- print('# ' .. node.trace)
     elseif node:is('error') then
@@ -79,7 +79,8 @@ function Output.mt:end_suite()
         '    <testsuite name="luatest" id="00001" package="" hostname="localhost" tests="%d" timestamp="%s" ' ..
         'time="%0.3f" errors="%d" failures="%d" skipped="%d">\n',
         #self.result.tests.all - #self.result.tests.skip, os.date('%Y-%m-%dT%H:%M:%S', self.result.start_time),
-        self.result.duration, #self.result.tests.error, #self.result.tests.fail, #self.result.tests.skip
+        self.result.duration, #self.result.tests.error, #self.result.tests.fail + #self.result.tests.xsuccess,
+        #self.result.tests.skip
     ))
     self.fd:write("        <properties>\n")
     self.fd:write(string.format('            <property name="Lua Version" value="%s"/>\n', _VERSION))

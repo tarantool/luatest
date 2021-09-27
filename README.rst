@@ -219,6 +219,10 @@ List of luatest functions
 | ``fail_if (condition, message)``                                   | Stops a test due to a failure if condition    |
 |                                                                    | is met.                                       |
 +--------------------------------------------------------------------+-----------------------------------------------+
+| ``xfail (message)``                                                | Mark test as xfail.                           |
++--------------------------------------------------------------------+-----------------------------------------------+
+| ``xfail_if (condition, message)``                                  | Mark test as xfail if condition is met.       |
++--------------------------------------------------------------------+-----------------------------------------------+
 | ``skip (message)``                                                 | Skip a running test.                          |
 +--------------------------------------------------------------------+-----------------------------------------------+
 | ``skip_if (condition, message)``                                   | Skip a running test if condition is met.      |
@@ -236,6 +240,28 @@ List of luatest functions
 +--------------------------------------------------------------------+-----------------------------------------------+
 | ``group (name)``                                                   | Create group of tests.                        |
 +--------------------------------------------------------------------+-----------------------------------------------+
+
+.. _xfail
+
+---------------------------------
+XFail
+---------------------------------
+The ``xfail`` mark makes test results to be interpreted vice versa: it's
+threated as passed when an assertion fails, and it fails if no errors are
+raised. It allows one to mark a test as temporarily broken due to a bug in some
+other component which can't be fixed immediately. It's also a good practice to
+keep xfail tests in sync with an issue tracker.
+
+.. code-block:: Lua
+
+    local g = t.group()
+    g.test_fail = function()
+        t.xfail('Must fail no matter what')
+        t.assert_equals(3, 4)
+    end
+
+XFail only applies to the errors raised by the luatest assertions. Regular Lua
+errors still cause the test failure.
 
 .. _capturing-output:
 

@@ -29,16 +29,25 @@ g.test_fails_summary_on_failure = function()
         g2.test_2 = function() end
         g2.test_3 = function() lu2.assert_equals(1, 2) end
         g2.test_4 = function() end
+        g2.test_5 = function() lu2.xfail_if(true, 'Nooo') end
+        g2.test_6 = function() lu2.xfail('Impossible.') lu2.assert_equals(1, 2) end
+        g2.test_7 = function() lu2.xfail() end
     end)
-    t.assert_equals(result, 2)
+    t.assert_equals(result, 4)
     local captured = capture:flush()
     t.assert_str_contains(captured.stdout, 'Failed tests:')
-    t.assert_str_contains(captured.stdout, [[
-group-name.test_1
-group-name.test_3
-]])
+    t.assert_str_contains(captured.stdout, 'group-name.test_1')
+    t.assert_str_contains(captured.stdout, 'Tests with errors:')
+    t.assert_str_contains(captured.stdout, 'group-name.test_3')
+    t.assert_str_contains(captured.stdout, 'Tests with an unexpected success')
+    t.assert_str_contains(captured.stdout, 'group-name.test_5')
+    t.assert_str_contains(captured.stdout, 'Nooo')
+    t.assert_str_contains(captured.stdout, 'group-name.test_7')
+    t.assert_str_contains(captured.stdout, 'Test expected to fail has succeeded. Consider removing xfail.')
     t.assert_not_str_contains(captured.stdout, 'group-name.test_2')
     t.assert_not_str_contains(captured.stdout, 'group-name.test_4')
+    t.assert_not_str_contains(captured.stdout, 'group-name.test_6')
+    t.assert_not_str_contains(captured.stdout, 'Impossible.')
 end
 
 local output_presets = {
