@@ -6,12 +6,9 @@ local workdir = os.getenv('TARANTOOL_WORKDIR')
 local listen = os.getenv('TARANTOOL_LISTEN')
 local http_port = os.getenv('TARANTOOL_HTTP_PORT')
 
-box.cfg({
-    work_dir = workdir,
-    listen = listen
-})
-
-box.schema.user.grant('guest', 'read,write,execute', 'universe', nil, {if_not_exists=true})
+box.cfg({work_dir = workdir})
+box.schema.user.grant('guest', 'super', nil, nil, {if_not_exists=true})
+box.cfg({listen = listen})
 
 local httpd = require('http.server').new('0.0.0.0', http_port)
 
