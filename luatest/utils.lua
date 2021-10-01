@@ -133,4 +133,14 @@ function utils.table_len(t)
     return counter
 end
 
+function utils.upvalues(fn)
+    local ret = {}
+    for i = 1, debug.getinfo(fn, 'u').nups do
+        ret[i] = debug.getupvalue(fn, i)
+    end
+
+    return ret
+end
+
+
 return utils

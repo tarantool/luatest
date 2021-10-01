@@ -242,14 +242,91 @@ function Server:http_request(method, path, options)
     return response
 end
 
+--- Evaluate Lua code on the server.
+--
+-- This is a shortcut for `server.net_box:eval()`.
+-- @string code
+-- @tab[opt] args
+-- @tab[opt] options
 function Server:eval(...)
-    assert(self.net_box, 'net_box is not connected')
+    if self.net_box == nil then
+        error('net_box is not connected', 2)
+    end
     return self.net_box:eval(...)
 end
 
+--- Call remote function on the server by name.
+--
+-- This is a shortcut for `server.net_box:call()`.
+-- @string fn_name
+-- @tab[opt] args
+-- @tab[opt] options
 function Server:call(...)
-    assert(self.net_box, 'net_box is not connected')
+    if self.net_box == nil then
+        error('net_box is not connected', 2)
+    end
     return self.net_box:call(...)
+end
+
+local function exec_tail(ok, ...)
+    if not ok then
+        error(..., 0)
+    else
+        return ...
+    end
+end
+
+--- Run given function on the server.
+--
+-- Much like `Server:eval`, but takes a function instead of a string.
+-- The executed function must have no upvalues (closures). Though it
+-- may use global functions and modules (like `box`, `os`, etc.)
+--
+-- @tparam function fn
+-- @tab[opt] args
+-- @tab[opt] options
+--
+-- @usage
+--
+--    local vclock = server:exec(function()
+--        return box.info.vclock
+--    end)
+--
+--    local sum = server:exec(function(a, b)
+--        return a + b
+--    end, {1, 2})
+--    -- sum == 3
+--
+--    server:exec(function()
+--        local t = require('luatest')
+--        t.assert_equals(math.pi, 3)
+--    end)
+--    -- mytest.lua:12: expected: 3, actual: 3.1415926535898
+--
+function Server:exec(fn, args, options)
+    checks('?', 'function', '?table', '?table')
+    if self.net_box == nil then
+        error('net_box is not connected', 2)
+    end
+
+    local ups = utils.upvalues(fn)
+    if next(ups) ~= nil then
+        local err = string.format(
+            'bad argument #2 to exec (excess upvalues: %s)',
+            table.concat(ups, ', ')
+        )
+        error(err, 2)
+    end
+
+    return exec_tail(self.net_box:eval([[
+        local dump, args = ...
+        local fn = loadstring(dump)
+        if args == nil then
+            return pcall(fn)
+        else
+            return pcall(fn, unpack(args))
+        end
+    ]], {string.dump(fn), args}, options))
 end
 
 function Server:coverage(action)

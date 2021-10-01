@@ -8,6 +8,7 @@
 
 - Repeat `_each` and `_test` hooks when `--repeat` is specified.
 - Add group parametrization.
+- Add new `Server:exec()` function which runs a Lua function remotely.
 
 ## 0.5.4
 
