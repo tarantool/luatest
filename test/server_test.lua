@@ -3,6 +3,7 @@ local json = require('json')
 
 local t = require('luatest')
 local g = t.group()
+local utils = require('luatest.utils')
 
 local Process = t.Process
 local Server = t.Server
@@ -147,6 +148,82 @@ g.test_net_box = function()
 
     server:eval('function f(x,y) return {x, y} end;')
     t.assert_equals(server:call('f', {1,'test'}), {1, 'test'})
+
+    server.net_box:close()
+    t.assert_error_msg_equals('Connection closed', server.eval, server, '')
+    t.assert_error_msg_equals('Connection closed', server.call, server, '')
+
+    server.net_box = nil
+    t.assert_error_msg_equals('net_box is not connected', server.eval, server, '')
+    t.assert_error_msg_equals('net_box is not connected', server.call, server, '')
+end
+
+g.test_net_box_exec = function()
+    server:connect_net_box()
+
+    t.assert_equals(
+        {server:exec(function() return 3, 5, 8 end)},
+        {3, 5, 8}
+    )
+
+    t.assert_equals(
+        server:exec(function(a, b) return a + b end, {21, 34}),
+        55
+    )
+
+    local function efmt(line, e)
+        -- Little helper to check where the error actually points to
+        local _src = debug.getinfo(1, 'S').short_src
+        return string.format('%s:%s: %s', _src, line, e)
+    end
+
+    local function l()
+        return debug.getinfo(2, 'Sl').currentline
+    end
+
+    local _l_exec, exec = l(), function(fn) server:exec(fn) end
+
+    do
+        local foo, bar = 200, 300
+        local fn = function() return foo, bar end
+        t.assert_error_msg_equals(
+            efmt(_l_exec, 'bad argument #2 to exec' ..
+                ' (excess upvalues: foo, bar)'),
+            exec, fn
+        )
+    end
+
+    do
+        local _l_fn, fn = l(), function() error('X_x') end
+        t.assert_error_msg_equals(
+            efmt(_l_fn, 'X_x'),
+            exec, fn
+        )
+    end
+
+    do
+        local _l_fn, fn = l(), function() require('luatest').assert(false) end
+        local err = t.assert_error(
+            exec, fn
+        )
+        t.assert(utils.is_luatest_error(err), err)
+        t.assert_equals(
+            err.message,
+            efmt(_l_fn, 'expected: a value evaluating to true, actual: false')
+        )
+    end
+
+    server.net_box:close()
+    t.assert_error_msg_equals(
+        'Connection closed',
+        exec, function() end
+    )
+
+    server.net_box = nil
+    t.assert_error_msg_equals(
+        efmt(_l_exec, 'net_box is not connected'),
+        exec, function() end
+    )
 end
 
 g.test_inherit = function()
