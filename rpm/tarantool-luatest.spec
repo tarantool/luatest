@@ -1,5 +1,5 @@
 Name: luatest
-Version: 0.5.5
+Version: 0.5.6
 Release: 1%{?dist}
 Summary: Tarantool test framework
 Group: Applications/Databases
@@ -36,6 +36,10 @@ ctest -VV
 %license LICENSE
 
 %changelog
+* Wed Oct 6 2021 Aleksandr Shemenev <a.shemenev@corp.mail.ru> 0.5.6-1
+- Add `xfail` status.
+- Add new `Server:exec()` function which runs a Lua function remotely.
+
 * Thu Sept 16 2021 Aleksandr Shemenev <a.shemenev@corp.mail.ru> 0.5.5-1
 - Repeat `_each` and `_test` hooks when `--repeat` is specified.
 - Add group parametrization.

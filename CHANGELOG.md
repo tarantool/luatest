@@ -2,13 +2,15 @@
 
 ## Unreleased
 
-- Add `xfail` test marks support.
+## 0.5.6
+
+- Add `xfail` status.
+- Add new `Server:exec()` function which runs a Lua function remotely.
 
 ## 0.5.5
 
 - Repeat `_each` and `_test` hooks when `--repeat` is specified.
 - Add group parametrization.
-- Add new `Server:exec()` function which runs a Lua function remotely.
 
 ## 0.5.4
 
