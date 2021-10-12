@@ -186,10 +186,12 @@ end
 -- @number actual
 -- @number expected
 -- @number margin
-function M.almost_equals(actual, expected, margin)
+-- @string[opt] message
+function M.almost_equals(actual, expected, margin, message)
     if not tonumber(actual) or not tonumber(expected) or not tonumber(margin) then
-        fail_fmt(2, 'almost_equals: must supply only number arguments.\nArguments supplied: %s, %s, %s',
-            prettystr(actual), prettystr(expected), prettystr(margin))
+        fail_fmt(2, message, 'almost_equals: must supply only number arguments.\n' ..
+            'Arguments supplied: %s, %s, %s',
+            actual, expected, margin)
     end
     if margin < 0 then
         failure('almost_equals: margin must not be negative, current value is ' .. margin, 2)
@@ -221,7 +223,7 @@ end
 function M.assert_lt(left, right, message)
     if not tonumber(left) or not tonumber(right) then
         print(prettystr(right))
-        fail_fmt(2, 'assert_lt: must supply only number arguments.\nArguments supplied: %s, %s',
+        fail_fmt(2, message, 'assert_lt: must supply only number arguments.\nArguments supplied: %s, %s',
             prettystr(left), prettystr(right))
     end
     if not comparator.lt(tonumber(left), tonumber(right)) then
@@ -236,7 +238,7 @@ end
 -- @string[opt] message
 function M.assert_gt(left, right, message)
     if not tonumber(left) or not tonumber(right) then
-        fail_fmt(2, 'assert_gt: must supply only number arguments.\nArguments supplied: %s, %s',
+        fail_fmt(2, message, 'assert_gt: must supply only number arguments.\nArguments supplied: %s, %s',
             prettystr(left), prettystr(right))
     end
     if not comparator.lt(tonumber(right), tonumber(left)) then
@@ -251,7 +253,7 @@ end
 -- @string[opt] message
 function M.assert_le(left, right, message)
     if not tonumber(left) or not tonumber(right) then
-        fail_fmt(2, 'assert_le: must supply only number arguments.\nArguments supplied: %s, %s',
+        fail_fmt(2, message, 'assert_le: must supply only number arguments.\nArguments supplied: %s, %s',
             prettystr(left), prettystr(right))
     end
     if not (comparator.le(tonumber(left), tonumber(right))) then
@@ -266,7 +268,7 @@ end
 -- @string[opt] message
 function M.assert_ge(left, right, message)
     if not tonumber(left) or not tonumber(right) then
-        fail_fmt(2, 'assert_ge: must supply only number arguments.\nArguments supplied: %s, %s',
+        fail_fmt(2, message, 'assert_ge: must supply only number arguments.\nArguments supplied: %s, %s',
             prettystr(left), prettystr(right))
     end
     if not (comparator.le(tonumber(right), tonumber(left))) then

@@ -37,10 +37,11 @@ g.test_assert_almost_equals_for_cdata = function()
 
     helper.assert_failure_contains('Values are not almost equal', t.assert_almost_equals, 1, 3ULL, 1)
     helper.assert_failure_contains('Values are not almost equal', t.assert_almost_equals, 1LL, 3, 1)
-    helper.assert_failure_contains('must supply only number arguments', t.assert_almost_equals, box.NULL, 3, 1)
+    helper.assert_failure_contains('must supply only number arguments.\n'..
+        'Arguments supplied: cdata<void *>: NULL, 3, 1', t.assert_almost_equals, box.NULL, 3, 1)
 
     t.assert_not_almost_equals(1, 3ULL, 1)
-    t.assert_not_almost_equals(1LL, 3, 1)
+    t.assert_not_almost_equals(1LL, 3, 1LL)
 end
 
 g.test_assert_with_extra_message_not_string = function()
@@ -49,4 +50,15 @@ g.test_assert_with_extra_message_not_string = function()
     helper.assert_failure_equals(raw_msg, t.assert, nil, nil)
     helper.assert_failure_equals(raw_msg, t.assert, nil, box.NULL)
     helper.assert_failure_equals('321\n' .. raw_msg, t.assert, nil, 321)
+end
+
+g.test_assert_comparisons_error = function()
+    helper.assert_failure_contains('must supply only number arguments.\n'..
+    'Arguments supplied: \"one\", 3', t.assert_le, 'one', 3)
+    helper.assert_failure_contains('must supply only number arguments.\n'..
+    'Arguments supplied: \"one\", 3', t.assert_lt, 'one', 3)
+    helper.assert_failure_contains('must supply only number arguments.\n'..
+    'Arguments supplied: \"one\", 3', t.assert_ge, 'one', 3)
+    helper.assert_failure_contains('must supply only number arguments.\n'..
+    'Arguments supplied: \"one\", 3', t.assert_gt, 'one', 3)
 end

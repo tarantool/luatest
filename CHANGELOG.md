@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Fix invalid arguments logging in some of assertions.
+
 ## 0.5.6
 
 - Add `xfail` status.
