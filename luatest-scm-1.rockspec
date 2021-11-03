@@ -1,7 +1,7 @@
 package = 'luatest'
 version = 'scm-1'
 source = {
-    url = 'git://github.com/tarantool/luatest.git',
+    url = 'git+https://github.com/tarantool/luatest.git',
     branch = 'master',
 }
 description = {
