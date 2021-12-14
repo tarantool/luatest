@@ -34,10 +34,10 @@ function g.test_assert_not_almost_equalsMsg()
 end
 
 function g.test_assert_not_equalsMsg()
-    assert_failure_equals('Received unexpected value: 1', t.assert_not_equals, 1, 1 )
-    assert_failure_matches('Received unexpected value: {1, 2}', t.assert_not_equals, {1,2}, {1,2})
-    assert_failure_equals('Received unexpected value: nil', t.assert_not_equals, nil, nil)
-    assert_failure_equals('toto\nReceived unexpected value: 1', t.assert_not_equals, 1, 1, 'toto' )
+    assert_failure_equals('Actual and expected values are equal: 1', t.assert_not_equals, 1, 1)
+    assert_failure_matches('Actual and expected values are equal: {1, 2}', t.assert_not_equals, {1,2}, {1,2})
+    assert_failure_equals('Actual and expected values are equal: nil', t.assert_not_equals, nil, nil)
+    assert_failure_equals('toto\nActual and expected values are equal: 1', t.assert_not_equals, 1, 1, 'toto')
 end
 
 function g.test_assert_not()
@@ -326,10 +326,10 @@ local pp = require('luatest.pp')
 
 function g.test_printTableWithRef()
     pp.TABLE_REF_IN_ERROR_MSG = true
-    assert_failure_matches('Received unexpected value: <table: 0?x?[%x]+> {1, 2}',
+    assert_failure_matches('Actual and expected values are equal: <table: 0?x?[%x]+> {1, 2}',
         t.assert_not_equals, {1,2}, {1,2})
     -- trigger multiline prettystr
-    assert_failure_matches('Received unexpected value: <table: 0?x?[%x]+> {1, 2, 3, 4}',
+    assert_failure_matches('Actual and expected values are equal: <table: 0?x?[%x]+> {1, 2, 3, 4}',
         t.assert_not_equals, {1,2,3,4}, {1,2,3,4})
     assert_failure_matches('expected: false or nil, actual: <table: 0?x?[%x]+> {}', t.assert_not, {})
     local v = {1,2}

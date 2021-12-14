@@ -284,7 +284,7 @@ end
 -- @string[opt] message
 function M.assert_not_equals(actual, expected, message)
     if comparator.equals(actual, expected) then
-        fail_fmt(2, message, 'Received unexpected value: %s', prettystr(actual))
+        fail_fmt(2, message, 'Actual and expected values are equal: %s', prettystr(actual))
     end
 end
 
