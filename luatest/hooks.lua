@@ -183,6 +183,17 @@ function export.patch_runner(Runner)
     -- Run group hook and save possible error to the group object.
     utils.patch(Runner.mt, 'start_group', function(super) return function(self, group)
         super(self, group)
+        -- Check while starting group that 'before_test' and 'after_test' hooks are defined only for existing tests.
+        for _, hooks_type in ipairs({'before_test', 'after_test'}) do
+            for full_test_name in pairs(group[hooks_type .. '_hooks']) do
+                local test_name_parts, parts_count = utils.split_test_name(full_test_name)
+                local test_name = test_name_parts[parts_count]
+                if not group[test_name] then
+                    error(string.format("There is no test with name '%s' but hook '%s' is defined for it",
+                        test_name, hooks_type))
+                end
+            end
+        end
         group._before_all_hook_error = run_group_hooks(self, group, 'before_all')
     end end)
 
