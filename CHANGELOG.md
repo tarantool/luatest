@@ -4,6 +4,8 @@
 
 - Fix invalid arguments logging in some assertions.
 - Fix confusing error message from `assert_not_equals` function.
+- Fix confusing error message from `assert_items_equals` function.
+- Fix confusing error message from `assert_items_include` function.
 
 ## 0.5.6
 

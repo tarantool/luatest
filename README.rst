@@ -175,15 +175,15 @@ List of luatest functions
 +--------------------------------------------------------------------+-----------------------------------------------+
 | ``assert_eval_to_true (value[, message])``                         | Alias for assert.                             |
 +--------------------------------------------------------------------+-----------------------------------------------+
-| ``assert_items_include (actual, expected[, message])``             | Checks that actual includes all items of      |
-|                                                                    | expected.                                     |
+| ``assert_items_include (actual, expected[, message])``             | Checks that one table includes all items of   |
+|                                                                    | another, irrespective of their keys.          |
 +--------------------------------------------------------------------+-----------------------------------------------+
 | ``assert_is (actual, expected[, message])``                        | Check that values are the same.               |
 +--------------------------------------------------------------------+-----------------------------------------------+
 | ``assert_is_not (actual, expected[, message])``                    | Check that values are not the same.           |
 +--------------------------------------------------------------------+-----------------------------------------------+
-| ``assert_items_equals (actual, expected[, message])``              | Checks equality of tables regardless of the   |
-|                                                                    | order of elements.                            |
+| ``assert_items_equals (actual, expected[, message])``              | Checks that two tables contain the same items,|
+|                                                                    | irrespective of their keys.                   |
 +--------------------------------------------------------------------+-----------------------------------------------+
 | ``assert_nan (value[, message])``                                  |                                               |
 +--------------------------------------------------------------------+-----------------------------------------------+

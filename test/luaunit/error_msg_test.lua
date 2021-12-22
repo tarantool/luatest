@@ -257,16 +257,17 @@ function g.test_assert_is_not()
 end
 
 function g.test_assert_items_equals()
-    assert_failure_matches('Content of the tables are not identical:\nExpected: {one = 2, two = 3}\nActual: {1, 2}',
-        t.assert_items_equals, {1,2}, {one=2, two=3})
+    assert_failure_matches([[Item values of the tables are not identical
+Expected table: {one = 2, two = 3}
+Actual table: {1, 2}]], t.assert_items_equals, {1,2}, {one=2, two=3})
     -- actual table empty, = doesn't contain expected value
-    assert_failure_contains('Content of the tables are not identical' , t.assert_items_equals, {}, {1})
+    assert_failure_contains('Item values of the tables are not identical' , t.assert_items_equals, {}, {1})
     -- type mismatch
-    assert_failure_contains('Content of the tables are not identical' , t.assert_items_equals, nil, 'foobar')
+    assert_failure_contains('Item values of the tables are not identical' , t.assert_items_equals, nil, 'foobar')
     -- value mismatch
-    assert_failure_contains('Content of the tables are not identical' , t.assert_items_equals, 'foo', 'bar')
+    assert_failure_contains('Item values of the tables are not identical' , t.assert_items_equals, 'foo', 'bar')
     -- value mismatch
-    assert_failure_contains('toto\nContent of the tables are not identical',
+    assert_failure_contains('toto\nItem values of the tables are not identical',
         t.assert_items_equals, 'foo', 'bar', 'toto')
 end
 
@@ -335,9 +336,9 @@ function g.test_printTableWithRef()
     local v = {1,2}
     assert_failure_matches('expected and actual object should be different: <table: 0?x?[%x]+> {1, 2}',
         t.assert_is_not, v, v)
-    assert_failure_matches([[Content of the tables are not identical:
-Expected: <table: 0?x?[%x]+> {one = 2, two = 3}
-Actual: <table: 0?x?[%x]+> {1, 2}]], t.assert_items_equals, {1,2}, {one=2, two=3})
+    assert_failure_matches([[Item values of the tables are not identical
+Expected table: <table: 0?x?[%x]+> {one = 2, two = 3}
+Actual table: <table: 0?x?[%x]+> {1, 2}]], t.assert_items_equals, {1,2}, {one=2, two=3})
     assert_failure_matches([[expected: <table: 0?x?[%x]+> {1, 2}
 actual: <table: 0?x?[%x]+> {2, 1}]], t.assert_equals, {2,1}, {1,2})
     -- trigger multiline prettystr

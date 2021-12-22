@@ -194,7 +194,7 @@ function M.almost_equals(actual, expected, margin, message)
             actual, expected, margin)
     end
     if margin < 0 then
-        failure('almost_equals: margin must not be negative, current value is ' .. margin, 2)
+        failure('almost_equals: margin must not be negative, current value is ' .. margin, nil, 2)
     end
     return math.abs(tonumber(expected - actual)) <= margin
 end
@@ -304,7 +304,7 @@ function M.assert_not_almost_equals(actual, expected, margin, message)
     end
 end
 
---- Checks equality of tables regardless of the order of elements.
+--- Checks that two tables contain the same items, irrespective of their keys.
 --
 -- @param actual
 -- @param expected
@@ -312,12 +312,12 @@ end
 function M.assert_items_equals(actual, expected, message)
     if comparator.is_subset(actual, expected) ~= 0 then
         expected, actual = prettystr_pairs(expected, actual)
-        fail_fmt(2, message, 'Content of the tables are not identical:\nExpected: %s\nActual: %s',
+        fail_fmt(2, message, 'Item values of the tables are not identical\nExpected table: %s\nActual table: %s',
                  expected, actual)
     end
 end
 
---- Checks that actual includes all items of expected.
+--- Checks that one table includes all items of another, irrespective of their keys.
 --
 -- @param actual
 -- @param expected
@@ -325,13 +325,13 @@ end
 function M.assert_items_include(actual, expected, message)
     if not comparator.is_subset(expected, actual) then
         expected, actual = prettystr_pairs(expected, actual)
-        fail_fmt(2, message, 'Expected all elements from: %s\nTo be present in: %s', expected, actual)
+        fail_fmt(2, message, 'Expected all item values from: %s\nTo be present in: %s', expected, actual)
     end
 end
 
 local function table_covers(actual, expected)
     if type(actual) ~= 'table' or type(expected) ~= 'table' then
-        failure('Argument 1 and 2 must be tables', 3)
+        failure('Argument 1 and 2 must be tables', nil, 3)
     end
     local sliced = {}
     for k, _ in pairs(expected) do
