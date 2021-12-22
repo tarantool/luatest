@@ -1,6 +1,9 @@
 local t = require('luatest')
 local g = t.group()
 
+local fio = require('fio')
+local uuid = require('uuid')
+
 local Capture = require('luatest.capture')
 local helper = require('test.helper')
 
@@ -149,12 +152,29 @@ g.test_running_invalid_selected_tests = function()
     t.assert_equals({get_run_order({'g1.test_invlid'})}, {{}, -1})
 end
 
-g.test_running_selected_files = function()
+g.test_running_nonexistent_path = function()
     local run_paths = {}
-    local path_args = {'a/b/c', 'd/e.lua'}
-    helper.run_suite(function(_, path)
+    local suite = function(_, path) table.insert(run_paths, path) end
+    local path_args = {fio.pathjoin('a/b/c', uuid.str())}
+    local result = helper.run_suite(suite, path_args)
+
+    t.assert_equals(result, -1)
+    t.assert_equals(run_paths, {})
+
+    local capture = Capture:new()
+    capture:wrap(true, function() helper.run_suite(suite, path_args) end)
+    t.assert_str_contains(capture:flush().stderr,
+        string.format("Path '%s' does not exist", path_args[1]))
+end
+
+g.test_running_selected_paths = function()
+    local run_paths = {}
+    local path_args = {fio.tempdir(), fio.tempdir()}
+    local result = helper.run_suite(function(_, path)
         table.insert(run_paths, path)
     end, path_args)
+
+    t.assert_equals(result, 0)
     t.assert_equals(run_paths, path_args)
 end
 

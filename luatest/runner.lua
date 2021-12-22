@@ -3,6 +3,7 @@
 -- @classmod luatest.runner
 
 local clock = require('clock')
+local fio = require('fio')
 
 local assertions = require('luatest.assertions')
 local capturing = require('luatest.capturing')
@@ -154,8 +155,11 @@ function Runner.parse_cmd_line(args)
         elseif arg:sub(1,1) == '-' then
             error('Unknown option: ' .. arg)
         elseif arg:find('/') then
-            -- If argument contains / then it's treated as file path.
+            -- If the argument contains '/' then it's treated as a file path.
             -- This assumption to support test names along with file paths.
+            if not fio.path.exists(arg) then
+                error(string.format("Path '%s' does not exist", arg))
+            end
             result.paths = result.paths or {}
             table.insert(result.paths, arg)
         else
