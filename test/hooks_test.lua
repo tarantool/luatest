@@ -1,6 +1,7 @@
 local t = require('luatest')
 local g = t.group()
 
+local Capture = require('luatest.capture')
 local helper = require('test.helper')
 
 g.test_hooks = function()
@@ -249,17 +250,42 @@ end
 g.test_wrong_before_and_after = function()
     local hooks = {}
 
-    local result = helper.run_suite(function(lu2)
+    local suite = function(lu2)
         local t2 = lu2.group('test')
-        t2.before_test('test', function() table.insert(hooks, 'before_test') end)
-        t2.before_test('wrong_test', function() table.insert(hooks, 'before_wrong_test') end)
-        t2.after_test('test', function() table.insert(hooks, 'after_test') end)
-        t2.after_test('wrong_test', function() table.insert(hooks, 'after_wrong_test') end)
+        t2.before_test('test',
+            function() table.insert(hooks, 'before_test') end)
+        t2.before_test('wrong_test',
+            function() table.insert(hooks, 'before_wrong_test') end)
         t2.test = function() table.insert(hooks, 'test') end
-    end)
+    end
+    local result = helper.run_suite(suite)
 
-    t.assert_equals(result, 0)
-    t.assert_equals(hooks, {'before_test', 'test', 'after_test'})
+    t.assert_equals(result, -1)
+    t.assert_equals(hooks, {})
+
+    local capture = Capture:new()
+    capture:wrap(true, function() helper.run_suite(suite) end)
+    t.assert_str_contains(capture:flush().stderr,
+        "There is no test with name 'wrong_test' but hook 'before_test' is \z
+        defined for it")
+
+    suite = function(lu2)
+        local t2 = lu2.group('test')
+        t2.after_test('test', function() table.insert(hooks, 'after_test') end)
+        t2.after_test('wrong_test',
+            function() table.insert(hooks, 'after_wrong_test') end)
+        t2.test = function() table.insert(hooks, 'test') end
+    end
+    result = helper.run_suite(suite)
+
+    t.assert_equals(result, -1)
+    t.assert_equals(hooks, {})
+
+    capture = Capture:new()
+    capture:wrap(true, function() helper.run_suite(suite) end)
+    t.assert_str_contains(capture:flush().stderr,
+        "There is no test with name 'wrong_test' but hook 'after_test' is \z
+        defined for it")
 end
 
 g.test_before_and_after_failed_test = function()
