@@ -26,7 +26,6 @@ Installation
 .. code-block:: bash
 
     tarantoolctl rocks install luatest
-
     .rocks/bin/luatest --help # list available options
 
 ---------------------------------
@@ -87,16 +86,36 @@ Define tests.
     pg.before_each({engine = 'memtx'}, function() ... end)
     pg.before_test('test_example_3', {engine = 'vinyl'}, function() ... end)
 
-
-Run them.
+Run tests from a path.
 
 .. code-block:: bash
 
-    luatest --help                        # list available options
-    luatest                               # run all in ./test directory
-    luatest test/feature_test.lua         # run test by file
-    luatest test/integration              # run all within directory
-    luatest feature other.test_example_2  # run by group or test name
+    luatest                               # run all tests from the ./test directory
+    luatest test/integration              # run all tests from the specified directory
+    luatest test/feature_test.lua         # run all tests from the specified file
+
+Run tests from a group.
+
+.. code-block:: bash
+
+    luatest feature                       # run all tests from the specified group
+    luatest other.test_example_2          # run one test from the specified group
+    luatest feature other.test_example_2  # run tests by group and test name
+
+Note that luatest recognizes an input parameter as a path only if it contains ``/``, otherwise, it will be considered
+as a group name.
+
+.. code-block:: bash
+
+    luatest feature                       # considered as a group name
+    luatest ./feature                     # considered as a path
+    luatest feature/                      # considered as a path
+
+You can also use ``-p`` option in combination with the examples above for running tests matching to some name pattern.
+
+.. code-block:: bash
+
+    luatest feature -p test_example       # run all tests from the specified group matching to the specified pattern
 
 Luatest automatically requires ``test/helper.lua`` file if it's present.
 You can configure luatest or run any bootstrap code there.
@@ -246,6 +265,7 @@ List of luatest functions
 ---------------------------------
 XFail
 ---------------------------------
+
 The ``xfail`` mark makes test results to be interpreted vice versa: it's
 threated as passed when an assertion fails, and it fails if no errors are
 raised. It allows one to mark a test as temporarily broken due to a bug in some
@@ -322,11 +342,21 @@ determined by the order of declaration.
 
     --etc
 
-Test with specific params can be called from command line.
+Test from a parameterized group can be called from the command line in such a way:
 
 .. code-block:: Bash
 
-    luatest path-to-file pgroup.a:1.b:3.test_params
+    luatest pgroup.a:1.b:4.test_params
+    luatest pgroup.a:2.b:3.test_params
+
+.. _test-helpers:
+
+Note that values for ``a`` and ``b`` have to match to defined group params. The command below will give you an error
+because such params are not defined for the group.
+
+.. code-block:: Bash
+
+    luatest pgroup.a:2.b:2.test_params  # will raise an error
 
 .. _test-helpers:
 
