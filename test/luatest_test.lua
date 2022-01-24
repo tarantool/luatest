@@ -79,6 +79,24 @@ g.test_skip_if_tnt_specific = function()
     t.assert_equals(helper.assert_failure(t.skip_if, {}, 'expected').status, 'skip')
 end
 
+g.test_skip_no_reason_specified = function()
+    local result = helper.assert_failure(t.skip)
+    t.assert_equals(result.status, 'skip')
+    t.assert_equals(result.message, '(no reason specified)')
+end
+
+g.test_skip_if_no_reason_specified = function()
+    local result = helper.assert_failure(t.skip_if, true)
+    t.assert_equals(result.status, 'skip')
+    t.assert_equals(result.message, '(no reason specified)')
+end
+
+g.test_run_only_if_no_reason_specified = function()
+    local result = helper.assert_failure(t.run_only_if, false)
+    t.assert_equals(result.status, 'skip')
+    t.assert_equals(result.message, '(no reason specified)')
+end
+
 g.test_success_if_tnt_specific = function()
     assert_any_error(t.success_if, box.NULL)
     t.assert_equals(helper.assert_failure(t.success_if, true).status, 'success')

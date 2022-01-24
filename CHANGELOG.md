@@ -6,6 +6,8 @@
 - Fix confusing error message from `assert_not_equals` function.
 - Fix confusing error message from `assert_items_equals` function.
 - Fix confusing error message from `assert_items_include` function.
+- Print `(no reason specified)` message instead of `nil` value when the test is 
+  skipped and no reason is specified.
 
 ## 0.5.6
 
