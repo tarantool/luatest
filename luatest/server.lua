@@ -13,6 +13,10 @@ local HTTPResponse = require('luatest.http_response')
 local Process = require('luatest.process')
 local utils = require('luatest.utils')
 
+-- Linux uses max 108 bytes for Unix domain socket paths, which means a 107 characters string ended by a null
+-- terminator. Other systems use 104 bytes and 103 characters strings.
+local max_unix_socket_path = {linux = 107, other = 103}
+
 local Server = {
     constructor_checks = {
         command = 'string',
@@ -60,6 +64,13 @@ end
 function Server:initialize()
     if self.http_port then
         self.http_client = http_client.new()
+    end
+    if self.net_box_uri then
+        local system = os.execute('[ $(uname) = Linux ]') == 0 and 'linux' or 'other'
+        if string.len(self.net_box_uri) > max_unix_socket_path[system] then
+            error(string.format('Net box URI must be <= max Unix domain socket path length (%s chars)',
+                max_unix_socket_path[system]))
+        end
     end
     if self.net_box_uri == nil and self.net_box_port then
         self.net_box_uri = 'localhost:' .. self.net_box_port
