@@ -118,7 +118,7 @@ end
 --
 -- @string message
 function M.skip(message)
-    utils.luatest_error('skip', message, 2)
+    utils.luatest_error('skip', message or '(no reason specified)', 2)
 end
 
 --- Skip a running test if condition is met.
@@ -127,14 +127,14 @@ end
 -- @string message
 function M.skip_if(condition, message)
     if condition and condition ~= nil then
-        utils.luatest_error('skip', message, 2)
+        utils.luatest_error('skip', message or '(no reason specified)', 2)
     end
 end
 
 function M.run_only_if(condition, message)
     -- continue a running test if condition is met, else skip it
     if not (condition and condition ~= nil) then
-        utils.luatest_error('skip', prettystr(message), 2)
+        utils.luatest_error('skip', message or '(no reason specified)', 2)
     end
 end
 
