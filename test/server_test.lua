@@ -266,3 +266,25 @@ g.test_unix_socket = function()
     )
     s:stop()
 end
+
+g.test_max_unix_socket_path_exceeded = function()
+    local max_unix_socket_path = {linux = 107, other = 103}
+    local system = os.execute('[ $(uname) = Linux ]') == 0 and 'linux' or 'other'
+    local workdir = fio.pathjoin(datadir, 'unix_socket')
+    local workdir_len = string.len(workdir)
+    local socket_name_len = max_unix_socket_path[system] + 1 - workdir_len
+    local socket_name = string.format('test_socket%s.sock', string.rep('t', socket_name_len - 17))
+    local net_box_uri = fio.pathjoin(workdir, socket_name)
+
+    t.assert_equals(string.len(net_box_uri), max_unix_socket_path[system] + 1)
+    t.assert_error_msg_contains(
+        string.format('Net box URI must be <= max Unix domain socket path length (%s chars)',
+            max_unix_socket_path[system]),
+        Server.new, Server, {
+            command = command,
+            workdir = workdir,
+            net_box_uri = net_box_uri,
+            http_port = 0, -- unused
+        }
+    )
+end
