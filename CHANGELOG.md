@@ -9,6 +9,8 @@
 - Print `(no reason specified)` message instead of `nil` value when the test is 
   skipped and no reason is specified.
 - Check `net_box_uri` param is less than max Unix domain socket path length.
+- Change test run summary report: use verbs in past simple tense (succeeded, 
+  failed, xfailed, etc.) instead of nouns (success(es), fail(s), xfail(s), etc.)
 
 ## 0.5.6
 
