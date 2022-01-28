@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.5.7
+
 - Fix invalid arguments logging in some assertions.
 - Fix confusing error message from `assert_not_equals` function.
 - Fix confusing error message from `assert_items_equals` function.
