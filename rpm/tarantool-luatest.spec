@@ -1,5 +1,5 @@
 Name: luatest
-Version: 0.5.6
+Version: 0.5.7
 Release: 1%{?dist}
 Summary: Tarantool test framework
 Group: Applications/Databases
@@ -36,6 +36,18 @@ ctest -VV
 %license LICENSE
 
 %changelog
+
+* Fri Jan 28 2022 Nikolay Volynkin <n.volynkin@corp.mail.ru> 0.5.7-1
+- Fix invalid arguments logging in some assertions.
+- Fix confusing error message from `assert_not_equals` function.
+- Fix confusing error message from `assert_items_equals` function.
+- Fix confusing error message from `assert_items_include` function.
+- Print `(no reason specified)` message instead of `nil` value when the test is
+  skipped and no reason is specified.
+- Check `net_box_uri` param is less than max Unix domain socket path length.
+- Change test run summary report: use verbs in past simple tense (succeeded,
+  failed, xfailed, etc.) instead of nouns (success(es), fail(s), xfail(s), etc.)
+
 * Wed Oct 6 2021 Aleksandr Shemenev <a.shemenev@corp.mail.ru> 0.5.6-1
 - Add `xfail` status.
 - Add new `Server:exec()` function which runs a Lua function remotely.

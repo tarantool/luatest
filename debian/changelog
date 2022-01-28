@@ -1,3 +1,17 @@
+luatest (0.5.7-1) unstable; urgency=medium
+
+  * Fix invalid arguments logging in some assertions.
+  * Fix confusing error message from `assert_not_equals` function.
+  * Fix confusing error message from `assert_items_equals` function.
+  * Fix confusing error message from `assert_items_include` function.
+  * Print `(no reason specified)` message instead of `nil` value when the test is
+    skipped and no reason is specified.
+  * Check `net_box_uri` param is less than max Unix domain socket path length.
+  * Change test run summary report: use verbs in past simple tense (succeeded,
+    failed, xfailed, etc.) instead of nouns (success(es), fail(s), xfail(s), etc.)
+
+  -- Nikolay Volynkin <n.volynkin@corp.mail.ru> Fri, 28 Jan 2022 14:00:00 +0300
+
 luatest (0.5.6-1) unstable; urgency=medium
 
   * Add `xfail` status.
