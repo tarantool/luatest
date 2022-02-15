@@ -70,7 +70,16 @@ function Runner.run(args, options)
     return code
 end
 
-Runner.USAGE = [[Usage: luatest [options] [files or dirs...] [testname1 ...]
+Runner.USAGE = [[Usage: luatest [options] [path ...] [group ...]
+
+Positional arguments:
+  path1 path2 ...:        Run tests from specified paths.
+                          Considered as a path only if it contains `/`,
+                          otherwise, it will be considered as a group name.
+                          Examples: `luatest ./test.lua` or `luatest dir/`
+  group1 group2 ...:      Run tests from specified groups.
+  group.test ...:         Run one test from the group.
+
 Options:
   -h, --help:             Print this help
   --version:              Print version information
@@ -96,7 +105,6 @@ Options:
                           May be repeated to exclude several patterns
                           Make sure you escape magic chars like +? with %
   --coverage:             Use luacov to collect code coverage.
-  test_name, ...:         Tests to run in the form of group_name or group_name.test_name
 ]]
 
 function Runner.parse_cmd_line(args)
