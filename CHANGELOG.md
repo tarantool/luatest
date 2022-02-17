@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Check docs generation with LDoc.
+- Add `--group-repeat` option to run tests in a circle within the group.
 
 ## 0.5.7
 
@@ -10,10 +11,10 @@
 - Fix confusing error message from `assert_not_equals` function.
 - Fix confusing error message from `assert_items_equals` function.
 - Fix confusing error message from `assert_items_include` function.
-- Print `(no reason specified)` message instead of `nil` value when the test is 
+- Print `(no reason specified)` message instead of `nil` value when the test is
   skipped and no reason is specified.
 - Check `net_box_uri` param is less than max Unix domain socket path length.
-- Change test run summary report: use verbs in past simple tense (succeeded, 
+- Change test run summary report: use verbs in past simple tense (succeeded,
   failed, xfailed, etc.) instead of nouns (success(es), fail(s), xfail(s), etc.)
 
 ## 0.5.6

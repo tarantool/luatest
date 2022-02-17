@@ -292,6 +292,15 @@ Capturing output
 By default runner captures all stdout/stderr output and shows it only for failed tests.
 Capturing can be disabled with ``-c`` flag.
 
+.. _repeating:
+
+---------------------------------
+Tests repeating
+---------------------------------
+
+Runners can repeat tests with flags ``-r`` / ``--repeat`` (to repeat all the tests) or
+``-g`` / ``--group-repeat`` (to repeat all the tests within the group).
+
 .. _parametrization:
 
 ---------------------------------

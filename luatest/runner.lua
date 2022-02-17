@@ -36,6 +36,7 @@ Runner.mt.tests_path = 'test'
 -- @bool[opt=false] options.fail_fast
 -- @string[opt] options.output_file_name Filename for JUnit report
 -- @int[opt] options.exe_repeat Times to repeat each test
+-- @int[opt] options.exe_group_repeat Times to repeat each group of tests
 -- @tab[opt] options.tests_pattern Patterns to filter tests
 -- @tab[opt] options.tests_names List of test names or groups to run
 -- @tab[opt={'test'}] options.paths List of directories to load tests from.
@@ -150,6 +151,13 @@ function Runner.parse_cmd_line(args)
             result.exe_repeat = tonumber(next_arg())
             if result.exe_repeat == nil or result.exe_repeat < 1 then
                 error(('Invalid value for %s option. Positive integer required'):format(arg))
+            end
+        elseif arg == '--group-repeat' or arg == '-g' then
+            result.exe_group_repeat = tonumber(next_arg())
+            if result.exe_group_repeat == nil
+            or result.exe_group_repeat < 0
+            then
+                error('Invalid value for -g option. Positive integer required.')
             end
         elseif arg == '--pattern' or arg == '-p' then
             result.tests_pattern = result.tests_pattern or {}
@@ -406,22 +414,24 @@ end
 function Runner.mt:run_tests(tests_list)
     -- Make seed for ordering not affect other random numbers.
     math.randomseed(os.time())
-    local last_group
-    for _, test in ipairs(tests_list) do
-        if last_group ~= test.group then
-            if last_group then
-                self:end_group(last_group)
+    for _ = 1, self.exe_group_repeat or 1 do
+        local last_group
+        for _, test in ipairs(tests_list) do
+            if last_group ~= test.group then
+                if last_group then
+                    self:end_group(last_group)
+                end
+                self:start_group(test.group)
+                last_group = test.group
             end
-            self:start_group(test.group)
-            last_group = test.group
+            self:run_test(test)
+            if self.result.aborted then
+                break
+            end
         end
-        self:run_test(test)
-        if self.result.aborted then
-            break
+        if last_group then
+            self:end_group(last_group)
         end
-    end
-    if last_group then
-        self:end_group(last_group)
     end
 end
 

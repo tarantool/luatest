@@ -586,6 +586,13 @@ function g.test_parse_cmd_line()
         subject, {'-r', 0})
     t.assert_error_msg_contains('Missing argument after -r', subject, {'-r',})
 
+    -- group-repeat
+    assert_subject({'--group-repeat', '123'}, {exe_group_repeat=123})
+    assert_subject({'-g', '123'}, {exe_group_repeat=123})
+    t.assert_error_msg_contains('Invalid value for -g option. Positive integer required', subject, {'-g', 'bad'})
+    t.assert_error_msg_contains('Invalid value for -g option. Positive integer required', subject, {'-g', '-1'})
+    t.assert_error_msg_contains('Missing argument after -g', subject, {'-g',})
+
     -- shuffle
     assert_subject({'--shuffle', 'all'}, {shuffle='all'})
     assert_subject({'-s', 'group'}, {shuffle='group'})

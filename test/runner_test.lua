@@ -55,6 +55,13 @@ g.test_repeat = function()
     t.assert_equals(run_file('flaky.lua', '-r 2'), 256)
 end
 
+g.test_group_repeat = function()
+    t.assert_equals(run_file('flaky_group.lua', '--group-repeat 1'), 0)
+    t.assert_equals(run_file('flaky_group.lua', '--group-repeat 2'), 512)
+    t.assert_equals(run_file('flaky_group.lua', '-g 2 -r 1'), 512)
+    t.assert_equals(run_file('flaky_group.lua', '-g 1 -r 2'), 256)
+end
+
 g.test_run_without_capture = function()
     local result = helper.run_suite(function(lu2)
         lu2.group('test').test = function() t.assert_equals(1, 1) end
