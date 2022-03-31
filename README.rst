@@ -260,7 +260,7 @@ List of luatest functions
 | ``group (name)``                                                   | Create group of tests.                        |
 +--------------------------------------------------------------------+-----------------------------------------------+
 
-.. _xfail
+.. _xfail:
 
 ---------------------------------
 XFail
@@ -348,8 +348,6 @@ Test from a parameterized group can be called from the command line in such a wa
 
     luatest pgroup.a:1.b:4.test_params
     luatest pgroup.a:2.b:3.test_params
-
-.. _test-helpers:
 
 Note that values for ``a`` and ``b`` have to match to defined group params. The command below will give you an error
 because such params are not defined for the group.
