@@ -2,6 +2,7 @@
 --
 -- @module luatest.tarantool
 
+local fiber = require('fiber')
 local tarantool = require('tarantool')
 
 local assertions = require('luatest.assertions')
@@ -34,6 +35,18 @@ function M.skip_if_enterprise(message)
     assertions.skip_if(
         M.is_enterprise_package(), message or 'package is Enterprise'
     )
+end
+
+--- Search for a fiber with the specified name and return the fiber object.
+--
+-- @string name
+function M.find_fiber_by_name(name)
+    for id, f in pairs(fiber.info()) do
+        if f.name == name then
+            return fiber.find(id)
+        end
+    end
+    return nil
 end
 
 return M
