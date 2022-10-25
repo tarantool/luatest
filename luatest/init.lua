@@ -5,6 +5,11 @@ local luatest = setmetatable({}, {__index = require('luatest.assertions')})
 luatest.Process = require('luatest.process')
 luatest.VERSION = require('luatest.VERSION')
 
+--- Module to manage connection to Tarantool replication instances via proxy.
+--
+-- @see luatest.replica_proxy
+luatest.replica_proxy = require('luatest.replica_proxy')
+
 --- Tarantool related functions.
 --
 -- @see luatest.tarantool
