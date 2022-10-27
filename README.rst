@@ -2,7 +2,7 @@
 Overview
 -------------------------------
 
-Tool for testing tarantool applications. (`Build Status <https://travis-ci.com/tarantool/luatest.svg?branch=master)](https://travis-ci.com/tarantool/luatest>`_).
+Tool for testing tarantool applications.
 
 Highlights:
 
