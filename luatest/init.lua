@@ -10,7 +10,7 @@ luatest.VERSION = require('luatest.VERSION')
 -- @see luatest.replica_proxy
 luatest.replica_proxy = require('luatest.replica_proxy')
 
---- Tarantool related functions.
+--- Module with collection of test helpers related to Tarantool instance.
 --
 -- @see luatest.tarantool
 luatest.tarantool = require('luatest.tarantool')

@@ -1,4 +1,4 @@
---- Collection of Tarantool related functions.
+--- Collection of test helpers related to Tarantool instance.
 --
 -- @module luatest.tarantool
 
@@ -21,7 +21,7 @@ end
 
 --- Skip a running test unless Tarantool build type is Debug.
 --
--- @string[opt] message
+-- @string[opt] message Message to describe the reason.
 function M.skip_if_not_debug(message)
     assertions.skip_if(
         not M.is_debug_build(), message or 'build type is not Debug'
@@ -30,7 +30,7 @@ end
 
 --- Skip a running test if Tarantool package is Enterprise.
 --
--- @string[opt] message
+-- @string[opt] message Message to describe the reason.
 function M.skip_if_enterprise(message)
     assertions.skip_if(
         M.is_enterprise_package(), message or 'package is Enterprise'
@@ -39,7 +39,7 @@ end
 
 --- Search for a fiber with the specified name and return the fiber object.
 --
--- @string name
+-- @string name Fiber name.
 function M.find_fiber_by_name(name)
     for id, f in pairs(fiber.info()) do
         if f.name == name then
