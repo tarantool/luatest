@@ -1,3 +1,5 @@
 #!/usr/bin/env tarantool
 
+print(('Tarantool version is %s'):format(require('tarantool').version))
+
 require('luatest.cli_entrypoint')()
