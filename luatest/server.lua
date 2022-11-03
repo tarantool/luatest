@@ -32,7 +32,7 @@ local Server = {
 
         alias = '?string',
 
-        coverage_report = '?string',
+        coverage_report = '?boolean',
     },
 }
 
@@ -157,7 +157,7 @@ function Server:restart(params)
 
         alias = '?string',
 
-        coverage_report = '?string',
+        coverage_report = '?boolean',
     })
     if not self.process then
         log.warn("Process wasn't started")
