@@ -147,7 +147,10 @@ function Runner.parse_cmd_line(args)
         elseif arg == '--name' or arg == '-n' then
             result.output_file_name = next_arg()
         elseif arg == '--repeat' or arg == '-r' then
-            result.exe_repeat = tonumber(next_arg()) or error('Invalid value for -r option. Integer required.')
+            result.exe_repeat = tonumber(next_arg())
+            if result.exe_repeat == nil or result.exe_repeat < 1 then
+                error(('Invalid value for %s option. Positive integer required'):format(arg))
+            end
         elseif arg == '--pattern' or arg == '-p' then
             result.tests_pattern = result.tests_pattern or {}
             table.insert(result.tests_pattern, next_arg())

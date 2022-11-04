@@ -580,7 +580,10 @@ function g.test_parse_cmd_line()
     -- repeat
     assert_subject({'--repeat', '123'}, {exe_repeat=123})
     assert_subject({'-r', '123'}, {exe_repeat=123})
-    t.assert_error_msg_contains('Invalid value for -r option. Integer required', subject, {'-r', 'bad'})
+    t.assert_error_msg_contains('Invalid value for --repeat option. Positive integer required',
+        subject, {'--repeat', 'bad'})
+    t.assert_error_msg_contains('Invalid value for -r option. Positive integer required',
+        subject, {'-r', 0})
     t.assert_error_msg_contains('Missing argument after -r', subject, {'-r',})
 
     -- shuffle
