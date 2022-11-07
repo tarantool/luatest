@@ -25,6 +25,11 @@ luatest.helpers = require('luatest.helpers')
 -- @see luatest.server
 luatest.Server = require('luatest.server')
 
+--- Class to manage Tarantool instances, version 2.
+--
+-- @see luatest.server_v2
+luatest.ServerV2 = require('luatest.server_v2')
+
 local Group = require('luatest.group')
 local hooks = require('luatest.hooks')
 local parametrizer = require('luatest.parametrizer')
