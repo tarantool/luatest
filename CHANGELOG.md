@@ -3,7 +3,7 @@
 ## Unreleased
 
 - Check docs generation with LDoc.
-- Add `--group-repeat` option to run tests in a circle within the group.
+- Add `--repeat-group` (`-R`) option to run tests in a circle within the group.
 
 ## 0.5.7
 

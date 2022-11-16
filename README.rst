@@ -299,7 +299,7 @@ Tests repeating
 ---------------------------------
 
 Runners can repeat tests with flags ``-r`` / ``--repeat`` (to repeat all the tests) or
-``-g`` / ``--group-repeat`` (to repeat all the tests within the group).
+``-R`` / ``--repeat-group`` (to repeat all the tests within the group).
 
 .. _parametrization:
 

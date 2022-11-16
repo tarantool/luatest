@@ -55,11 +55,11 @@ g.test_repeat = function()
     t.assert_equals(run_file('flaky.lua', '-r 2'), 256)
 end
 
-g.test_group_repeat = function()
-    t.assert_equals(run_file('flaky_group.lua', '--group-repeat 1'), 0)
-    t.assert_equals(run_file('flaky_group.lua', '--group-repeat 2'), 512)
-    t.assert_equals(run_file('flaky_group.lua', '-g 2 -r 1'), 512)
-    t.assert_equals(run_file('flaky_group.lua', '-g 1 -r 2'), 256)
+g.test_repeat_group = function()
+    t.assert_equals(run_file('flaky_group.lua', '--repeat-group 1'), 0)
+    t.assert_equals(run_file('flaky_group.lua', '--repeat-group 2'), 512)
+    t.assert_equals(run_file('flaky_group.lua', '-R 2 -r 1'), 512)
+    t.assert_equals(run_file('flaky_group.lua', '-R 1 -r 2'), 256)
 end
 
 g.test_run_without_capture = function()

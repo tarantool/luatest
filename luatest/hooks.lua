@@ -116,7 +116,6 @@ end
 local function run_group_hooks(runner, group, hooks_type)
     local result
     local hook = group and group['run_' .. hooks_type]
-
     -- If _original_%hook_name% is not equal to %hook_name%, it means
     -- that this method was assigned by user (legacy API).
     if hook and group[hooks_type] == group['_original_' .. hooks_type] then

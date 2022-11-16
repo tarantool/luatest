@@ -36,7 +36,7 @@ Runner.mt.tests_path = 'test'
 -- @bool[opt=false] options.fail_fast
 -- @string[opt] options.output_file_name Filename for JUnit report
 -- @int[opt] options.exe_repeat Times to repeat each test
--- @int[opt] options.exe_group_repeat Times to repeat each group of tests
+-- @int[opt] options.exe_repeat_group Times to repeat each group of tests
 -- @tab[opt] options.tests_pattern Patterns to filter tests
 -- @tab[opt] options.tests_names List of test names or groups to run
 -- @tab[opt={'test'}] options.paths List of directories to load tests from.
@@ -152,12 +152,10 @@ function Runner.parse_cmd_line(args)
             if result.exe_repeat == nil or result.exe_repeat < 1 then
                 error(('Invalid value for %s option. Positive integer required'):format(arg))
             end
-        elseif arg == '--group-repeat' or arg == '-g' then
-            result.exe_group_repeat = tonumber(next_arg())
-            if result.exe_group_repeat == nil
-            or result.exe_group_repeat < 0
-            then
-                error('Invalid value for -g option. Positive integer required.')
+        elseif arg == '--repeat-group' or arg == '-R' then
+            result.exe_repeat_group = tonumber(next_arg())
+            if result.exe_repeat_group == nil or result.exe_repeat_group < 0 then
+                error(('Invalid value for %s option. Positive integer required.'):format(arg))
             end
         elseif arg == '--pattern' or arg == '-p' then
             result.tests_pattern = result.tests_pattern or {}
@@ -414,7 +412,7 @@ end
 function Runner.mt:run_tests(tests_list)
     -- Make seed for ordering not affect other random numbers.
     math.randomseed(os.time())
-    for _ = 1, self.exe_group_repeat or 1 do
+    for _ = 1, self.exe_repeat_group or 1 do
         local last_group
         for _, test in ipairs(tests_list) do
             if last_group ~= test.group then
