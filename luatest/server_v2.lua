@@ -26,6 +26,7 @@ ffi.cdef([[
 
 --- Build a server object.
 -- Changes from the 1st version of the server class:
+--
 --   * The `alias` parameter defaults to 'server'.
 --   * The `command` parameter is optional.
 --   * The `workdir` parameter is optional.
@@ -33,7 +34,7 @@ ffi.cdef([[
 --   * New parameter `box_cfg` (optional).
 --
 -- @function new
--- @param object
+-- @tab object
 -- @string[opt] object.command Executable path to run a server process with.
 --   Defaults to the internal `server_v2_instance.lua` script. If a custom path
 --   is provided, it should correctly process all env variables listed below
@@ -48,14 +49,14 @@ ffi.cdef([[
 -- @string[opt] object.workdir Working directory for the new server and the
 --   value of the `TARANTOOL_WORKDIR` env variable which is passed into the
 --   server process.
---   Defaults to <vardir>/<alias>-<random id>.
+--   Defaults to `<vardir>/<alias>-<random id>`.
 -- @string[opt] object.datadir Directory path whose contents will be recursively
 --   copied into `object.workdir` during initialization.
--- @int[opt] object.http_port Port for HTTP connection to the new server and the
---   value of the `TARANTOOL_HTTP_PORT` env variable which is passed into the
---   server process.
+-- @number[opt] object.http_port Port for HTTP connection to the new server and
+--   the value of the `TARANTOOL_HTTP_PORT` env variable which is passed into
+--   the server process.
 --   Not supported in the default `server_v2_instance.lua` script.
--- @int[opt] object.net_box_port Port for the `net.box` connection to the new
+-- @number[opt] object.net_box_port Port for the `net.box` connection to the new
 --   server and the value of the `TARANTOOL_LISTEN` env variable which is passed
 --   into the server process.
 -- @string[opt] object.net_box_uri URI for the `net.box` connection to the new
@@ -112,6 +113,7 @@ end
 --- Create a table with env variables based on the constructor params.
 -- The result will be passed into the server process.
 -- Table consists of the following entries:
+--
 --   * TARANTOOL_ALIAS
 --   * TARANTOOL_WORKDIR
 --   * TARANTOOL_HTTP_PORT
@@ -257,17 +259,16 @@ end
 --
 -- @string pattern String pattern to search in the server's log file.
 -- @number[opt] bytes_num Number of bytes to read from the server's log file.
--- @tab[opt] options
--- @bool[opt] options.reset Reset the result when 'Tarantool %d.%d+.%d+' pattern
+-- @tab[opt] opts
+-- @bool[opt] opts.reset Reset the result when `Tarantool %d.%d+.%d+` pattern
 --   is found, which means that the server was restarted.
 --   Defaults to `true`.
--- @string[opt] options.filename Path to the server's log file.
+-- @string[opt] opts.filename Path to the server's log file.
 --   Defaults to `box.cfg.log`.
--- @return string|nil
-function Server:grep_log(pattern, bytes_num, options)
-    local opts = options or {}
-    local reset = opts.reset or true
-    local filename = opts.filename or self:exec(function() return box.cfg.log end)
+function Server:grep_log(pattern, bytes_num, opts)
+    local options = opts or {}
+    local reset = options.reset or true
+    local filename = options.filename or self:exec(function() return box.cfg.log end)
     local file = fio.open(filename, {'O_RDONLY', 'O_NONBLOCK'})
 
     local function fail(msg)
@@ -372,7 +373,7 @@ function Server:wait_for_election_state(state)
     end, {state})
 end
 
---- Wait for the server to become a *writable* election leader.
+--- Wait for the server to become a **writable** election leader.
 function Server:wait_for_election_leader()
     -- Include read-only property too because if an instance is a leader, it
     -- does not mean that it has finished the synchro queue ownership transition.
