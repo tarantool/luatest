@@ -99,6 +99,7 @@ Options:
                           Possible values: text, tap, junit, nil
   -n, --name NAME:        For junit only, mandatory name of xml file
   -r, --repeat NUM:       Execute all tests NUM times, e.g. to trig the JIT
+  -R, --repeat-group NUM: Execute all groups of tests NUM times, e.g. to trig the JIT
   -p, --pattern PATTERN:  Execute all test names matching the Lua PATTERN
                           May be repeated to include several patterns
                           Make sure you escape magic chars like +? with %
@@ -154,7 +155,7 @@ function Runner.parse_cmd_line(args)
             end
         elseif arg == '--repeat-group' or arg == '-R' then
             result.exe_repeat_group = tonumber(next_arg())
-            if result.exe_repeat_group == nil or result.exe_repeat_group < 0 then
+            if result.exe_repeat_group == nil or result.exe_repeat_group <= 0 then
                 error(('Invalid value for %s option. Positive integer required.'):format(arg))
             end
         elseif arg == '--pattern' or arg == '-p' then
