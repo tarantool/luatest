@@ -6,6 +6,7 @@ file = {
     'luatest/http_response.lua',
     'luatest/runner.lua',
     'luatest/server.lua',
+    'luatest/server_v2.lua',
 }
 topics = {
     'CHANGELOG.md',

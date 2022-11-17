@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Check docs generation with LDoc.
+
 ## 0.5.7
 
 - Fix invalid arguments logging in some assertions.
