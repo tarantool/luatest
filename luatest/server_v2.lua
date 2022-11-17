@@ -1,6 +1,6 @@
 --- Class to manage Tarantool instances, version 2.
 --
--- @classmod luatest.server2
+-- @classmod luatest.server_v2
 
 local checks = require('checks')
 local clock = require('clock')
@@ -130,7 +130,7 @@ end
 --- Build a listen URI based on the given server alias.
 -- For now, only UNIX sockets are supported.
 --
--- @string alias Server alias.
+-- @string server_alias Server alias.
 -- @return string
 function Server.build_listen_uri(server_alias)
     return fio.pathjoin(Server.vardir, server_alias .. '.sock')
@@ -464,7 +464,7 @@ end
 --- Wait until the server's own vclock reaches at least the given value.
 -- Including the local component.
 --
--- @table vclock Server's own vclock to reach.
+-- @tab vclock Server's own vclock to reach.
 function Server:wait_for_vclock(vclock)
     while true do
         if vclock_ge(self:get_vclock(), vclock) then
@@ -476,7 +476,7 @@ end
 
 --- Wait until all own data is replicated and confirmed by the given server.
 --
--- @table server Server's object.
+-- @tab server Server's object.
 function Server:wait_for_downstream_to(server)
     local id = server:get_instance_id()
     local vclock = server:get_vclock()
@@ -492,7 +492,7 @@ end
 --- Wait for the server to reach at least the same vclock as the other server.
 -- Not including the local component, of course.
 --
--- @table other_server Other server's object.
+-- @tab other_server Other server's object.
 function Server:wait_for_vclock_of(other_server)
     local vclock = other_server:get_vclock()
     vclock[0] = nil  -- first component is for local changes

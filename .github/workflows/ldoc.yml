@@ -1,0 +1,23 @@
+---
+name: Generate docs with LDoc
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  generate-docs:
+    runs-on: ubuntu-latest
+    container: tarantool/doc-builder:fat-4.1
+    if: |
+      github.event_name == 'push' ||
+      github.event_name == 'pull_request' && github.event.pull_request.head.repo.owner.login != 'tarantool'
+
+    steps:
+      - uses: actions/checkout@v3
+        id: checkout
+        with:
+          submodules: recursive
+
+      - name: Generate docs with LDoc
+        run: ldoc --fatalwarnings --ext=rst --dir=rst --toctree="API" .
