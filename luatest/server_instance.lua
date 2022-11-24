@@ -37,6 +37,11 @@ end
 -- stop. Setting the timeout to infinity makes such bad tests hang and fail.
 box.ctl.set_on_shutdown_timeout(TIMEOUT_INFINITY)
 
+local run_before_box_cfg = os.getenv('TARANTOOL_RUN_BEFORE_BOX_CFG')
+if run_before_box_cfg then
+    loadstring(run_before_box_cfg)()
+end
+
 box.cfg(box_cfg())
 
 box.schema.user.grant('guest', 'super', nil, nil, {if_not_exists = true})
