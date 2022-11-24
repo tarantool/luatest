@@ -2,6 +2,37 @@
 
 ## Unreleased
 
+- Extend `server.lua` API:
+  * Update parameters of the `Server:new()` function:
+    - The `alias` parameter defaults to 'server'.
+    - The `command` parameter is optional.
+    - The `workdir` parameter is optional.
+    - New parameter `datadir` (optional).
+    - New parameter `box_cfg` (optional).
+  * Add waiting until the started server is ready.
+  * Add waiting until the process of the stopped server is terminated.
+  * Add new functions:
+    - `Server.build_listen_uri()`
+    - `Server:clean()`
+    - `Server:drop()`
+    - `Server:wait_until_ready()`
+    - `Server:get_instance_id()`
+    - `Server:get_instance_uuid()`
+    - `Server:grep_log()`
+    - `Server:assert_follows_upstream()`
+    - `Server:get_election_term()`
+    - `Server:wait_for_election_term()`
+    - `Server:wait_for_election_state()`
+    - `Server:wait_for_election_leader()`
+    - `Server:wait_until_election_leader_found()`
+    - `Server:get_synchro_queue_term()`
+    - `Server:wait_for_synchro_queue_term()`
+    - `Server:play_wal_until_synchro_queue_is_busy()`
+    - `Server:get_vclock()`
+    - `Server:get_downstream_vclock()`
+    - `Server:wait_for_vclock()`
+    - `Server:wait_for_downstream_to()`
+    - `Server:wait_for_vclock_of()`
 - Check docs generation with LDoc.
 - Add `--repeat-group` (`-R`) option to run tests in a circle within the group.
 

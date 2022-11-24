@@ -1,29 +1,42 @@
---- Class to run tarantool instance.
+--- Class to manage Tarantool instances.
 --
 -- @classmod luatest.server
 
 local checks = require('checks')
+local clock = require('clock')
+local digest = require('digest')
+local errno = require('errno')
+local fiber = require('fiber')
+local fio = require('fio')
 local http_client = require('http.client')
 local json = require('json')
 local log = require('log')
 local net_box = require('net.box')
+local uri = require('uri')
 local _, luacov_runner = pcall(require, 'luacov.runner') -- luacov may not be installed
 
+local assertions = require('luatest.assertions')
 local HTTPResponse = require('luatest.http_response')
 local Process = require('luatest.process')
 local utils = require('luatest.utils')
 
--- Linux uses max 108 bytes for Unix domain socket paths, which means a 107 characters string ended by a null
--- terminator. Other systems use 104 bytes and 103 characters strings.
-local max_unix_socket_path = {linux = 107, other = 103}
+local DEFAULT_VARDIR = '/tmp/t'
+local DEFAULT_ALIAS = 'server'
+local DEFAULT_INSTANCE = fio.pathjoin(
+    fio.dirname(fio.abspath(package.search('luatest.server'))), 'server_instance.lua'
+)
+local WAIT_TIMEOUT = 60
+local WAIT_DELAY = 0.1
 
 local Server = {
     constructor_checks = {
-        command = 'string',
-        workdir = 'string',
+        command = '?string',
+        workdir = '?string',
+        datadir = '?string',
         chdir = '?string',
         env = '?table',
         args = '?table',
+        box_cfg = '?table',
 
         http_port = '?number',
         net_box_port = '?number',
@@ -36,24 +49,49 @@ local Server = {
     },
 }
 
+Server.vardir = fio.abspath(os.getenv('VARDIR') or DEFAULT_VARDIR)
+
 function Server:inherit(object)
     setmetatable(object, self)
     self.__index = self
     return object
 end
 
---- Build server object.
--- @param object
--- @string object.command Command to start server process.
--- @string object.workdir Value to be passed in `TARANTOOL_WORKDIR`.
--- @string[opt] object.chdir Path to cwd before running a process.
--- @tab[opt] object.env Table to pass as env variables to process.
--- @tab[opt] object.args Args to run command with.
--- @int[opt] object.http_port Value to be passed in `TARANTOOL_HTTP_PORT` and used to perform HTTP requests.
--- @int[opt] object.net_box_port Value to be passed in `TARANTOOL_LISTEN` and used for net_box connection.
--- @tab[opt] object.net_box_credentials Override default net_box credentials.
--- @string[opt] object.alias Instance alias. Used to prefix output.
--- @return input object.
+--- Build a server object.
+--
+-- @tab object
+-- @string[opt] object.command Executable path to run a server process with.
+--   Defaults to the internal `server_instance.lua` script. If a custom path
+--   is provided, it should correctly process all env variables listed below
+--   to make constructor parameters work.
+-- @tab[opt] object.args Arbitrary args to run `object.command` with.
+-- @tab[opt] object.env Pass the given env variables into the server process.
+-- @string[opt] object.chdir Change to the given directory before running
+--   the server process.
+-- @string[opt] object.alias Alias for the new server and the value of the
+--   `TARANTOOL_ALIAS` env variable which is passed into the server process.
+--   Defaults to 'server'.
+-- @string[opt] object.workdir Working directory for the new server and the
+--   value of the `TARANTOOL_WORKDIR` env variable which is passed into the
+--   server process.
+--   Defaults to `<vardir>/<alias>-<random id>`.
+-- @string[opt] object.datadir Directory path whose contents will be recursively
+--   copied into `object.workdir` during initialization.
+-- @number[opt] object.http_port Port for HTTP connection to the new server and
+--   the value of the `TARANTOOL_HTTP_PORT` env variable which is passed into
+--   the server process.
+--   Not supported in the default `server_instance.lua` script.
+-- @number[opt] object.net_box_port Port for the `net.box` connection to the new
+--   server and the value of the `TARANTOOL_LISTEN` env variable which is passed
+--   into the server process.
+-- @string[opt] object.net_box_uri URI for the `net.box` connection to the new
+--   server and the value of the `TARANTOOL_LISTEN` env variable which is passed
+--   into the server process.
+-- @tab[opt] object.net_box_credentials Override the default credentials for the
+--   `net.box` connection to the new server.
+-- @tab[opt] object.box_cfg Extra options for `box.cfg()` and the value of the
+--   `TARANTOOL_BOX_CFG` env variable which is passed into the server process.
+-- @return table
 function Server:new(object)
     checks('table', self.constructor_checks)
     self:inherit(object)
@@ -61,22 +99,59 @@ function Server:new(object)
     return object
 end
 
+-- Initialize the server object.
 function Server:initialize()
+    if self.id == nil then
+        self.id = digest.base64_encode(digest.urandom(9), {urlsafe = true})
+    end
+
+    if self.alias == nil then
+        self.alias = DEFAULT_ALIAS
+    end
+
+    if self.command == nil then
+        self.command = DEFAULT_INSTANCE
+    end
+
+    if self.workdir == nil then
+        self.workdir = fio.pathjoin(self.vardir, ('%s-%s'):format(self.alias, self.id))
+        fio.rmtree(self.workdir)
+        fio.mktree(self.workdir)
+    end
+
+    if self.datadir ~= nil then
+        local ok, err = fio.copytree(self.datadir, self.workdir)
+        if not ok then
+            error(('Failed to copy directory: %s'):format(err))
+        end
+        self.datadir = nil
+    end
+
     if self.http_port then
         self.http_client = http_client.new()
     end
-    if self.net_box_uri then
-        local system = os.execute('[ $(uname) = Linux ]') == 0 and 'linux' or 'other'
-        if string.len(self.net_box_uri) > max_unix_socket_path[system] then
-            error(string.format('Net box URI must be <= max Unix domain socket path length (%s chars)',
-                max_unix_socket_path[system]))
-        end
+
+    if self.net_box_uri == nil and self.net_box_port == nil then
+        self.net_box_uri = self.build_listen_uri(self.alias)
+        fio.mktree(self.vardir)
     end
     if self.net_box_uri == nil and self.net_box_port then
         self.net_box_uri = 'localhost:' .. self.net_box_port
     end
+    if uri.parse(self.net_box_uri).host == 'unix/' then
+        -- Linux uses max 108 bytes for Unix domain socket paths, which means a 107 characters
+        -- string ended by a null terminator. Other systems use 104 bytes and 103 characters strings.
+        local max_unix_socket_path = {linux = 107, other = 103}
+        local system = os.execute('[ $(uname) = Linux ]') == 0 and 'linux' or 'other'
+        if self.net_box_uri:len() > max_unix_socket_path[system] then
+            error(('Net box URI must be <= max Unix domain socket path length (%d chars)')
+                :format(max_unix_socket_path[system]))
+        end
+    end
+
     self.env = utils.merge(self.env or {}, self:build_env())
     self.args = self.args or {}
+
     -- Enable coverage_report if it's enabled when server is instantiated
     -- and it's not disabled explicitly.
     if self.coverage_report == nil and luacov_runner and luacov_runner.initialized then
@@ -106,21 +181,51 @@ function Server:initialize()
     end
 end
 
---- Generates environment to run process with.
--- The result is merged into os.environ().
--- @return map
+-- Create a table with env variables based on the constructor params.
+-- The result will be passed into the server process.
+-- Table consists of the following entries:
+--
+--   * `TARANTOOL_WORKDIR`
+--   * `TARANTOOL_LISTEN`
+--   * `TARANTOOL_ALIAS`
+--   * `TARANTOOL_HTTP_PORT`
+--   * `TARANTOOL_BOX_CFG`
+--
+-- @return table
 function Server:build_env()
-    return {
+    local res = {
         TARANTOOL_WORKDIR = self.workdir,
         TARANTOOL_HTTP_PORT = self.http_port,
         TARANTOOL_LISTEN = self.net_box_port or self.net_box_uri,
         TARANTOOL_ALIAS = self.alias,
     }
+    if self.box_cfg ~= nil then
+        res.TARANTOOL_BOX_CFG = json.encode(self.box_cfg)
+    end
+    return res
 end
 
---- Start server process.
-function Server:start()
+--- Build a listen URI based on the given server alias.
+-- For now, only UNIX sockets are supported.
+--
+-- @string server_alias Server alias.
+-- @return string
+function Server.build_listen_uri(server_alias)
+    return fio.pathjoin(Server.vardir, server_alias .. '.sock')
+end
+
+--- Start a server.
+-- Optionally waits until the server is ready.
+--
+-- @tab[opt] opts
+-- @bool[opt] opts.wait_until_ready Wait until the server is ready.
+--   Defaults to `true` unless a custom executable was provided while building
+--   the server object.
+function Server:start(opts)
+    checks('table', {wait_until_ready = '?boolean'})
+
     self:initialize()
+
     local env = table.copy(os.environ())
     local log_cmd = {}
     for k, v in pairs(self.env) do
@@ -131,24 +236,43 @@ function Server:start()
     for _, v in ipairs(self.args) do
         table.insert(log_cmd, string.format('%q', v))
     end
-
     log.debug(table.concat(log_cmd, ' '))
 
     self.process = Process:start(self.command, self.args, env, {
         chdir = self.chdir,
         output_prefix = self.alias,
     })
+
+    local wait_until_ready = self.command == DEFAULT_INSTANCE
+    if opts ~= nil and opts.wait_until_ready ~= nil then
+        wait_until_ready = opts.wait_until_ready
+    end
+    if wait_until_ready then
+        self:wait_until_ready()
+    end
+
     log.debug('Started server PID: ' .. self.process.pid)
 end
 
---- Restart server process.
-function Server:restart(params)
+--- Restart the server with the given parameters.
+-- Optionally waits until the server is ready.
+--
+-- @tab[opt] params Parameters to restart the server with.
+--   Like `command`, `args`, `env`, etc.
+-- @tab[opt] opts
+-- @bool[opt] opts.wait_until_ready Wait until the server is ready.
+--   Defaults to `true` unless a custom executable path was provided while
+--   building the server object.
+-- @see luatest.server:new
+function Server:restart(params, opts)
     checks('table', {
         command = '?string',
         workdir = '?string',
+        datadir = '?string',
         chdir = '?string',
         env = '?table',
         args = '?table',
+        box_cfg = '?table',
 
         http_port = '?number',
         net_box_port = '?number',
@@ -158,7 +282,8 @@ function Server:restart(params)
         alias = '?string',
 
         coverage_report = '?boolean',
-    })
+    }, {wait_until_ready = '?boolean'})
+
     if not self.process then
         log.warn("Process wasn't started")
     end
@@ -168,11 +293,28 @@ function Server:restart(params)
         self[param] = value
     end
 
-    self:start()
+    self:start(opts)
     log.debug('Restarted server PID: ' .. self.process.pid)
 end
 
---- Stop server process.
+-- Wait until the given condition is `true` (anything except `false` and `nil`).
+-- Throws an error when timeout exceeds.
+local function wait_for_condition(cond_desc, server, func, ...)
+    local deadline = clock.time() + WAIT_TIMEOUT
+    while true do
+        if func(...) then
+            return
+        end
+        if clock.time() > deadline then
+            error(('Timed out to wait for "%s" condition for server (alias: %s, workdir: %s, pid: %d) within %ds')
+                :format(cond_desc, server.alias, fio.basename(server.workdir), server.process.pid, WAIT_TIMEOUT))
+        end
+        fiber.sleep(WAIT_DELAY)
+    end
+end
+
+--- Stop the server.
+-- Waits until the server process is terminated.
 function Server:stop()
     if self.net_box then
         if self.coverage_report then
@@ -181,11 +323,69 @@ function Server:stop()
         self.net_box:close()
         self.net_box = nil
     end
+
     if self.process then
         self.process:kill()
-        log.debug('Killed server process PID '.. self.process.pid)
+        wait_for_condition('process is terminated', self, function()
+            return not self.process:is_alive()
+        end)
+        log.debug('Killed server process PID ' .. self.process.pid)
         self.process = nil
     end
+end
+
+--- Clean the server's working directory.
+-- Should be invoked only for a stopped server.
+function Server:clean()
+    fio.rmtree(self.workdir)
+    self.instance_id = nil
+    self.instance_uuid = nil
+end
+
+--- Stop the server and clean its working directory.
+function Server:drop()
+    self:stop()
+    self:clean()
+end
+
+--- Wait until the server is ready after the start.
+-- A server is considered ready when its `_G.ready` variable becomes `true`.
+function Server:wait_until_ready()
+    wait_for_condition('server is ready', self, function()
+        local ok, is_ready = pcall(function()
+            self:connect_net_box()
+            return self.net_box:eval('return _G.ready') == true
+        end)
+        return ok and is_ready
+    end)
+end
+
+--- Get ID of the server instance.
+--
+-- @return number
+function Server:get_instance_id()
+    -- Cache the value when found it first time.
+    if self.instance_id then
+        return self.instance_id
+    end
+    local id = self:exec(function() return box.info.id end)
+    -- But do not cache 0 - it is an anon instance, its ID might change.
+    if id ~= 0 then
+        self.instance_id = id
+    end
+    return id
+end
+
+--- Get UUID of the server instance.
+--
+-- @return string
+function Server:get_instance_uuid()
+    -- Cache the value when found it first time.
+    if self.instance_uuid then
+        return self.instance_uuid
+    end
+    self.instance_uuid = self:exec(function() return box.info.uuid end)
+    return self.instance_uuid
 end
 
 --- Establish `net.box` connection.
@@ -342,6 +542,264 @@ end
 
 function Server:coverage(action)
     self:eval('require("luatest.coverage_utils").' .. action .. '()')
+end
+
+--
+-- Log
+--
+
+--- Search a string pattern in the server's log file.
+-- If the server has crashed, `opts.filename` is required.
+--
+-- @string pattern String pattern to search in the server's log file.
+-- @number[opt] bytes_num Number of bytes to read from the server's log file.
+-- @tab[opt] opts
+-- @bool[opt] opts.reset Reset the result when `Tarantool %d+.%d+.%d+-.*%d+-g.*`
+--   pattern is found, which means that the server was restarted.
+--   Defaults to `true`.
+-- @string[opt] opts.filename Path to the server's log file.
+--   Defaults to `box.cfg.log`.
+-- @return string|nil
+function Server:grep_log(pattern, bytes_num, opts)
+    local options = opts or {}
+    local reset = options.reset or true
+    local filename = options.filename or self:exec(function() return box.cfg.log end)
+    local file = fio.open(filename, {'O_RDONLY', 'O_NONBLOCK'})
+
+    local function fail(msg)
+        local err = errno.strerror()
+        if file ~= nil then
+            file:close()
+        end
+        error(string.format('%s: %s: %s', msg, filename, err))
+    end
+
+    if file == nil then
+        fail('Failed to open log file')
+    end
+
+    io.flush() -- attempt to flush stdout == log fd
+
+    local filesize = file:seek(0, 'SEEK_END')
+    if filesize == nil then
+        fail('Failed to get log file size')
+    end
+
+    local bytes = bytes_num or 65536 -- don't read the whole log -- it can be huge
+    bytes = bytes > filesize and filesize or bytes
+    if file:seek(-bytes, 'SEEK_END') == nil then
+        fail('Failed to seek log file')
+    end
+
+    local found, buf
+    repeat -- read file in chunks
+        local s = file:read(2048)
+        if s == nil then
+            fail('Failed to read log file')
+        end
+        local pos = 1
+        repeat -- split read string in lines
+            local endpos = string.find(s, '\n', pos)
+            endpos = endpos and endpos - 1 -- strip terminating \n
+            local line = string.sub(s, pos, endpos)
+            if endpos == nil and s ~= '' then
+                -- Line doesn't end with \n or EOF, append it to buffer
+                -- to be checked on next iteration.
+                buf = buf or {}
+                table.insert(buf, line)
+            else
+                if buf ~= nil then
+                    -- Prepend line with buffered data.
+                    table.insert(buf, line)
+                    line = table.concat(buf)
+                    buf = nil
+                end
+                if string.match(line, 'Tarantool %d+.%d+.%d+-.*%d+-g.*') and reset then
+                    found = nil -- server was restarted, reset the result
+                else
+                    found = string.match(line, pattern) or found
+                end
+            end
+            pos = endpos and endpos + 2 -- jump to char after \n
+        until pos == nil
+    until s == ''
+
+    file:close()
+
+    return found
+end
+
+--
+-- Replication
+--
+
+--- Assert that the server follows the source node with the given ID.
+-- Meaning that it replicates from the remote node normally, and has already
+-- joined and subscribed.
+--
+-- @number server_id Server ID.
+function Server:assert_follows_upstream(server_id)
+    local status = self:exec(function(id)
+        return box.info.replication[id].upstream.status
+    end, {server_id})
+    local msg = ('%s: server does not follow upstream'):format(self.alias)
+    assertions.assert_equals(status, 'follow', msg)
+end
+
+-- Election
+
+--- Get the election term as seen by the server.
+--
+-- @return number
+function Server:get_election_term()
+    return self:exec(function() return box.info.election.term end)
+end
+
+--- Wait for the server to reach at least the given election term.
+--
+-- @string term Election term to wait for.
+function Server:wait_for_election_term(term)
+    wait_for_condition('election term', self, self.exec, self, function(t)
+        return box.info.election.term >= t
+    end, {term})
+end
+
+--- Wait for the server to enter the given election state.
+-- Note that if it becomes a leader, it does not mean it is already writable.
+--
+-- @string state Election state to wait for.
+function Server:wait_for_election_state(state)
+    wait_for_condition('election state', self, self.exec, self, function(s)
+        return box.info.election.state == s
+    end, {state})
+end
+
+--- Wait for the server to become a **writable** election leader.
+function Server:wait_for_election_leader()
+    -- Include read-only property too because if an instance is a leader, it
+    -- does not mean that it has finished the synchro queue ownership transition.
+    -- It is read-only until that happens. But in tests, the leader is usually
+    -- needed as a writable node.
+    wait_for_condition('election leader', self, self.exec, self, function()
+        return box.info.election.state == 'leader' and not box.info.ro
+    end)
+end
+
+--- Wait for the server to discover an election leader.
+function Server:wait_until_election_leader_found()
+    wait_for_condition('election leader is found', self, self.exec, self, function()
+        return box.info.election.leader ~= 0
+    end)
+end
+
+-- Synchro
+
+--- Get the synchro term as seen by the server.
+--
+-- @return number
+function Server:get_synchro_queue_term()
+    return self:exec(function() return box.info.synchro.queue.term end)
+end
+
+--- Wait for the server to reach at least the given synchro term.
+--
+-- @number term Synchro queue term to wait for.
+function Server:wait_for_synchro_queue_term(term)
+    wait_for_condition('synchro queue term', self, self.exec, self, function(t)
+        return box.info.synchro.queue.term >= t
+    end, {term})
+end
+
+--- Play WAL until the synchro queue becomes busy.
+-- WAL records go one by one. The function is needed, because during
+-- `box.ctl.promote()` it is not known for sure which WAL record is PROMOTE -
+-- first, second, third? Even if known, it might change in the future. WAL delay
+-- should already be started before the function is called.
+function Server:play_wal_until_synchro_queue_is_busy()
+    wait_for_condition('synchro queue is busy', self, self.exec, self, function()
+        if not box.error.injection.get('ERRINJ_WAL_DELAY') then
+            return false
+        end
+        if box.info.synchro.queue.busy then
+            return true
+        end
+        -- Allow 1 more WAL write.
+        box.error.injection.set('ERRINJ_WAL_DELAY_COUNTDOWN', 0)
+        box.error.injection.set('ERRINJ_WAL_DELAY', false)
+        return false
+    end)
+end
+
+-- Vclock
+
+--- Get the server's own vclock, including the local component.
+--
+-- @return table
+function Server:get_vclock()
+    return self:exec(function() return box.info.vclock end)
+end
+
+--- Get vclock acknowledged by another node to the current server.
+--
+-- @number server_id Server ID.
+-- @return table
+function Server:get_downstream_vclock(server_id)
+    return self:exec(function(id)
+        local info = box.info.replication[id]
+        return info and info.downstream and info.downstream.vclock or nil
+    end, {server_id})
+end
+
+-- Compare vclocks and return `true` if a >= b or `false` otherwise.
+local function vclock_ge(a, b)
+    if a == nil then
+        return b == nil
+    end
+    for server_id, b_lsn in pairs(b) do
+        local a_lsn = a[server_id]
+        if a_lsn == nil or a_lsn < b_lsn then
+            return false
+        end
+    end
+    return true
+end
+
+--- Wait until the server's own vclock reaches at least the given value.
+-- Including the local component.
+--
+-- @tab vclock Server's own vclock to reach.
+function Server:wait_for_vclock(vclock)
+    while true do
+        if vclock_ge(self:get_vclock(), vclock) then
+            return
+        end
+        fiber.sleep(0.005)
+    end
+end
+
+--- Wait until all own data is replicated and confirmed by the given server.
+--
+-- @tab server Server's object.
+function Server:wait_for_downstream_to(server)
+    local id = server:get_instance_id()
+    local vclock = server:get_vclock()
+    vclock[0] = nil  -- first component is for local changes
+    while true do
+        if vclock_ge(self:get_downstream_vclock(id), vclock) then
+            return
+        end
+        fiber.sleep(0.005)
+    end
+end
+
+--- Wait for the server to reach at least the same vclock as the other server.
+-- Not including the local component, of course.
+--
+-- @tab other_server Other server's object.
+function Server:wait_for_vclock_of(other_server)
+    local vclock = other_server:get_vclock()
+    vclock[0] = nil  -- first component is for local changes
+    self:wait_for_vclock(vclock)
 end
 
 return Server
