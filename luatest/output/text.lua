@@ -113,6 +113,7 @@ function Output.mt:end_suite()
         failure = self.class.ERROR_COLOR_CODE,
         reset = self.class.RESET_TERM,
         xfail = self.class.WARN_COLOR_CODE,
+        flaky = self.class.WARN_COLOR_CODE,
     }))
     if self.result.notSuccessCount == 0 then
         print('OK')
