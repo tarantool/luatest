@@ -35,7 +35,9 @@ end
 -- requests. With the default timeout of 3 seconds, such tests would still pass,
 -- but slow down the overall test run, because the server would take longer to
 -- stop. Setting the timeout to infinity makes such bad tests hang and fail.
-box.ctl.set_on_shutdown_timeout(TIMEOUT_INFINITY)
+if type(box.ctl.set_on_shutdown_timeout) == 'function' then
+    box.ctl.set_on_shutdown_timeout(TIMEOUT_INFINITY)
+end
 
 local run_before_box_cfg = os.getenv('TARANTOOL_RUN_BEFORE_BOX_CFG')
 if run_before_box_cfg then
