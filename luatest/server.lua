@@ -232,13 +232,21 @@ function Server:start(opts)
         table.insert(log_cmd, string.format('%s=%q', k, v))
         env[k] = v
     end
+    table.insert(log_cmd, arg[-1])
     table.insert(log_cmd, self.command)
     for _, v in ipairs(self.args) do
         table.insert(log_cmd, string.format('%q', v))
     end
     log.debug(table.concat(log_cmd, ' '))
 
-    self.process = Process:start(self.command, self.args, env, {
+    -- When luatest is installed as a rock, server_instance.lua script won't
+    -- have execution permissions even though it has them in the source tree,
+    -- and won't be able to be run while a server start.
+    -- To bypass this issue, we start a server process as `tarantool <script>`
+    -- instead of just `<script>`.
+    local args = table.copy(self.args)
+    table.insert(args, 1, self.command)
+    self.process = Process:start(arg[-1], args, env, {
         chdir = self.chdir,
         output_prefix = self.alias,
     })
