@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Add new module `replica_set.lua`.
 - Make the internal server_instance.lua script compatible with Tarantool 
   versions < 2.8.0-139-g357f15517.
 - Extend `server.lua` API:

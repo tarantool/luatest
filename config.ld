@@ -6,9 +6,10 @@ file = {
     'luatest/http_response.lua',
     'luatest/runner.lua',
     'luatest/server.lua',
+    'luatest/replica_set.lua',
 }
 topics = {
     'CHANGELOG.md',
 }
 format = 'markdown'
-sort = true
+sort = 'true'

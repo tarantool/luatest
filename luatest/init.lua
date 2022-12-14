@@ -25,6 +25,11 @@ luatest.helpers = require('luatest.helpers')
 -- @see luatest.server
 luatest.Server = require('luatest.server')
 
+--- Class to manage groups of Tarantool instances with the same data set.
+--
+-- @see luatest.replica_set
+luatest.ReplicaSet = require('luatest.replica_set')
+
 local Group = require('luatest.group')
 local hooks = require('luatest.hooks')
 local parametrizer = require('luatest.parametrizer')
