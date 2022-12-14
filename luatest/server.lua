@@ -59,7 +59,7 @@ end
 
 --- Build a server object.
 --
--- @tab object
+-- @tab[opt] object Table with the entries listed below. (optional)
 -- @string[opt] object.command Executable path to run a server process with.
 --   Defaults to the internal `server_instance.lua` script. If a custom path
 --   is provided, it should correctly process all env variables listed below
@@ -94,6 +94,7 @@ end
 -- @return table
 function Server:new(object)
     checks('table', self.constructor_checks)
+    if not object then object = {} end
     self:inherit(object)
     object:initialize()
     return object
