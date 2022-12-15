@@ -3,8 +3,6 @@
 ## Unreleased
 
 - Add new module `replica_set.lua`.
-- Make the internal server_instance.lua script compatible with Tarantool 
-  versions < 2.8.0-139-g357f15517.
 - Extend `server.lua` API:
   * Update parameters of the `Server:new()` function:
     - The `alias` parameter defaults to 'server'.
@@ -38,6 +36,11 @@
     - `Server:wait_for_vclock_of()`
 - Check docs generation with LDoc.
 - Add `--repeat-group` (`-R`) option to run tests in a circle within the group.
+- Forbid negative values for `--repeat` (`-r`) option.
+- Change `coverage_report` parameter type to boolean in `Server:new()` function.
+- Print Tarantool version used by luatest.
+- Add new module `replica_proxy.lua`.
+- Add new module `tarantool.lua`.
 
 ## 0.5.7
 
