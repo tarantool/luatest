@@ -299,6 +299,7 @@ function Runner.mt:start_suite(selected_count, not_selected_count)
             skip = {},
             xfail = {},
             xsuccess = {},
+            flaky = {},
         },
     }
     self.output.result = self.result
@@ -324,7 +325,7 @@ function Runner.mt:update_status(node, err)
     elseif not node:is('success') then
         return
     elseif err.status == 'fail' or err.status == 'error' or err.status == 'skip'
-        or err.status == 'xfail' or err.status == 'xsuccess' then
+        or err.status == 'xfail' or err.status == 'xsuccess' or err.status == 'flaky' then
         node:update_status(err.status, err.message, err.trace)
     else
         error('No such status: ' .. pp.tostring(err.status))
@@ -340,7 +341,7 @@ function Runner.mt:end_test(node)
     if node:is('error') or node:is('fail') or node:is('xsuccess') then
         self.result.aborted = self.fail_fast
     elseif not node:is('success') and not node:is('skip')
-        and not node:is('xfail') then
+        and not node:is('xfail') and not node:is('flaky') then
         error('No such node status: ' .. pp.tostring(node.status))
     end
 end
@@ -377,6 +378,7 @@ function Runner.mt:protected_call(instance, method, pretty_name)
 
     -- check if test was marked as xfail and reset xfail flag
     local xfail = assertions.private.is_xfail()
+    local flaky = assertions.private.is_flaky()
 
     if type(err.message) ~= 'string' then
         err.message = pp.tostring(err.message)
@@ -396,6 +398,11 @@ function Runner.mt:protected_call(instance, method, pretty_name)
             or 'Test expected to fail has succeeded. Consider removing xfail.'
         end
 
+        return err
+    end
+
+    if flaky and err.status ~= 'error' and err.status ~= 'skip' then
+        err.status = 'flaky'
         return err
     end
 

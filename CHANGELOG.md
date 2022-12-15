@@ -38,6 +38,7 @@
     - `Server:wait_for_vclock_of()`
 - Check docs generation with LDoc.
 - Add `--repeat-group` (`-R`) option to run tests in a circle within the group.
+- Add `flaky` test mark.
 
 ## 0.5.7
 

@@ -242,6 +242,8 @@ List of luatest functions
 +--------------------------------------------------------------------+-----------------------------------------------+
 | ``xfail_if (condition, message)``                                  | Mark test as xfail if condition is met.       |
 +--------------------------------------------------------------------+-----------------------------------------------+
+| ``flaky (message)``                                                | Mark test as flaky.                           |
++--------------------------------------------------------------------+-----------------------------------------------+
 | ``skip (message)``                                                 | Skip a running test.                          |
 +--------------------------------------------------------------------+-----------------------------------------------+
 | ``skip_if (condition, message)``                                   | Skip a running test if condition is met.      |
@@ -282,6 +284,22 @@ keep xfail tests in sync with an issue tracker.
 
 XFail only applies to the errors raised by the luatest assertions. Regular Lua
 errors still cause the test failure.
+
+.. _xfail:
+
+---------------------------------
+Flaky
+---------------------------------
+
+The ``flaky`` mark can be used to temporarily remove flaky error from your tests.
+
+.. code-block:: Lua
+
+    local g = t.group()
+    g.test_fail = function()
+        t.flaky("Can be failed and I don't know why ")
+        t.assert_equals(1, math.random(0,1))
+    end
 
 .. _capturing-output:
 

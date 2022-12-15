@@ -50,7 +50,7 @@ end
 -- luacheck: pop
 
 function Output.mt:status_line(colors)
-    colors = colors or {success = '', failure = '', reset = '', xfail = ''}
+    colors = colors or {success = '', failure = '', reset = '', xfail = '', flaky = ''}
     -- return status line string according to results
     local tests = self.result.tests
     local s = {
@@ -69,7 +69,10 @@ function Output.mt:status_line(colors)
     if #tests.error > 0 then
         table.insert(s, string.format("%s%d %s%s", colors.failure, #tests.error, 'errored', colors.reset))
     end
-    if #tests.fail == 0 and #tests.error == 0 and #tests.xsuccess == 0 then
+    if #tests.flaky > 0 then
+        table.insert(s, string.format("%s%d %s%s", colors.flaky, #tests.flaky, 'flaky', colors.reset))
+    end
+    if #tests.fail == 0 and #tests.error == 0 and #tests.xsuccess == 0 and #tests.flaky == 0 then
         table.insert(s, '0 failed')
     end
     if #tests.skip > 0 then
