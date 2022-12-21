@@ -178,10 +178,9 @@ function ReplicaSet:clean()
 end
 
 --- Stop all servers in the replica set and clean their working directories.
-function ReplicaSet:drop()
+function ReplicaSet:drop(opts)
     for _, server in ipairs(self.servers) do
-        server:stop()
-        server:clean()
+        server:drop(opts)
     end
 end
 

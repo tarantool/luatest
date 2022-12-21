@@ -345,16 +345,34 @@ end
 
 --- Clean the server's working directory.
 -- Should be invoked only for a stopped server.
-function Server:clean()
-    fio.rmtree(self.workdir)
+function Server:clean(opts)
+    if not opts then opts = {} end
+    if not opts.force then
+        local patterns = {'*.snap', '*.xlog', '*.vylog', '*.inprogress', '[0-9]*/'}
+        for _, pattern in ipairs(patterns) do
+            local files = fio.glob(fio.pathjoin(self.workdir, pattern))
+            for _, file in ipairs(files) do
+                local file_info = fio.stat(file)
+                if file_info then
+                    if file_info:is_dir() then
+                        fio.rmtree(file)
+                    else
+                        fio.unlink(file)
+                    end
+                end
+            end
+        end
+    else
+        fio.rmtree(self.workdir)
+    end
     self.instance_id = nil
     self.instance_uuid = nil
 end
 
 --- Stop the server and clean its working directory.
-function Server:drop()
+function Server:drop(opts)
     self:stop()
-    self:clean()
+    self:clean(opts)
 end
 
 --- Wait until the server is ready after the start.
