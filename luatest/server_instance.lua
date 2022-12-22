@@ -12,6 +12,7 @@ local function default_cfg()
             os.getenv('TARANTOOL_WORKDIR'),
             os.getenv('TARANTOOL_ALIAS') .. '.log'
         ),
+        replication_sync_timeout = 300,
     }
 end
 
