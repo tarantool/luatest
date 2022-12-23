@@ -292,3 +292,12 @@ g.test_max_unix_socket_path_exceeded = function()
         }
     )
 end
+
+g.test_server_start_with_coverage_enabled = function()
+    t.skip_if(server.coverage_report, 'Coverage is already enabled. Nothing to test')
+    server:restart({coverage_report = true})
+    t.helpers.retrying({}, function() server:connect_net_box() end)
+    t.assert_str_matches(
+        server:exec(function() return box.info.status end), 'running'
+    )
+end
