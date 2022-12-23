@@ -472,15 +472,25 @@ end
 
 --- Evaluate Lua code on the server.
 --
--- This is a shortcut for `server.net_box:eval()`.
+-- This is a wrapper for `server.net_box:eval()`.
 -- @string code
 -- @tab[opt] args
 -- @tab[opt] options
-function Server:eval(...)
+function Server:eval(code, ...)
     if self.net_box == nil then
         error('net_box is not connected', 2)
     end
-    return self.net_box:eval(...)
+    local preamble = [[
+        if not rawget(_G, 't') then
+            local is_ok, _t = pcall(require, 'luatest')
+            if is_ok then
+                rawset(_G, 't', _t)
+            else
+                require('log').warn('LUA_PATH is unset or incorrect, ' .. _t)
+            end
+        end
+    ]]
+    return self.net_box:eval(preamble .. code, ...)
 end
 
 --- Call remote function on the server by name.
@@ -526,7 +536,7 @@ end
 --    -- sum == 3
 --
 --    server:exec(function()
---        local t = require('luatest')
+--        -- luatest is always available as `t`
 --        t.assert_equals(math.pi, 3)
 --    end)
 --    -- mytest.lua:12: expected: 3, actual: 3.1415926535898
@@ -546,7 +556,7 @@ function Server:exec(fn, args, options)
         error(err, 2)
     end
 
-    return exec_tail(self.net_box:eval([[
+    return exec_tail(self:eval([[
         local dump, args = ...
         local fn = loadstring(dump)
         if args == nil then
