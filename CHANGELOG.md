@@ -46,6 +46,7 @@
 - Auto-require `luatest` module in `Server:exec()` function where it is available
   via the corresponding upvalue.
 - Add new function `tarantool.skip_if_not_enterprise`.
+- Raise an error when non-array arguments passed to the `server:exec()`.
 
 ## 0.5.7
 
