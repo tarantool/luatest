@@ -641,7 +641,7 @@ function Server:grep_log(pattern, bytes_num, opts)
                     line = table.concat(buf)
                     buf = nil
                 end
-                if string.match(line, 'Tarantool %d+.%d+.%d+-.*%d+-g.*') and reset then
+                if string.match(line, '> Tarantool %d+.%d+.%d+-.*%d+-g.*$') and reset then
                     found = nil -- server was restarted, reset the result
                 else
                     found = string.match(line, pattern) or found
