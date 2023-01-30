@@ -504,6 +504,19 @@ local function exec_tail(ok, ...)
     end
 end
 
+-- Check that the passed `args` to the `fn` function are an array.
+local function are_fn_args_array(fn, args)
+    local fn_details = debug.getinfo(fn)
+    if args and #args ~= fn_details.nparams then
+        for k, _ in pairs(args) do
+            if type(k) ~= 'number' then
+                return false
+            end
+        end
+    end
+    return true
+end
+
 --- Run given function on the server.
 --
 -- Much like `Server:eval`, but takes a function instead of a string.
@@ -560,6 +573,11 @@ function Server:exec(fn, args, options)
             table.concat(other_ups, ', ')
         )
         error(err, 2)
+    end
+
+    if not are_fn_args_array(fn, args) then
+        error(('bad argument #3 for exec at %s: an array is required')
+            :format(utils.get_fn_location(fn)))
     end
 
     return exec_tail(self.net_box:eval([[

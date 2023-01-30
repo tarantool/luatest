@@ -142,5 +142,10 @@ function utils.upvalues(fn)
     return ret
 end
 
+function utils.get_fn_location(fn)
+    local fn_details = debug.getinfo(fn)
+    local fn_source = fn_details.source:split('/')
+    return ('%s:%s'):format(fn_source[#fn_source], fn_details.linedefined)
+end
 
 return utils
