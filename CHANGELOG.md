@@ -34,6 +34,8 @@
     - `Server:wait_for_vclock()`
     - `Server:wait_for_downstream_to()`
     - `Server:wait_for_vclock_of()`
+    - `Server:update_box_cfg()`
+    - `Server:get_box_cfg()`
 - Check docs generation with LDoc.
 - Add `--repeat-group` (`-R`) option to run tests in a circle within the group.
 - Forbid negative values for `--repeat` (`-r`) option.

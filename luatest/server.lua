@@ -841,4 +841,23 @@ function Server:wait_for_vclock_of(other_server)
     self:wait_for_vclock(vclock)
 end
 
+-- Box configuration
+
+--- A simple wrapper around the `Server:exec()` method
+-- to update the `box.cfg` value on the server.
+--
+-- @tab cfg Box configuration settings.
+function Server:update_box_cfg(cfg)
+    checks('?', 'table')
+    return self:exec(function(c) box.cfg(c) end, {cfg})
+end
+
+--- A simple wrapper around the `Server:exec()` method
+-- to get the `box.cfg` value from the server.
+--
+-- @return table
+function Server:get_box_cfg()
+    return self:exec(function() return box.cfg end)
+end
+
 return Server
