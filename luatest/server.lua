@@ -480,17 +480,7 @@ function Server:eval(code, ...)
     if self.net_box == nil then
         error('net_box is not connected', 2)
     end
-    local preamble = [[
-        if not rawget(_G, 't') then
-            local is_ok, _t = pcall(require, 'luatest')
-            if is_ok then
-                rawset(_G, 't', _t)
-            else
-                require('log').warn('LUA_PATH is unset or incorrect, ' .. _t)
-            end
-        end
-    ]]
-    return self.net_box:eval(preamble .. code, ...)
+    return self.net_box:eval(code, ...)
 end
 
 --- Call remote function on the server by name.
@@ -547,24 +537,41 @@ function Server:exec(fn, args, options)
         error('net_box is not connected', 2)
     end
 
-    local ups = utils.upvalues(fn)
-    if next(ups) ~= nil then
+    local luatest_ups = {}
+    local other_ups = {}
+    for i = 1, debug.getinfo(fn, 'u').nups do
+        local name, value = debug.getupvalue(fn, i)
+        if value == package.loaded.luatest then
+            luatest_ups[name] = true
+        else
+            table.insert(other_ups, name)
+        end
+    end
+
+    if next(other_ups) ~= nil then
         local err = string.format(
             'bad argument #2 to exec (excess upvalues: %s)',
-            table.concat(ups, ', ')
+            table.concat(other_ups, ', ')
         )
         error(err, 2)
     end
 
     return exec_tail(self:eval([[
-        local dump, args = ...
+        local dump, args, luatest_ups = ...
         local fn = loadstring(dump)
+
+        for i = 1, debug.getinfo(fn, 'u').nups do
+            local name, value = debug.getupvalue(fn, i)
+            if luatest_ups[name] then
+                debug.setupvalue(fn, i, require('luatest'))
+            end
+        end
         if args == nil then
             return pcall(fn)
         else
             return pcall(fn, unpack(args))
         end
-    ]], {string.dump(fn), args}, options))
+    ]], {string.dump(fn), args, luatest_ups}, options))
 end
 
 function Server:coverage(action)
