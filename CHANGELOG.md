@@ -41,7 +41,8 @@
 - Print Tarantool version used by luatest.
 - Add new module `replica_proxy.lua`.
 - Add new module `tarantool.lua`.
-- Autorequire `luatest` module in the server instance as `t` variable.
+- Auto-require `luatest` module in `Server:exec()` function where it is available
+  via the corresponding upvalue.
 
 ## 0.5.7
 

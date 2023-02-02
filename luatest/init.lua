@@ -95,8 +95,4 @@ function luatest.defaults(...)
     return luatest.configure(...)
 end
 
-if not rawget(_G, 't') then
-    rawset(_G, 't', luatest)
-end
-
 return luatest
