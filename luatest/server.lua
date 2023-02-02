@@ -472,7 +472,7 @@ end
 
 --- Evaluate Lua code on the server.
 --
--- This is a wrapper for `server.net_box:eval()`.
+-- This is a shortcut for `server.net_box:eval()`.
 -- @string code
 -- @tab[opt] args
 -- @tab[opt] options
@@ -480,17 +480,7 @@ function Server:eval(code, ...)
     if self.net_box == nil then
         error('net_box is not connected', 2)
     end
-    local preamble = [[
-        if not rawget(_G, 't') then
-            local is_ok, _t = pcall(require, 'luatest')
-            if is_ok then
-                rawset(_G, 't', _t)
-            else
-                require('log').warn('LUA_PATH is unset or incorrect, ' .. _t)
-            end
-        end
-    ]]
-    return self.net_box:eval(preamble .. code, ...)
+    return self.net_box:eval(code, ...)
 end
 
 --- Call remote function on the server by name.
@@ -535,8 +525,9 @@ end
 --    end, {1, 2})
 --    -- sum == 3
 --
+--    local t = require('luatest')
 --    server:exec(function()
---        -- luatest is always available as `t`
+--        -- luatest is available via `t` upvalue
 --        t.assert_equals(math.pi, 3)
 --    end)
 --    -- mytest.lua:12: expected: 3, actual: 3.1415926535898
@@ -547,24 +538,45 @@ function Server:exec(fn, args, options)
         error('net_box is not connected', 2)
     end
 
-    local ups = utils.upvalues(fn)
-    if next(ups) ~= nil then
+    local autorequired_pkgs = {'luatest'}
+    local passthrough_ups = {}
+    local other_ups = {}
+    for i = 1, debug.getinfo(fn, 'u').nups do
+        local name, value = debug.getupvalue(fn, i)
+        for _, pkg_name in ipairs(autorequired_pkgs) do
+            if value == package.loaded[pkg_name] then
+                passthrough_ups[name] = pkg_name
+                break
+            end
+        end
+        if not passthrough_ups[name] then
+            table.insert(other_ups, name)
+        end
+    end
+
+    if next(other_ups) ~= nil then
         local err = string.format(
             'bad argument #2 to exec (excess upvalues: %s)',
-            table.concat(ups, ', ')
+            table.concat(other_ups, ', ')
         )
         error(err, 2)
     end
 
-    return exec_tail(self:eval([[
-        local dump, args = ...
+    return exec_tail(self.net_box:eval([[
+        local dump, args, passthrough_ups = ...
         local fn = loadstring(dump)
+        for i = 1, debug.getinfo(fn, 'u').nups do
+            local name, _ = debug.getupvalue(fn, i)
+            if passthrough_ups[name] then
+                debug.setupvalue(fn, i, require(passthrough_ups[name]))
+            end
+        end
         if args == nil then
             return pcall(fn)
         else
             return pcall(fn, unpack(args))
         end
-    ]], {string.dump(fn), args}, options))
+    ]], {string.dump(fn), args, passthrough_ups}, options))
 end
 
 function Server:coverage(action)

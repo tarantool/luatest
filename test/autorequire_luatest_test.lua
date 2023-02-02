@@ -1,4 +1,5 @@
 local fio = require('fio')
+local t = require('luatest')
 
 local g = t.group()
 local Server = t.Server
@@ -14,8 +15,7 @@ g.before_all(function()
         command = command,
         workdir = fio.pathjoin(datadir, 'common'),
         env = {
-            LUA_PATH =
-                root .. '/?.lua;' ..
+            LUA_PATH = root .. '/?.lua;' ..
                 root .. '/?/init.lua;' ..
                 root .. '/.rocks/share/tarantool/?.lua'
         },
@@ -37,29 +37,35 @@ g.after_all(function()
     fio.rmtree(datadir)
 end)
 
-g.test_exec_without_t = function()
+g.test_exec_without_upvalue = function()
     local actual = g.server:exec(function()
         return 1 + 1
     end)
     t.assert_equals(actual, 2)
 end
 
-g.test_exec_with_global_variable = function()
+g.test_exec_with_upvalue = function()
     g.server:exec(function()
         t.assert_equals(1, 1)
     end)
     t.assert_equals(1, 1)
+
+    local lt = require('luatest')
+    g.server:exec(function()
+        lt.assert_equals(1, 1)
+    end)
+    lt.assert_equals(1, 1)
 end
 
 g.test_exec_with_local_variable = function()
     g.server:exec(function()
-        local t = require('luatest')
+        local t = require('luatest')  -- luacheck: ignore 431
         t.assert_equals(1, 1)
     end)
     t.assert_equals(1, 1)
 end
 
-g.test_exec_with_local_duplicate = function()
+g.test_exec_with_upvalue_and_local_variable = function()
     g.server:exec(function()
         local tt = require('luatest')
         t.assert_equals(1, 1)
@@ -68,24 +74,11 @@ g.test_exec_with_local_duplicate = function()
     end)
 end
 
-g.test_eval_with_t = function()
-    local actual = g.server:eval([[
-        t.assert_equals(1, 1)
-        return 1
-    ]])
-    t.assert_equals(actual, 1)
-end
-
-g.before_test('test_exec_when_lua_path_is_unset', function()
+g.before_test('test_exec_when_luatest_not_found', function()
     -- Setup custom server without LUA_PATH variable
-    local workdir = fio.tempdir()
-    local log = fio.pathjoin(workdir, 'bad_env_server.log')
     g.bad_env_server = Server:new({
         command = command,
-        workdir = workdir,
-        env = {
-            TARANTOOL_LOG = log
-        },
+        workdir = fio.tempdir(),
         http_port = 8183,
         net_box_port = 3134,
     })
@@ -101,16 +94,13 @@ g.before_test('test_exec_when_lua_path_is_unset', function()
     g.bad_env_server:connect_net_box()
 end)
 
-g.test_exec_when_lua_path_is_unset = function()
-    g.bad_env_server:exec(function() return 1 + 1 end)
-
-    t.assert(
-        g.bad_env_server:grep_log(
-            "W> LUA_PATH is unset or incorrect, module 'luatest' not found"
-        )
+g.test_exec_when_luatest_not_found = function()
+    t.assert_error_msg_contains(
+        "module 'luatest' not found:", g.bad_env_server.exec, g.bad_env_server,
+        function() t.assert_equals(1, 1) end
     )
 end
 
-g.after_test('test_exec_when_lua_path_is_unset', function()
+g.after_test('test_exec_when_luatest_not_found', function()
     g.bad_env_server:drop()
 end)
