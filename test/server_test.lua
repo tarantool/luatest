@@ -301,3 +301,32 @@ g.test_server_start_with_coverage_enabled = function()
         server:exec(function() return box.info.status end), 'running'
     )
 end
+
+g.test_wait_when_server_is_not_running_by_bad_option = function()
+    local s1 = Server:new({
+        box_cfg = {
+            bad_option = 'bad'
+        }
+    })
+    local s2 = Server:new({
+        box_cfg = {
+            replication = {
+                'bad_uri'
+            }
+        }
+    })
+
+    local expected_msg = 'Process is terminated when waiting for "server is ready"'
+
+    local status, msg = pcall(Server.start, s1)
+    t.assert_equals(status, false)
+    t.assert_str_contains(msg, expected_msg)
+    t.assert_equals(s1.process:is_alive(), false)
+    s1:clean()
+
+    status, msg = pcall(Server.start, s2)
+    t.assert_equals(status, false)
+    t.assert_str_contains(msg, expected_msg)
+    t.assert_equals(s2.process:is_alive(), false)
+    s2:clean()
+end
