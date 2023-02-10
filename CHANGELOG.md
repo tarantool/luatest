@@ -47,6 +47,9 @@
   via the corresponding upvalue.
 - Add new function `tarantool.skip_if_not_enterprise`.
 - Raise an error when non-array arguments passed to the `server:exec()`.
+- Raise an error in the `Server:wait_for_condition()` function when
+  the server process is terminated. This is useful to not wait for timeout, for example,
+  when a server fails to start due to bad configuration.
 
 ## 0.5.7
 

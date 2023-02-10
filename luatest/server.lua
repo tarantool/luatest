@@ -315,10 +315,14 @@ function Server:restart(params, opts)
 end
 
 -- Wait until the given condition is `true` (anything except `false` and `nil`).
--- Throws an error when timeout exceeds.
+-- Throws an error when the server process is terminated or timeout exceeds.
 local function wait_for_condition(cond_desc, server, func, ...)
     local deadline = clock.time() + WAIT_TIMEOUT
     while true do
+        if not server.process:is_alive() then
+            error(('Process is terminated when waiting for "%s" condition for server (alias: %s, workdir: %s, pid: %d)')
+                :format(cond_desc, server.alias, fio.basename(server.workdir), server.process.pid))
+        end
         if func(...) then
             return
         end
@@ -343,9 +347,12 @@ function Server:stop()
 
     if self.process then
         self.process:kill()
-        wait_for_condition('process is terminated', self, function()
+        local ok, err = pcall(wait_for_condition, 'process is terminated', self, function()
             return not self.process:is_alive()
         end)
+        if not ok and not err:find('Process is terminated when waiting for') then
+            error(err)
+        end
         log.debug('Killed server process PID ' .. self.process.pid)
         self.process = nil
     end
