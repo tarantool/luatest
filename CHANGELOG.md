@@ -45,6 +45,7 @@
 - Add new module `tarantool.lua`.
 - Auto-require `luatest` module in `Server:exec()` function where it is available
   via the corresponding upvalue.
+- Add new function `tarantool.skip_if_not_enterprise`.
 
 ## 0.5.7
 
