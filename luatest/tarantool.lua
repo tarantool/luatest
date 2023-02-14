@@ -37,6 +37,15 @@ function M.skip_if_enterprise(message)
     )
 end
 
+--- Skip a running test if Tarantool package is NOT Enterprise.
+--
+-- @string[opt] message Message to describe the reason.
+function M.skip_if_not_enterprise(message)
+    assertions.skip_if(
+        not M.is_enterprise_package(), message or 'package is not Enterprise'
+    )
+end
+
 --- Search for a fiber with the specified name and return the fiber object.
 --
 -- @string name Fiber name.
