@@ -1,5 +1,6 @@
 local fun = require('fun')
 local yaml = require('yaml')
+local digest = require('digest')
 
 local utils = {}
 
@@ -146,6 +147,12 @@ function utils.get_fn_location(fn)
     local fn_details = debug.getinfo(fn)
     local fn_source = fn_details.source:split('/')
     return ('%s:%s'):format(fn_source[#fn_source], fn_details.linedefined)
+end
+
+function utils.generate_id(length, urlsafe)
+    urlsafe = urlsafe or true
+    length = length or 9
+    return digest.base64_encode(digest.urandom(length), {urlsafe = urlsafe})
 end
 
 return utils

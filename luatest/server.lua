@@ -33,6 +33,7 @@ local Server = {
     constructor_checks = {
         command = '?string',
         workdir = '?string',
+        vardir  = '?string',
         datadir = '?string',
         chdir = '?string',
         env = '?table',
@@ -359,12 +360,17 @@ function Server:stop()
 end
 
 --- Stop the server and clean its working directory.
-function Server:drop()
+function Server:drop(opts)
+    opts = opts or {}
+
     self:stop()
 
+    local replica_set = opts.replica_set or ''
     local current_test = rawget(_G, 'current_test')
+    local prefix = fio.pathjoin(Server.vardir, 'artifacts', replica_set)
+
     if not current_test:is('success') then
-        local artifacts = fio.pathjoin(self.vardir, ('artifacts/%s-%s'):format(self.alias, self.id))
+        local artifacts = fio.pathjoin(prefix, ('%s-%s'):format(self.alias, self.id))
 
         local ok, err = fio.copytree(self.workdir, artifacts)
         if not ok then

@@ -4,9 +4,11 @@
 
 local checks = require('checks')
 local log = require('log')
+local fio = require('fio')
 
 local helpers = require('luatest.helpers')
 local Server = require('luatest.server')
+local utils = require('luatest.utils')
 
 local ReplicaSet = {}
 
@@ -56,6 +58,17 @@ end
 -- Initialize the replica set object.
 function ReplicaSet:initialize()
     self._server = Server
+
+    if self.alias == nil then
+        self.alias = ('rs-%s'):format(utils.generate_id())
+    end
+
+    if self.workdir == nil then
+        self.workdir = fio.pathjoin(Server.vardir, self.alias)
+        fio.rmtree(self.workdir)
+        fio.mktree(self.workdir)
+    end
+
     if self.servers then
         local configs = table.deepcopy(self.servers)
         self.servers = {}
@@ -74,6 +87,7 @@ end
 -- @see luatest.server:new
 function ReplicaSet:build_server(config)
     checks('table', self._server.constructor_checks)
+    config.vardir = self.workdir
     if config then config = table.deepcopy(config) end
     return self._server:new(config)
 end
@@ -172,8 +186,9 @@ end
 --- Stop all servers in the replica set and clean their working directories.
 function ReplicaSet:drop()
     for _, server in ipairs(self.servers) do
-        server:drop()
+        server:drop({replica_set=self.alias})
     end
+    fio.rmtree(self.workdir)
 end
 
 --- Get a server which is a writable node in the replica set.
