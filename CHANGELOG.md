@@ -14,7 +14,6 @@
   * Add waiting until the process of the stopped server is terminated.
   * Add new functions:
     - `Server.build_listen_uri()`
-    - `Server:clean()`
     - `Server:drop()`
     - `Server:wait_until_ready()`
     - `Server:get_instance_id()`

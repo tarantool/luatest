@@ -322,11 +322,10 @@ g.test_wait_when_server_is_not_running_by_bad_option = function()
     t.assert_equals(status, false)
     t.assert_str_contains(msg, expected_msg)
     t.assert_equals(s1.process:is_alive(), false)
-    s1:clean()
+
 
     status, msg = pcall(Server.start, s2)
     t.assert_equals(status, false)
     t.assert_str_contains(msg, expected_msg)
     t.assert_equals(s2.process:is_alive(), false)
-    s2:clean()
 end

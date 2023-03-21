@@ -358,18 +358,13 @@ function Server:stop()
     end
 end
 
---- Clean the server's working directory.
--- Should be invoked only for a stopped server.
-function Server:clean()
-    fio.rmtree(self.workdir)
-    self.instance_id = nil
-    self.instance_uuid = nil
-end
-
 --- Stop the server and clean its working directory.
 function Server:drop()
     self:stop()
-    self:clean()
+
+    fio.rmtree(self.workdir)
+    self.instance_id = nil
+    self.instance_uuid = nil
 end
 
 --- Wait until the server is ready after the start.
