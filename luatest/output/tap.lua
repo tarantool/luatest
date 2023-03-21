@@ -28,6 +28,7 @@ function Output.mt:update_status(node)
     end
     if (node:is('fail') or node:is('error')) and self.verbosity >= self.class.VERBOSITY.VERBOSE then
        print(prefix .. node.trace:gsub('\n', '\n' .. prefix))
+       print(prefix .. node.artifacts .. prefix)
     end
 end
 

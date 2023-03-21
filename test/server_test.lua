@@ -12,24 +12,26 @@ local root = fio.dirname(fio.dirname(fio.abspath(package.search('test.helper')))
 local datadir = fio.pathjoin(root, 'tmp', 'db_test')
 local command = fio.pathjoin(root, 'test', 'server_instance.lua')
 
-local server = Server:new({
-    command = command,
-    workdir = fio.pathjoin(datadir, 'common'),
-    env = {custom_env = 'test_value'},
-    http_port = 8182,
-    net_box_port = 3133,
-})
+
 
 g.before_all = function()
+    g.server = Server:new({
+        command = command,
+        workdir = fio.pathjoin(datadir, 'common'),
+        env = {custom_env = 'test_value'},
+        http_port = 8182,
+        net_box_port = 3133,
+    })
+
     fio.rmtree(datadir)
-    fio.mktree(server.workdir)
-    server:start()
+    fio.mktree(g.server.workdir)
+    g.server:start()
     -- wait until booted
-    t.helpers.retrying({timeout = 2}, function() server:http_request('get', '/ping') end)
+    t.helpers.retrying({timeout = 2}, function() g.server:http_request('get', '/ping') end)
 end
 
 g.after_all = function()
-    server:stop()
+    g.server:stop()
     fio.rmtree(datadir)
 end
 
@@ -87,7 +89,7 @@ g.test_restart = function()
 end
 
 g.test_http_request = function()
-    local response = server:http_request('get', '/test')
+    local response = g.server:http_request('get', '/test')
     local expected = {
         workdir = fio.pathjoin(datadir, 'common'),
         listen = '3133',
@@ -100,78 +102,79 @@ end
 
 g.test_http_request_post_body = function()
     local value = "{field = 'data'}"
-    local response = server:http_request('post', '/echo', {body = value})
+    local response = g.server:http_request('post', '/echo', {body = value})
     t.assert_equals(response.json.body, value)
     t.assert_equals(response.json.request_headers['content-type'], 'application/x-www-form-urlencoded')
 end
 
 g.test_http_request_post_json = function()
     local value = {field = 'data'}
-    local response = server:http_request('post', '/echo', {json = value})
+    local response = g.server:http_request('post', '/echo', {json = value})
     t.assert_equals(response.json.body, json.encode(value))
     t.assert_equals(response.json.request_headers['content-type'], 'application/json')
 end
 
 g.test_http_request_post_json_with_custom_headers = function()
     local value = {field = 'data'}
-    local response = server:http_request('post', '/echo', {json = value, http = {headers = {head_key = 'head_val'}}})
+    local response = g.server:http_request('post', '/echo', {json = value, http = {headers = {head_key = 'head_val'}}})
     t.assert_equals(response.json.body, json.encode(value))
     t.assert_equals(response.json.request_headers['content-type'], 'application/json')
     t.assert_equals(response.json.request_headers.head_key, 'head_val')
 
-    response = server:http_request('post', '/echo', {json = value, http = {headers = {['Content-Type'] = 'head_val'}}})
+    response = g.server:http_request(
+        'post', '/echo', {json = value, http = {headers = {['Content-Type'] = 'head_val'}}})
     t.assert_equals(response.json.body, json.encode(value))
     t.assert_equals(response.json.request_headers['content-type'], 'head_val')
 end
 
 g.test_http_request_post_created = function()
-    local response = server:http_request('post', '/test')
+    local response = g.server:http_request('post', '/test')
     t.assert_equals(response.status, 201)
 end
 
 g.test_http_request_failed = function()
-    local ok, err = pcall(function() server:http_request('get', '/invalid') end)
+    local ok, err = pcall(function() g.server:http_request('get', '/invalid') end)
     t.assert_equals(ok, false)
     t.assert_equals(err.type, 'HTTPRequest')
     t.assert_equals(err.response.status, 404)
 end
 
 g.test_http_request_supress_exception = function()
-    local response = server:http_request('post', '/invalid', {raise = false})
+    local response = g.server:http_request('post', '/invalid', {raise = false})
     t.assert_equals(response.status, 404)
 end
 
 g.test_net_box = function()
-    server:connect_net_box()
-    t.assert_equals(server:eval('return os.getenv("custom_env")'), 'test_value')
+    g.server:connect_net_box()
+    t.assert_equals(g.server:eval('return os.getenv("custom_env")'), 'test_value')
 
-    server.net_box:close()
-    t.assert_equals(server.net_box.state, 'closed')
-    server:connect_net_box()
-    t.assert_equals(server.net_box.state, 'active')
+    g.server.net_box:close()
+    t.assert_equals(g.server.net_box.state, 'closed')
+    g.server:connect_net_box()
+    t.assert_equals(g.server.net_box.state, 'active')
 
-    server:eval('function f(x,y) return {x, y} end;')
-    t.assert_equals(server:call('f', {1,'test'}), {1, 'test'})
+    g.server:eval('function f(x,y) return {x, y} end;')
+    t.assert_equals(g.server:call('f', {1,'test'}), {1, 'test'})
 
-    server.net_box:close()
-    t.assert_error_msg_equals('Connection closed', server.eval, server, '')
-    t.assert_error_msg_equals('Connection closed', server.call, server, '')
+    g.server.net_box:close()
+    t.assert_error_msg_equals('Connection closed', g.server.eval, g.server, '')
+    t.assert_error_msg_equals('Connection closed', g.server.call, g.server, '')
 
-    server.net_box = nil
-    t.assert_error_msg_equals('net_box is not connected', server.eval, server, '')
-    t.assert_error_msg_equals('net_box is not connected', server.call, server, '')
+    g.server.net_box = nil
+    t.assert_error_msg_equals('net_box is not connected', g.server.eval, g.server, '')
+    t.assert_error_msg_equals('net_box is not connected', g.server.call, g.server, '')
 end
 
 g.test_net_box_exec = function()
-    server:connect_net_box()
+    g.server:connect_net_box()
 
     t.assert_equals(
-        {server:exec(function() return 3, 5, 8 end)},
+        {g.server:exec(function() return 3, 5, 8 end)},
         {3, 5, 8}
     )
 
     t.assert_equals(
-        server:exec(function(a, b) return a + b end, {21, 34}),
+        g.server:exec(function(a, b) return a + b end, {21, 34}),
         55
     )
 
@@ -185,7 +188,7 @@ g.test_net_box_exec = function()
         return debug.getinfo(2, 'Sl').currentline
     end
 
-    local _l_exec, exec = l(), function(fn) server:exec(fn) end
+    local _l_exec, exec = l(), function(fn) g.server:exec(fn) end
 
     do
         local foo, bar = 200, 300
@@ -217,13 +220,13 @@ g.test_net_box_exec = function()
         )
     end
 
-    server.net_box:close()
+    g.server.net_box:close()
     t.assert_error_msg_equals(
         'Connection closed',
         exec, function() end
     )
 
-    server.net_box = nil
+    g.server.net_box = nil
     t.assert_error_msg_equals(
         efmt(_l_exec, 'net_box is not connected'),
         exec, function() end
@@ -294,11 +297,11 @@ g.test_max_unix_socket_path_exceeded = function()
 end
 
 g.test_server_start_with_coverage_enabled = function()
-    t.skip_if(server.coverage_report, 'Coverage is already enabled. Nothing to test')
-    server:restart({coverage_report = true})
-    t.helpers.retrying({}, function() server:connect_net_box() end)
+    t.skip_if(g.server.coverage_report, 'Coverage is already enabled. Nothing to test')
+    g.server:restart({coverage_report = true})
+    t.helpers.retrying({}, function() g.server:connect_net_box() end)
     t.assert_str_matches(
-        server:exec(function() return box.info.status end), 'running'
+        g.server:exec(function() return box.info.status end), 'running'
     )
 end
 
@@ -330,19 +333,28 @@ g.test_wait_when_server_is_not_running_by_bad_option = function()
 end
 
 g.test_save_server_artifacts_when_test_failed = function()
-    local s = Server:new()
-    s:start()
+    local s1 = Server:new() -- empty config
+    local s2 = Server:new({
+        workdir = ('%s/%s'):format(Server.vardir, os.tmpname())}) -- workdir passed
 
-    local artifacts = ('%s/artifacts/%s-%s'):format(s.vardir, s.alias, s.id)
+    s1:start()
+    s2:start()
+
+    local s1_artifacts = ('%s/artifacts/%s'):format(s1.vardir, s1.id)
+    local s2_artifacts = ('%s/artifacts/%s'):format(s2.vardir, s2.id)
     local test = rawget(_G, 'current_test')
 
     -- the test must be failed to save artifacts
     test.status = 'fail'
-    s:drop()
+    s1:drop()
+    s2:drop()
     test.status = 'success'
 
-    t.assert_equals(fio.path.exists(artifacts), true)
-    t.assert_equals(fio.path.is_dir(artifacts), true)
+    t.assert_equals(fio.path.exists(s1_artifacts), true)
+    t.assert_equals(fio.path.is_dir(s1_artifacts), true)
+
+    t.assert_equals(fio.path.exists(s2_artifacts), true)
+    t.assert_equals(fio.path.is_dir(s2_artifacts), true)
 end
 
 g.test_remove_server_artifacts_when_test_success = function()

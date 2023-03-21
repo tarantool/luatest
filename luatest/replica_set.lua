@@ -59,15 +59,9 @@ end
 function ReplicaSet:initialize()
     self._server = Server
 
-    if self.alias == nil then
-        self.alias = ('rs-%s'):format(utils.generate_id())
-    end
-
-    if self.workdir == nil then
-        self.workdir = fio.pathjoin(Server.vardir, self.alias)
-        fio.rmtree(self.workdir)
-        fio.mktree(self.workdir)
-    end
+    self.alias = 'rs'
+    self.id = ('%s-%s'):format(self.alias, utils.generate_id())
+    self.workdir = fio.pathjoin(self._server.vardir, self.id)
 
     if self.servers then
         local configs = table.deepcopy(self.servers)
@@ -86,10 +80,8 @@ end
 -- @return table
 -- @see luatest.server:new
 function ReplicaSet:build_server(config)
-    checks('table', self._server.constructor_checks)
-    config.vardir = self.workdir
     if config then config = table.deepcopy(config) end
-    return self._server:new(config)
+    return self._server:new(config, {rs_id = self.id})
 end
 
 --- Add the server object to the replica set.
@@ -186,7 +178,7 @@ end
 --- Stop all servers in the replica set and clean their working directories.
 function ReplicaSet:drop()
     for _, server in ipairs(self.servers) do
-        server:drop({replica_set=self.alias})
+        server:drop()
     end
     fio.rmtree(self.workdir)
 end

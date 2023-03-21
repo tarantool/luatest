@@ -16,6 +16,7 @@ end
 -- default constructor, test are PASS by default
 function TestInstance.mt:initialize()
     self.status = 'success'
+    self.artifacts = 'server artifacts:\n'
 end
 
 function TestInstance.mt:update_status(status, message, trace)
@@ -25,12 +26,8 @@ function TestInstance.mt:update_status(status, message, trace)
 end
 
 function TestInstance.mt:add_server_artifacts_directory(alias, workdir)
-    local formatted_str = string.format('\t%s -> %s\n', alias, workdir)
-    if self.logs ~= nil then
-        self.logs = self.logs .. formatted_str
-    else
-        self.logs = formatted_str
-    end
+    local prepared_str = string.format('#\t%s -> %s\n', alias, workdir)
+    self.artifacts = self.artifacts .. prepared_str
 end
 
 function TestInstance.mt:is(status)
