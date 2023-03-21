@@ -323,9 +323,32 @@ g.test_wait_when_server_is_not_running_by_bad_option = function()
     t.assert_str_contains(msg, expected_msg)
     t.assert_equals(s1.process:is_alive(), false)
 
-
     status, msg = pcall(Server.start, s2)
     t.assert_equals(status, false)
     t.assert_str_contains(msg, expected_msg)
     t.assert_equals(s2.process:is_alive(), false)
+end
+
+g.test_save_server_artifacts_when_test_failed = function()
+    local s = Server:new()
+    s:start()
+
+    local artifacts = ('%s/artifacts/%s-%s'):format(s.vardir, s.alias, s.id)
+    local test = rawget(_G, 'current_test')
+
+    -- the test must be failed to save artifacts
+    test.status = 'fail'
+    s:drop()
+    test.status = 'success'
+
+    t.assert_equals(fio.path.exists(artifacts), true)
+    t.assert_equals(fio.path.is_dir(artifacts), true)
+end
+
+g.test_remove_server_artifacts_when_test_success = function()
+    local s = Server:new()
+    s:start()
+    s:drop()
+
+    t.assert_equals(fio.path.exists(s.workdir), false)
 end

@@ -24,6 +24,15 @@ function TestInstance.mt:update_status(status, message, trace)
     self.trace = trace
 end
 
+function TestInstance.mt:add_server_artifacts_directory(alias, workdir)
+    local formatted_str = string.format('\t%s -> %s\n', alias, workdir)
+    if self.logs ~= nil then
+        self.logs = self.logs .. formatted_str
+    else
+        self.logs = formatted_str
+    end
+end
+
 function TestInstance.mt:is(status)
     return self.status == status
 end

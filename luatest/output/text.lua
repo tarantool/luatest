@@ -57,8 +57,11 @@ function Output.mt:end_test(node)
 end
 
 function Output.mt:display_one_failed_test(index, fail) -- luacheck: no unused
-    print(index..") " .. fail.name .. self.class.ERROR_COLOR_CODE)
-    print(fail.message .. self.class.RESET_TERM)
+    print(index..") " .. fail.name)
+    if fail.logs ~= nil then
+        print(self.class.WARN_COLOR_CODE .. "Test artifacts:\n" .. fail.logs .. self.class.ERROR_COLOR_CODE)
+    end
+    print(self.class.ERROR_COLOR_CODE .. fail.message .. self.class.RESET_TERM)
     print(fail.trace)
     print()
 end

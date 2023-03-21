@@ -362,6 +362,17 @@ end
 function Server:drop()
     self:stop()
 
+    local current_test = rawget(_G, 'current_test')
+    if not current_test:is('success') then
+        local artifacts = fio.pathjoin(self.vardir, ('artifacts/%s-%s'):format(self.alias, self.id))
+
+        local ok, err = fio.copytree(self.workdir, artifacts)
+        if not ok then
+            error(('Failed to copy directory: %s'):format(err))
+        end
+        current_test:add_server_artifacts_directory(self.alias, artifacts)
+    end
+
     fio.rmtree(self.workdir)
     self.instance_id = nil
     self.instance_uuid = nil

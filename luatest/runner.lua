@@ -423,6 +423,7 @@ function Runner.mt:run_tests(tests_list)
                 self:start_group(test.group)
                 last_group = test.group
             end
+            rawset(_G, 'current_test', test)
             self:run_test(test)
             if self.result.aborted then
                 break
