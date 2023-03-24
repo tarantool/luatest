@@ -276,6 +276,25 @@ function M.assert_ge(left, right, message)
     end
 end
 
+--- Check that value is one of alternatives.
+--
+-- @param actual
+-- @param expected
+-- @string[opt] message
+function M.assert_one_of(actual, expected, message)
+    local res = false
+    for _, v in ipairs(expected) do
+        if comparator.equals(actual, v) then
+            res = true
+            break
+        end
+    end
+    if not res then
+        local str_actual, str_expected = prettystr_pairs(actual, expected)
+        fail_fmt(2, message, 'Assertion failed: %s must be one of %s', str_actual, str_expected)
+    end
+end
+
 --- Check that two values are not equal.
 -- Tables are compared by value.
 --

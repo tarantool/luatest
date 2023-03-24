@@ -53,6 +53,7 @@
 - Group working directories of servers inside a replica set into one directory.
 - Fix collecting coverage if tarantool binary has a suffix.
 - Add `--no-clean` option to disable deletion of the var directory.
+- Add new assert function `assert_one_of`.
 
 ## 0.5.7
 
