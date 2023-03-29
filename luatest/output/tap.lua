@@ -24,10 +24,13 @@ function Output.mt:update_status(node)
     io.stdout:write("not ok ", node.serial_number, "\t", node.name, "\n")
     local prefix = '#   '
     if self.verbosity > self.class.VERBOSITY.QUIET then
-       print(prefix .. node.message:gsub('\n', '\n' .. prefix))
+        print(prefix .. node.message:gsub('\n', '\n' .. prefix))
     end
     if (node:is('fail') or node:is('error')) and self.verbosity >= self.class.VERBOSITY.VERBOSE then
-       print(prefix .. node.trace:gsub('\n', '\n' .. prefix))
+        print(prefix .. node.trace:gsub('\n', '\n' .. prefix))
+        if node.artifacts then
+            print(prefix .. node.artifacts:gsub('\n', '\n' .. prefix))
+        end
     end
 end
 

@@ -60,6 +60,9 @@ function Output.mt:display_one_failed_test(index, fail) -- luacheck: no unused
     print(index..") " .. fail.name .. self.class.ERROR_COLOR_CODE)
     print(fail.message .. self.class.RESET_TERM)
     print(fail.trace)
+    if fail.artifacts then
+        print(fail.artifacts)
+    end
     print()
 end
 

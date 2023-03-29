@@ -343,3 +343,36 @@ g.test_drop_server_if_process_is_dead = function()
 
     s:drop()
 end
+
+g.test_save_server_artifacts_when_test_failed = function()
+    local s1 = Server:new() -- empty config
+    local s2 = Server:new({
+        workdir = ('%s/%s'):format(Server.vardir, os.tmpname())}) -- workdir passed
+
+    s1:start()
+    s2:start()
+
+    local s1_artifacts = ('%s/artifacts/%s'):format(s1.vardir, s1.id)
+    local s2_artifacts = ('%s/artifacts/%s'):format(s2.vardir, s2.id)
+    local test = rawget(_G, 'current_test')
+
+    -- the test must be failed to save artifacts
+    test.status = 'fail'
+    s1:drop()
+    s2:drop()
+    test.status = 'success'
+
+    t.assert_equals(fio.path.exists(s1_artifacts), true)
+    t.assert_equals(fio.path.is_dir(s1_artifacts), true)
+
+    t.assert_equals(fio.path.exists(s2_artifacts), true)
+    t.assert_equals(fio.path.is_dir(s2_artifacts), true)
+end
+
+g.test_remove_server_artifacts_when_test_success = function()
+    local s = Server:new()
+    s:start()
+    s:drop()
+
+    t.assert_equals(fio.path.exists(s.workdir), false)
+end

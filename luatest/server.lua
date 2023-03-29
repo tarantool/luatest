@@ -4,7 +4,6 @@
 
 local checks = require('checks')
 local clock = require('clock')
-local digest = require('digest')
 local errno = require('errno')
 local fiber = require('fiber')
 local fio = require('fio')
@@ -92,10 +91,13 @@ end
 --   `net.box` connection to the new server.
 -- @tab[opt] object.box_cfg Extra options for `box.cfg()` and the value of the
 --   `TARANTOOL_BOX_CFG` env variable which is passed into the server process.
+-- @tab[opt] extra Table with extra properties for the server object.
 -- @return table
-function Server:new(object)
-    checks('table', self.constructor_checks)
+function Server:new(object, extra)
+    checks('table', self.constructor_checks, '?table')
     if not object then object = {} end
+    if not extra then extra = {} end
+    object = utils.merge(object, extra)
     self:inherit(object)
     object:initialize()
     return object
@@ -103,12 +105,12 @@ end
 
 -- Initialize the server object.
 function Server:initialize()
-    if self.id == nil then
-        self.id = digest.base64_encode(digest.urandom(9), {urlsafe = true})
-    end
-
     if self.alias == nil then
         self.alias = DEFAULT_ALIAS
+    end
+
+    if self.id == nil then
+        self.id = ('%s-%s'):format(self.alias, utils.generate_id())
     end
 
     if self.command == nil then
@@ -116,10 +118,10 @@ function Server:initialize()
     end
 
     if self.workdir == nil then
-        self.workdir = fio.pathjoin(self.vardir, ('%s-%s'):format(self.alias, self.id))
+        self.workdir = fio.pathjoin(self.vardir, self.id)
         fio.rmtree(self.workdir)
-        fio.mktree(self.workdir)
     end
+    fio.mktree(self.workdir)
 
     if self.datadir ~= nil then
         local ok, err = fio.copytree(self.datadir, self.workdir)
@@ -182,6 +184,15 @@ function Server:initialize()
         -- values set with os.setenv are not available with os.environ
         -- so set it explicitly:
         self.env.LUATEST_LUACOV_ROOT = os.getenv('LUATEST_LUACOV_ROOT')
+    end
+
+    if self.current_test == nil then
+        self.current_test = rawget(_G, 'current_test')
+        if self.current_test then
+            local prefix = fio.pathjoin(Server.vardir, 'artifacts', self.rs_id or '')
+            self.artifacts = fio.pathjoin(prefix, self.id)
+            self.current_test:add_server_artifacts(self.alias, self.artifacts)
+        end
     end
 end
 
@@ -361,6 +372,13 @@ end
 --- Stop the server and clean its working directory.
 function Server:drop()
     self:stop()
+
+    if self.current_test and not self.current_test:is('success') then
+        local ok, err = fio.copytree(self.workdir, self.artifacts)
+        if not ok then
+            error(('Failed to copy server artifacts: %s'):format(err))
+        end
+    end
 
     fio.rmtree(self.workdir)
 
