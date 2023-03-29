@@ -49,6 +49,8 @@
 - Raise an error in the `Server:wait_for_condition()` function when
   the server process is terminated. This is useful to not wait for timeout, for example,
   when a server fails to start due to bad configuration.
+- Save server artifacts (logs, snapshots, etc.) if the test fails.
+- Group working directories of servers inside a replica set into one directory.
 
 ## 0.5.7
 

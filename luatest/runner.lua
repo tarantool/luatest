@@ -416,6 +416,7 @@ function Runner.mt:run_tests(tests_list)
     for _ = 1, self.exe_repeat_group or 1 do
         local last_group
         for _, test in ipairs(tests_list) do
+            rawset(_G, 'current_test', test)
             if last_group ~= test.group then
                 if last_group then
                     self:end_group(last_group)

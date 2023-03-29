@@ -23,13 +23,15 @@ function Output.node_status_xml(node)
     if node:is('error') then
         return table.concat(
             {'            <error type="', Output.xml_escape(node.message), '">\n',
-             '                <![CDATA[', Output.xml_c_data_escape(node.trace),
-             ']]></error>\n'})
+             '                <![CDATA[', Output.xml_c_data_escape(node.trace), ']]>\n',
+             '                <artifacts>', Output.xml_escape(node.artifacts or ''), '</artifacts>\n',
+             '            </error>\n'})
     elseif node:is('fail') then
         return table.concat(
             {'            <failure type="', Output.xml_escape(node.message), '">\n',
-             '                <![CDATA[', Output.xml_c_data_escape(node.trace),
-             ']]></failure>\n'})
+             '                <![CDATA[', Output.xml_c_data_escape(node.trace), ']]>\n',
+             '                <artifacts>', Output.xml_escape(node.artifacts or ''), '</artifacts>\n',
+             '            </failure>\n'})
     elseif node:is('skip') then
         return table.concat({'            <skipped>', Output.xml_escape(node.message or ''),'</skipped>\n'})
     end
