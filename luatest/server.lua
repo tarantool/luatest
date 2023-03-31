@@ -345,7 +345,7 @@ function Server:stop()
         self.net_box = nil
     end
 
-    if self.process then
+    if self.process and self.process:is_alive() then
         self.process:kill()
         local ok, err = pcall(wait_for_condition, 'process is terminated', self, function()
             return not self.process:is_alive()

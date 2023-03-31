@@ -330,3 +330,16 @@ g.test_wait_when_server_is_not_running_by_bad_option = function()
     t.assert_equals(s2.process:is_alive(), false)
     s2:clean()
 end
+
+g.test_drop_server_if_process_is_dead = function()
+    local s = Server:new({
+        box_cfg = {
+            bad_option = 'bad'
+        }
+    })
+    local status, _ = pcall(Server.start, s)
+    t.assert_equals(status, false)
+    t.assert_equals(s.process:is_alive(), false)
+
+    s:drop()
+end
