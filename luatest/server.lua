@@ -136,8 +136,7 @@ function Server:initialize()
     end
 
     if self.net_box_uri == nil and self.net_box_port == nil then
-        self.net_box_uri = self.build_listen_uri(self.alias)
-        fio.mktree(self.vardir)
+        self.net_box_uri = self.build_listen_uri(self.alias, self.rs_id or self.id)
     end
     if self.net_box_uri == nil and self.net_box_port then
         self.net_box_uri = 'localhost:' .. self.net_box_port
@@ -151,6 +150,7 @@ function Server:initialize()
             error(('Net box URI must be <= max Unix domain socket path length (%d chars)')
                 :format(max_unix_socket_path[system]))
         end
+        fio.mktree(fio.dirname(self.net_box_uri))
     end
 
     self.env = utils.merge(self.env or {}, self:build_env())
@@ -220,13 +220,16 @@ function Server:build_env()
     return res
 end
 
---- Build a listen URI based on the given server alias.
+--- Build a listen URI based on the given server alias and extra path.
+-- The resulting URI: `<Server.vardir>/[<extra_path>/]<server_alias>.sock`.
+-- Provide a unique alias or extra path to avoid collisions with other sockets.
 -- For now, only UNIX sockets are supported.
 --
 -- @string server_alias Server alias.
+-- @string[opt] extra_path Extra path relative to the `Server.vardir` directory.
 -- @return string
-function Server.build_listen_uri(server_alias)
-    return fio.pathjoin(Server.vardir, server_alias .. '.sock')
+function Server.build_listen_uri(server_alias, extra_path)
+    return fio.pathjoin(Server.vardir, extra_path or '', server_alias .. '.sock')
 end
 
 --- Start a server.
