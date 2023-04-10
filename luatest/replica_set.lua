@@ -62,6 +62,7 @@ function ReplicaSet:initialize()
     self.alias = 'rs'
     self.id = ('%s-%s'):format(self.alias, utils.generate_id())
     self.workdir = fio.pathjoin(self._server.vardir, self.id)
+    fio.mktree(self.workdir)
 
     if self.servers then
         local configs = table.deepcopy(self.servers)
@@ -82,14 +83,19 @@ end
 function ReplicaSet:build_server(config)
     checks('table', self._server.constructor_checks)
     if config then config = table.deepcopy(config) end
-    return self._server:new(config, {rs_id = self.id})
+    return self._server:new(config, {rs_id = self.id, vardir = self.workdir})
 end
 
 --- Add the server object to the replica set.
+-- The added server object should be built via the `ReplicaSet:build_server`
+-- function.
 --
 -- @tab server Server object to be added to the replica set.
 function ReplicaSet:add_server(server)
     checks('table', 'table')
+    if not server.rs_id then
+        error('Server should be built via `ReplicaSet:build_server` function')
+    end
     if self:get_server(server.alias) then
         error(('Server with alias "%s" already exists in replica set')
             :format(server.alias))

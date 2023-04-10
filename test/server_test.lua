@@ -151,7 +151,7 @@ g.test_net_box = function()
     t.assert_equals(server.net_box.state, 'active')
 
     server:eval('function f(x,y) return {x, y} end;')
-    t.assert_equals(server:call('f', {1,'test'}), {1, 'test'})
+    t.assert_equals(server:call('f', {1, 'test'}), {1, 'test'})
 
     server.net_box:close()
     t.assert_error_msg_equals('Connection closed', server.eval, server, '')
@@ -346,8 +346,9 @@ end
 
 g.test_save_server_artifacts_when_test_failed = function()
     local s1 = Server:new() -- empty config
-    local s2 = Server:new({
-        workdir = ('%s/%s'):format(Server.vardir, os.tmpname())}) -- workdir passed
+    local s2 = Server:new(
+        {workdir = ('%s/%s'):format(Server.vardir, os.tmpname())}
+    ) -- workdir passed
 
     s1:start()
     s2:start()
@@ -376,3 +377,55 @@ g.test_remove_server_artifacts_when_test_success = function()
 
     t.assert_equals(fio.path.exists(s.workdir), false)
 end
+
+g.test_server_build_listen_uri = function()
+    local uri = Server.build_listen_uri('foo')
+    t.assert_equals(uri, ('%s/foo.sock'):format(Server.vardir))
+
+    local uri_extra = Server.build_listen_uri('foo', 'bar')
+    t.assert_equals(uri_extra, ('%s/bar/foo.sock'):format(Server.vardir))
+end
+
+g.before_test('test_no_socket_collision_with_default_alias', function()
+    g.s1 = Server:new()
+    g.s2 = Server:new()
+
+    g.s1:start()
+    g.s2:start()
+end)
+
+g.test_no_socket_collision_with_default_alias = function()
+    g.s1:exec(function() rawset(_G, 'foo', 'foo-value') end)
+    local foo = g.s2:exec(function() rawget(_G, 'foo') end)
+
+    t.assert_equals(foo, nil)
+    t.assert_not_equals(g.s1.net_box_uri, g.s2.net_box_uri)
+end
+
+g.after_test('test_no_socket_collision_with_default_alias', function()
+    g.s1:drop()
+    g.s2:drop()
+end)
+
+g.test_no_socket_collision_with_duplicate_alias = function()
+    g.s1 = Server:new({alias = 'foo'})
+    g.s2 = Server:new({alias = 'foo'})
+
+    t.assert_not_equals(g.s1.net_box_uri, g.s2.net_box_uri)
+end
+
+g.after_test('test_no_socket_collision_with_duplicate_alias', function()
+    g.s1:drop()
+    g.s2:drop()
+end)
+
+g.test_netbox_uri_is_not_overridden = function()
+    local socket = ('%s/my-custom.sock'):format(Server.vardir)
+    g.s1 = Server:new({net_box_uri = socket})
+
+    t.assert_equals(g.s1.net_box_uri, socket)
+end
+
+g.after_test('test_netbox_uri_is_not_overridden', function()
+    g.s1:drop()
+end)

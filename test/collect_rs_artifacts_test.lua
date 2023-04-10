@@ -7,6 +7,7 @@ local g = t.group()
 local Server = t.Server
 
 local function build_specific_replica_set(alias_suffix)
+    local rs = ReplicaSet:new()
     local box_cfg = {
         replication_timeout = 0.1,
         replication_connect_timeout = 1,
@@ -22,11 +23,10 @@ local function build_specific_replica_set(alias_suffix)
         table.deepcopy(box_cfg),
         {
             replication ={
-            Server.build_listen_uri(s1_alias),
-            Server.build_listen_uri(s2_alias),
-            Server.build_listen_uri(s3_alias)
+            Server.build_listen_uri(s1_alias, rs.id),
+            Server.build_listen_uri(s2_alias, rs.id),
+            Server.build_listen_uri(s3_alias, rs.id)
     }})
-    local rs = ReplicaSet:new()
 
     rs:build_and_add_server({alias = s1_alias, box_cfg = box_cfg})
     rs:build_and_add_server({alias = s2_alias, box_cfg = box_cfg})
