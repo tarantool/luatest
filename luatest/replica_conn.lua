@@ -37,7 +37,7 @@ function Connection:initialize()
         self.process_client = {
             pre = nil,
             func = self.forward_to_server,
-            post = self.close_client_socket,
+            post = self.stop,
         }
     end
 
@@ -45,7 +45,7 @@ function Connection:initialize()
         self.process_server = {
             pre = nil,
             func = self.forward_to_client,
-            post = self.close_server_socket,
+            post = self.stop,
         }
     end
 
@@ -71,7 +71,7 @@ function Connection:process_socket(sock, process)
     local f = fiber.new(function()
         if process.pre ~= nil then process.pre(self) end
 
-        while sock:peer() do
+        while sock:peer() or not self.running do
             if not self.running then
                 fiber.sleep(TIMEOUT)
             elseif sock:readable(TIMEOUT) then
