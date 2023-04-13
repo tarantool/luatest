@@ -522,7 +522,8 @@ end
 
 local function exec_tail(ok, ...)
     if not ok then
-        error(..., 0)
+        local _ok, res = pcall(json.decode, tostring(...))
+        error(_ok and res or ..., 0)
     else
         return ...
     end
@@ -604,7 +605,14 @@ function Server:exec(fn, args, options)
             :format(utils.get_fn_location(fn)))
     end
 
-    return exec_tail(self.net_box:eval([[
+    -- The function `fn` can return multiple values and we cannot use the
+    -- classical approach to work with the `pcall`:
+    --
+    --    local status, result = pcall(function() return 1, 2, 3 end)
+    --
+    -- `result` variable will contain only `1` value, not `1, 2, 3`.
+    -- To solve this, we put everything from `pcall` in a table.
+    return exec_tail(pcall(self.net_box.eval, self.net_box, [[
         local dump, args, passthrough_ups = ...
         local fn = loadstring(dump)
         for i = 1, debug.getinfo(fn, 'u').nups do
@@ -613,11 +621,19 @@ function Server:exec(fn, args, options)
                 debug.setupvalue(fn, i, require(passthrough_ups[name]))
             end
         end
+        local result
         if args == nil then
-            return pcall(fn)
+            result = {pcall(fn)}
         else
-            return pcall(fn, unpack(args))
+            result = {pcall(fn, unpack(args))}
         end
+        if not result[1] then
+            if type(result[2]) == 'table' then
+                result[2] = require('json').encode(result[2])
+            end
+            error(result[2], 0)
+        end
+        return unpack(result, 2)
     ]], {string.dump(fn), args, passthrough_ups}, options))
 end
 

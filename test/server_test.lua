@@ -429,3 +429,50 @@ end
 g.after_test('test_netbox_uri_is_not_overridden', function()
     g.s1:drop()
 end)
+
+g.before_test('test_error_level_is_correct', function()
+    g.s = Server:new()
+    g.s:start()
+end)
+
+g.test_error_level_is_correct = function()
+    local c = require('net.box').connect(g.s.net_box_uri)
+
+    t.assert_error_msg_contains( -- error in exec
+        "My error", g.s.exec, g.s,
+        function() error("My error") end)
+
+    t.assert_error_msg_contains( -- error in eval
+        "eval", g.s.eval, g.s,
+        [[error("My error")]])
+
+    t.assert_error_msg_contains( -- error in closures
+        "My error", g.s.exec, g.s,
+        function()
+            local function internal() error("My error") end
+            internal()
+        end)
+
+    t.assert_error_msg_contains( -- error in tx netbox connection
+        "My error", c.eval, c,
+        [[box.begin() error("My error")]])
+
+    t.assert_error_msg_contains( -- error in tx eval
+        "My error", g.s.eval, g.s,
+        [[box.begin() error("My error")]])
+
+    t.assert_error_msg_contains( -- error in tx exec
+        "My error", g.s.exec, g.s,
+        function() box.begin() error("My error") end)
+
+    t.assert_error_msg_contains( -- error in tx closures
+        "My error", g.s.exec, g.s,
+        function()
+            local function internal() box.begin() error("My error") end
+            internal()
+        end)
+end
+
+g.after_test('test_error_level_is_correct', function()
+    g.s:drop()
+end)
