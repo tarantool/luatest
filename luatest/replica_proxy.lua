@@ -7,6 +7,7 @@ local fiber = require('fiber')
 local log = require('log')
 local socket = require('socket')
 
+local utils = require('luatest.utils')
 local Connection = require('luatest.replica_conn')
 
 local TIMEOUT = 0.001
@@ -27,6 +28,15 @@ function Proxy:inherit(object)
     return object
 end
 
+local function check_tarantool_version()
+    local version = utils.get_tarantool_version()
+    if utils.version_ge(version, utils.version(2, 10, 1)) then
+        return
+    else
+        error('Proxy requires Tarantool 2.10.1 and newer')
+    end
+end
+
 --- Build a proxy object.
 --
 -- @param object
@@ -37,6 +47,7 @@ end
 -- @return Input object.
 function Proxy:new(object)
     checks('table', self.constructor_checks)
+    check_tarantool_version()
     self:inherit(object)
     object:initialize()
     return object

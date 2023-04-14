@@ -155,4 +155,31 @@ function utils.generate_id(length, urlsafe)
     return digest.base64_encode(digest.urandom(length), {urlsafe = urlsafe})
 end
 
+function utils.version(major, minor, patch)
+    return {
+        major = major or 0,
+        minor = minor or 0,
+        patch = patch or 0,
+    }
+end
+
+function utils.get_tarantool_version()
+    local version = require('tarantool').version
+    version = version:split('.')
+    local major = tonumber(version[1]:match('%d+'))
+    local minor = tonumber(version[2]:match('%d+'))
+    local patch = tonumber(version[3]:match('%d+'))
+    return utils.version(major, minor, patch)
+end
+
+function utils.version_ge(version1, version2)
+    if version1.major ~= version2.major then
+        return version1.major > version2.major
+    elseif version1.minor ~= version2.minor then
+        return version1.minor > version2.minor
+    else
+        return version1.patch >= version2.patch
+    end
+end
+
 return utils
