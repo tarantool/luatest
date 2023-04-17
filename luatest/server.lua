@@ -858,12 +858,13 @@ function Server:wait_for_vclock(vclock)
     end
 end
 
---- Wait until all own data is replicated and confirmed by the given server.
+--- Wait for the given server to reach at least the same vclock as the local
+-- server. Not including the local component, of course.
 --
 -- @tab server Server's object.
 function Server:wait_for_downstream_to(server)
     local id = server:get_instance_id()
-    local vclock = server:get_vclock()
+    local vclock = self:get_vclock()
     vclock[0] = nil  -- first component is for local changes
     while true do
         if vclock_ge(self:get_downstream_vclock(id), vclock) then
