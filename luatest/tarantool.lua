@@ -9,6 +9,18 @@ local assertions = require('luatest.assertions')
 
 local M = {}
 
+--- Return major, minor and patch Tarantool versions.
+function M.version()
+    local major_minor_patch = _G._TARANTOOL:split('-', 1)[1]
+    local major_minor_patch_parts = major_minor_patch:split('.', 2)
+
+    local major = tonumber(major_minor_patch_parts[1])
+    local minor = tonumber(major_minor_patch_parts[2])
+    local patch = tonumber(major_minor_patch_parts[3])
+
+    return major, minor, patch
+end
+
 --- Return true if Tarantool build type is Debug.
 function M.is_debug_build()
     return tarantool.build.target:endswith('-Debug')

@@ -1,4 +1,4 @@
-#!/usr/bin/env tarantool
+#!/usr/bin/env -S tarantool --script
 
 print(('Tarantool version is %s'):format(require('tarantool').version))
 

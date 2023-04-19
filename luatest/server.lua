@@ -18,6 +18,7 @@ local _, luacov_runner = pcall(require, 'luacov.runner') -- luacov may not be in
 local assertions = require('luatest.assertions')
 local HTTPResponse = require('luatest.http_response')
 local Process = require('luatest.process')
+local tarantool = require('luatest.tarantool')
 local utils = require('luatest.utils')
 
 local DEFAULT_VARDIR = '/tmp/t'
@@ -153,6 +154,8 @@ function Server:initialize()
         fio.mktree(fio.dirname(self.net_box_uri))
     end
 
+    local major_version, _, _ = tarantool.version()
+
     self.env = utils.merge(self.env or {}, self:build_env())
     self.args = self.args or {}
 
@@ -162,11 +165,15 @@ function Server:initialize()
         self.coverage_report = true
     end
     if self.coverage_report then
-        -- If command is executable lua script, run it with `tarantool -l luatest.coverage script.lua`
+        -- If command is executable lua script,
+        -- run it with `tarantool -l luatest.coverage --script script.lua`
         if self.command:endswith('.lua') then
             table.insert(self.args, 1, '-l')
             table.insert(self.args, 2, 'luatest.coverage')
-            table.insert(self.args, 3, self.command)
+            if major_version >= 3 then
+                table.insert(self.args, 3, '--script')
+                table.insert(self.args, 4, self.command)
+            end
             self.command = arg[-1]
         -- If command is tarantool, add `-l luatest.coverage`
         elseif self.command:endswith('/tarantool') then
@@ -242,6 +249,8 @@ end
 function Server:start(opts)
     checks('table', {wait_until_ready = '?boolean'})
 
+    local major_version, _, _ = tarantool.version()
+
     self:initialize()
 
     local command = self.command
@@ -252,9 +261,14 @@ function Server:start(opts)
         -- When luatest is installed as a rock, the internal server_instance.lua
         -- script won't have execution permissions even though it has them in the
         -- source tree, and won't be able to be run while a server start. To bypass
-        -- this issue, we start a server process as `tarantool /path/to/script.lua`
+        -- this issue, we start a server process as `tarantool --script /path/to/script.lua`
         -- instead of just `/path/to/script.lua`.
-        table.insert(args, 1, command)
+        if major_version >= 3 then
+            table.insert(args, 1, '--script')
+            table.insert(args, 2, command)
+        else
+            table.insert(args, 1, command)
+        end
         command = arg[-1]
     end
 

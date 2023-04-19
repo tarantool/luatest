@@ -51,6 +51,7 @@
   when a server fails to start due to bad configuration.
 - Save server artifacts (logs, snapshots, etc.) if the test fails.
 - Group working directories of servers inside a replica set into one directory.
+- Support --script option introduced in Tarantool 3.0.
 
 ## 0.5.7
 
