@@ -4,7 +4,7 @@ local g = t.group()
 local Capture = require('luatest.capture')
 local capture = Capture:new()
 
-local helper = require('test.helper')
+local helper = require('test.helpers.general')
 
 g.setup = function() capture:enable() end
 g.teardown = function()

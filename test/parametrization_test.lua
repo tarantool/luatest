@@ -1,7 +1,7 @@
 local t = require('luatest')
 local g = t.group()
 
-local helper = require('test.helper')
+local helper = require('test.helpers.general')
 
 g.test_validation = function()
     t.assert_error_msg_contains(

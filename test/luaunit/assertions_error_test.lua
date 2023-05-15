@@ -1,7 +1,7 @@
 local t = require('luatest')
 local g = t.group()
 
-local helper = require('test.helper')
+local helper = require('test.helpers.general')
 local assert_failure = helper.assert_failure
 local assert_failure_equals = helper.assert_failure_equals
 

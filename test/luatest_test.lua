@@ -1,7 +1,7 @@
 local t = require('luatest')
 local g = t.group()
 
-local helper = require('test.helper')
+local helper = require('test.helpers.general')
 
 g.test_assert_returns_velue = function()
     t.assert_equals(t.assert(1), 1)

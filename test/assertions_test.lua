@@ -1,7 +1,7 @@
 local t = require('luatest')
 local g = t.group()
 
-local helper = require('test.helper')
+local helper = require('test.helpers.general')
 
 g.test_custom_errors = function()
     local function assert_no_exception(fn)

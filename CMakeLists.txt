@@ -60,7 +60,7 @@ add_custom_target(doc
 )
 
 add_custom_target(lint DEPENDS bootstrap COMMAND .rocks/bin/luacheck .)
-add_custom_target(selftest DEPENDS bootstrap COMMAND bin/luatest)
+add_custom_target(selftest DEPENDS bootstrap COMMAND bin/luatest --shuffle group)
 
 add_custom_target(test_with_coverage_report
   DEPENDS bootstrap

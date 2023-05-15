@@ -33,4 +33,4 @@ jobs:
         run: make lint
 
       - name: Run tests
-        run: bin/luatest -v
+        run: bin/luatest -v --shuffle group

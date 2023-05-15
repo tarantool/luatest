@@ -8,7 +8,7 @@ local utils = require('luatest.utils')
 local Process = t.Process
 local Server = t.Server
 
-local root = fio.dirname(fio.dirname(fio.abspath(package.search('test.helper'))))
+local root = fio.dirname(fio.abspath('test.helpers'))
 local datadir = fio.pathjoin(root, 'tmp', 'db_test')
 local command = fio.pathjoin(root, 'test', 'server_instance.lua')
 
