@@ -2,8 +2,6 @@ local t = require('luatest')
 local Runner = require('luatest.runner')
 local utils = require('luatest.utils')
 
-t.configure({shuffle = 'group'})
-
 local helper = {}
 
 function helper.run_suite(load_tests, args)

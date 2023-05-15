@@ -5,7 +5,7 @@ local fio = require('fio')
 local uuid = require('uuid')
 
 local Capture = require('luatest.capture')
-local helper = require('test.helper')
+local helper = require('test.helpers.general')
 
 g.test_run_pass = function()
     local result = helper.run_suite(function(lu2)

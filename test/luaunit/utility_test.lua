@@ -5,7 +5,7 @@ local fun = require('fun')
 local Runner = require('luatest.runner')
 local utils = require('luatest.utils')
 
-local helper = require('test.helper')
+local helper = require('test.helpers.general')
 local assert_failure_matches = helper.assert_failure_matches
 
 local function range(start, stop)

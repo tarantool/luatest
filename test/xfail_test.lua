@@ -1,7 +1,7 @@
 local t = require('luatest')
 local g = t.group()
 
-local helper = require('test.helper')
+local helper = require('test.helpers.general')
 
 g.test_failed = function()
     local result = helper.run_suite(function(lu2)

@@ -2,7 +2,7 @@ local t = require('luatest')
 local g = t.group()
 
 local Capture = require('luatest.capture')
-local helper = require('test.helper')
+local helper = require('test.helpers.general')
 
 g.test_hooks = function()
     local hooks = {}
