@@ -367,6 +367,17 @@ function Server:stop()
         if not ok and not err:find('Process is terminated when waiting for') then
             error(err)
         end
+        if self.process.output_beautifier.stderr:find('Segmentation fault') then
+            error(
+                ('Segmentation fault during process termination (alias: %s, workdir: %s, pid: %d)\n%s')
+                :format(
+                    self.alias,
+                    fio.basename(self.workdir),
+                    self.process.pid,
+                    self.process.output_beautifier.stderr
+                )
+            )
+        end
         log.debug('Killed server process PID ' .. self.process.pid)
         self.process = nil
     end

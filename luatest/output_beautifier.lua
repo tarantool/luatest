@@ -70,6 +70,7 @@ function OutputBeautifier.mt:initialize()
         self.class.COLOR_BY_NAME[self.color] or
         OutputBeautifier:next_color_code()
     self.pipes = {stdout = ffi_io.create_pipe(), stderr = ffi_io.create_pipe()}
+    self.stderr = ''
 end
 
 -- Replace standard output descriptors with pipes.
@@ -86,7 +87,7 @@ function OutputBeautifier.mt:enable(options)
     end
     self.fibers = {}
     for i, pipe in pairs(self.pipes) do
-        self.fibers[i] = fiber.new(self.run, self, pipe[0])
+        self.fibers[i] = fiber.new(self.run, self, pipe[0], i)
     end
     self.fibers.pid_tracker = options and options.track_pid and fiber.new(function()
         Process = Process or require('luatest.process')
@@ -138,12 +139,16 @@ end
 --
 -- Every line with log level mark (` X> `) changes the color for all the following
 -- lines until the next one with the mark.
-function OutputBeautifier.mt:run(fd)
+function OutputBeautifier.mt:run(fd, pipe)
     local prefix = self.color_code .. self.prefix .. ' | '
     local line_color_code = self.class.RESET_TERM
     while fiber.testcancel() or true do
         self:process_fd_output(fd, function(chunks)
-            local lines = table.concat(chunks):split('\n')
+            local raw_lines = table.concat(chunks)
+            if pipe == 'stderr' then
+                self.stderr = self.stderr .. raw_lines
+            end
+            local lines = raw_lines:split('\n')
             if lines[#lines] == '' then
                 table.remove(lines)
             end
