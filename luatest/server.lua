@@ -4,7 +4,6 @@
 
 local checks = require('checks')
 local clock = require('clock')
-local errno = require('errno')
 local fiber = require('fiber')
 local fio = require('fio')
 local fun = require('fun')
@@ -670,71 +669,8 @@ end
 -- @return string|nil
 function Server:grep_log(pattern, bytes_num, opts)
     local options = opts or {}
-    local reset = options.reset or true
-    local filename = options.filename or self:exec(function() return box.cfg.log end)
-    local file = fio.open(filename, {'O_RDONLY', 'O_NONBLOCK'})
-
-    local function fail(msg)
-        local err = errno.strerror()
-        if file ~= nil then
-            file:close()
-        end
-        error(string.format('%s: %s: %s', msg, filename, err))
-    end
-
-    if file == nil then
-        fail('Failed to open log file')
-    end
-
-    io.flush() -- attempt to flush stdout == log fd
-
-    local filesize = file:seek(0, 'SEEK_END')
-    if filesize == nil then
-        fail('Failed to get log file size')
-    end
-
-    local bytes = bytes_num or 65536 -- don't read the whole log -- it can be huge
-    bytes = bytes > filesize and filesize or bytes
-    if file:seek(-bytes, 'SEEK_END') == nil then
-        fail('Failed to seek log file')
-    end
-
-    local found, buf
-    repeat -- read file in chunks
-        local s = file:read(2048)
-        if s == nil then
-            fail('Failed to read log file')
-        end
-        local pos = 1
-        repeat -- split read string in lines
-            local endpos = string.find(s, '\n', pos)
-            endpos = endpos and endpos - 1 -- strip terminating \n
-            local line = string.sub(s, pos, endpos)
-            if endpos == nil and s ~= '' then
-                -- Line doesn't end with \n or EOF, append it to buffer
-                -- to be checked on next iteration.
-                buf = buf or {}
-                table.insert(buf, line)
-            else
-                if buf ~= nil then
-                    -- Prepend line with buffered data.
-                    table.insert(buf, line)
-                    line = table.concat(buf)
-                    buf = nil
-                end
-                if string.match(line, '> Tarantool %d+.%d+.%d+-.*%d+-g.*$') and reset then
-                    found = nil -- server was restarted, reset the result
-                else
-                    found = string.match(line, pattern) or found
-                end
-            end
-            pos = endpos and endpos + 2 -- jump to char after \n
-        until pos == nil
-    until s == ''
-
-    file:close()
-
-    return found
+    options.filename = options.filename or self:exec(function() return box.cfg.log end)
+    return utils.grep_log(pattern, bytes_num, options)
 end
 
 --

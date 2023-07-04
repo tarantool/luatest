@@ -52,6 +52,7 @@
 - Save server artifacts (logs, snapshots, etc.) if the test fails.
 - Group working directories of servers inside a replica set into one directory.
 - Fix collecting coverage if tarantool binary has a suffix.
+- Put `grep_log()` function to utils and expose it as a part of API.
 
 ## 0.5.7
 
