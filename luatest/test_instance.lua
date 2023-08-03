@@ -16,21 +16,13 @@ end
 -- default constructor, test are PASS by default
 function TestInstance.mt:initialize()
     self.status = 'success'
-    self.artifacts = nil
+    self.servers = {}
 end
 
 function TestInstance.mt:update_status(status, message, trace)
     self.status = status
     self.message = message
     self.trace = trace
-end
-
-function TestInstance.mt:add_server_artifacts(alias, workdir)
-    local server_workdir = string.format('\n\t%s -> %s', alias, workdir)
-    if not self.artifacts then
-        self.artifacts = 'artifacts:'
-    end
-    self.artifacts = self.artifacts .. server_workdir
 end
 
 function TestInstance.mt:is(status)

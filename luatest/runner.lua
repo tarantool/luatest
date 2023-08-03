@@ -413,17 +413,19 @@ end
 function Runner.mt:run_tests(tests_list)
     -- Make seed for ordering not affect other random numbers.
     math.randomseed(os.time())
+    rawset(_G, 'current_test', {value = nil})
     for _ = 1, self.exe_repeat_group or 1 do
         local last_group
         for _, test in ipairs(tests_list) do
-            rawset(_G, 'current_test', test)
             if last_group ~= test.group then
                 if last_group then
+                    rawget(_G, 'current_test').value = nil
                     self:end_group(last_group)
                 end
                 self:start_group(test.group)
                 last_group = test.group
             end
+            rawget(_G, 'current_test').value = test
             self:run_test(test)
             if self.result.aborted then
                 break
@@ -444,6 +446,13 @@ end
 function Runner.mt:invoke_test_function(test)
     local err = self:protected_call(test.group, test.method, test.name)
     self:update_status(test, err)
+    if not test:is('success') then
+        if utils.table_len(test.servers) > 0 then
+            for _, server in pairs(test.servers) do
+                server:save_artifacts()
+            end
+        end
+    end
 end
 
 function Runner.mt:find_test(groups, name)

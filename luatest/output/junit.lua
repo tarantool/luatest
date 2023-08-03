@@ -1,3 +1,4 @@
+local utils = require('luatest.utils')
 local ROCK_VERSION = require('luatest.VERSION')
 
 -- See directory junitxml for more information about the junit format
@@ -20,17 +21,23 @@ function Output.xml_c_data_escape(str)
 end
 
 function Output.node_status_xml(node)
+    local artifacts = ''
+    if utils.table_len(node.servers) > 0 then
+        for _, server in pairs(node.servers) do
+            artifacts = ('%s%s -> %s'):format(artifacts, server.alias, server.artifacts)
+        end
+    end
     if node:is('error') then
         return table.concat(
             {'            <error type="', Output.xml_escape(node.message), '">\n',
              '                <![CDATA[', Output.xml_c_data_escape(node.trace), ']]>\n',
-             '                <artifacts>', Output.xml_escape(node.artifacts or ''), '</artifacts>\n',
+             '                <artifacts>', Output.xml_escape(artifacts), '</artifacts>\n',
              '            </error>\n'})
     elseif node:is('fail') then
         return table.concat(
             {'            <failure type="', Output.xml_escape(node.message), '">\n',
              '                <![CDATA[', Output.xml_c_data_escape(node.trace), ']]>\n',
-             '                <artifacts>', Output.xml_escape(node.artifacts or ''), '</artifacts>\n',
+             '                <artifacts>', Output.xml_escape(artifacts), '</artifacts>\n',
              '            </failure>\n'})
     elseif node:is('skip') then
         return table.concat({'            <skipped>', Output.xml_escape(node.message or ''),'</skipped>\n'})
