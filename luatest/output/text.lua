@@ -1,3 +1,4 @@
+local utils = require('luatest.utils')
 local Output = require('luatest.output.generic'):new_class()
 
 Output.BOLD_CODE = '\x1B[1m'
@@ -60,10 +61,12 @@ function Output.mt:display_one_failed_test(index, fail) -- luacheck: no unused
     print(index..") " .. fail.name .. self.class.ERROR_COLOR_CODE)
     print(fail.message .. self.class.RESET_TERM)
     print(fail.trace)
-    if fail.artifacts then
-        print(fail.artifacts)
+    if utils.table_len(fail.servers) > 0 then
+        print('artifacts:')
+        for _, server in pairs(fail.servers) do
+            print(('\t%s -> %s'):format(server.alias, server.artifacts))
+        end
     end
-    print()
 end
 
 function Output.mt:display_errored_tests()

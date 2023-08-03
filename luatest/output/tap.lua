@@ -1,3 +1,4 @@
+local utils = require('luatest.utils')
 -- For a good reference for TAP format, check: http://testanything.org/tap-specification.html
 local Output = require('luatest.output.generic'):new_class()
 
@@ -28,8 +29,11 @@ function Output.mt:update_status(node)
     end
     if (node:is('fail') or node:is('error')) and self.verbosity >= self.class.VERBOSITY.VERBOSE then
         print(prefix .. node.trace:gsub('\n', '\n' .. prefix))
-        if node.artifacts then
-            print(prefix .. node.artifacts:gsub('\n', '\n' .. prefix))
+        if utils.table_len(node.servers) > 0 then
+            print(prefix .. 'artifacts:')
+            for _, server in pairs(node.servers) do
+                print(('%s%s -> %s'):format(prefix, server.alias, server.artifacts))
+            end
         end
     end
 end

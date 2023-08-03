@@ -101,6 +101,27 @@ function Server:new(object, extra)
     object = utils.merge(object, extra)
     self:inherit(object)
     object:initialize()
+
+    -- Each method of the server instance will be overridden by a new function
+    -- in which the association of the current test and server is performed first
+    -- and then the method itself.
+    -- It solves the problem when the server is not used in the test (should not
+    -- save artifacts) and when used.
+    for k, v in pairs(self) do
+        if type(v) == 'function' then
+            object[k] = function(...)
+                local t = rawget(_G, 'current_test')
+                if t and t.value then
+                    t = t.value
+                    if not object.tests[t.name] then
+                        object.tests[t.name] = t
+                        t.servers[object.id] = object
+                    end
+                end
+                return v(...)
+            end
+        end
+    end
     return object
 end
 
@@ -187,14 +208,12 @@ function Server:initialize()
         self.env.LUATEST_LUACOV_ROOT = os.getenv('LUATEST_LUACOV_ROOT')
     end
 
-    if self.current_test == nil then
-        self.current_test = rawget(_G, 'current_test')
-        if self.current_test then
-            local prefix = fio.pathjoin(Server.vardir, 'artifacts', self.rs_id or '')
-            self.artifacts = fio.pathjoin(prefix, self.id)
-            self.current_test:add_server_artifacts(self.alias, self.artifacts)
-        end
+    if not self.tests then
+        self.tests = {}
     end
+
+    local prefix = fio.pathjoin(Server.vardir, 'artifacts', self.rs_id or '')
+    self.artifacts = fio.pathjoin(prefix, self.id)
 end
 
 -- Create a table with env variables based on the constructor params.
@@ -329,12 +348,23 @@ function Server:restart(params, opts)
     log.debug('Restarted server PID: ' .. self.process.pid)
 end
 
+-- Save server artifacts by copying the working directory.
+-- Throws an error when the copying is not successful.
+function Server:save_artifacts()
+    local ok, err = fio.copytree(self.workdir, self.artifacts)
+    if not ok then
+        error(('Failed to copy artifacts for server (alias: %s, workdir: %s, pid: %d): %s')
+            :format(self.alias, fio.basename(self.workdir), self.process.pid, err))
+    end
+end
+
 -- Wait until the given condition is `true` (anything except `false` and `nil`).
 -- Throws an error when the server process is terminated or timeout exceeds.
 local function wait_for_condition(cond_desc, server, func, ...)
     local deadline = clock.time() + WAIT_TIMEOUT
     while true do
         if not server.process:is_alive() then
+            server:save_artifacts()
             error(('Process is terminated when waiting for "%s" condition for server (alias: %s, workdir: %s, pid: %d)')
                 :format(cond_desc, server.alias, fio.basename(server.workdir), server.process.pid))
         end
@@ -342,6 +372,7 @@ local function wait_for_condition(cond_desc, server, func, ...)
             return
         end
         if clock.time() > deadline then
+            server:save_artifacts()
             error(('Timed out to wait for "%s" condition for server (alias: %s, workdir: %s, pid: %d) within %ds')
                 :format(cond_desc, server.alias, fio.basename(server.workdir), server.process.pid, WAIT_TIMEOUT))
         end
@@ -387,13 +418,7 @@ end
 --- Stop the server and clean its working directory.
 function Server:drop()
     self:stop()
-
-    if self.current_test and not self.current_test:is('success') then
-        local ok, err = fio.copytree(self.workdir, self.artifacts)
-        if not ok then
-            error(('Failed to copy server artifacts: %s'):format(err))
-        end
-    end
+    self:save_artifacts()
 
     fio.rmtree(self.workdir)
 
