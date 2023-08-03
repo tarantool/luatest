@@ -182,4 +182,8 @@ function utils.version_ge(version1, version2)
     end
 end
 
+function utils.is_tarantool_binary(path)
+    return path:find('^.*/tarantool[^/]*$') ~= nil
+end
+
 return utils

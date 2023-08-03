@@ -169,7 +169,7 @@ function Server:initialize()
             table.insert(self.args, 3, self.command)
             self.command = arg[-1]
         -- If command is tarantool, add `-l luatest.coverage`
-        elseif self.command:endswith('/tarantool') then
+        elseif utils.is_tarantool_binary(self.command) then
             if not fun.index('luatest.coverage', self.args) then
                 table.insert(self.args, 1, '-l')
                 table.insert(self.args, 2, 'luatest.coverage')
@@ -248,7 +248,7 @@ function Server:start(opts)
     local args = table.copy(self.args)
     local env = table.copy(os.environ())
 
-    if not command:endswith('/tarantool') then
+    if not utils.is_tarantool_binary(self.command) then
         -- When luatest is installed as a rock, the internal server_instance.lua
         -- script won't have execution permissions even though it has them in the
         -- source tree, and won't be able to be run while a server start. To bypass
