@@ -51,6 +51,7 @@
   when a server fails to start due to bad configuration.
 - Save server artifacts (logs, snapshots, etc.) if the test fails.
 - Group working directories of servers inside a replica set into one directory.
+- Fix collecting coverage if tarantool binary has a suffix.
 
 ## 0.5.7
 
