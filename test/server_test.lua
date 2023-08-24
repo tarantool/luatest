@@ -15,7 +15,10 @@ local command = fio.pathjoin(root, 'test', 'server_instance.lua')
 local server = Server:new({
     command = command,
     workdir = fio.pathjoin(datadir, 'common'),
-    env = {custom_env = 'test_value'},
+    env = {
+        TARANTOOL_LOG = fio.pathjoin(datadir, 'server_test.log'),
+        custom_env = 'test_value',
+    },
     http_port = 8182,
     net_box_port = 3133,
 })
@@ -476,3 +479,21 @@ end
 g.after_test('test_error_level_is_correct', function()
     g.s:drop()
 end)
+
+g.test_grep_log = function()
+    server:connect_net_box()
+
+    -- Test that grep_log just works.
+    server:exec(function() require('log').info('test grep_log') end)
+    t.assert(server:grep_log('test grep_log'))
+
+    -- By default opts.reset in server:grep_log() is true, so we
+    -- should not find the message after instance restart.
+    server:restart()
+    t.helpers.retrying({}, function() server:http_request('get', '/ping') end)
+    server:connect_net_box()
+    t.assert_not(server:grep_log('test grep_log'))
+
+    server.net_box:close()
+    server.net_box = nil
+end

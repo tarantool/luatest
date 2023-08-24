@@ -12,6 +12,7 @@ local http_client = require('http.client')
 local json = require('json')
 local log = require('log')
 local net_box = require('net.box')
+local tarantool = require('tarantool')
 local uri = require('uri')
 local _, luacov_runner = pcall(require, 'luacov.runner') -- luacov may not be installed
 
@@ -722,7 +723,8 @@ function Server:grep_log(pattern, bytes_num, opts)
                     line = table.concat(buf)
                     buf = nil
                 end
-                if string.match(line, '> Tarantool %d+.%d+.%d+-.*%d+-g.*$') and reset then
+                local package = tarantool.package or 'Tarantool'
+                if string.match(line, '> ' .. package .. ' %d+.%d+.%d+-.*%d+-g.*$') and reset then
                     found = nil -- server was restarted, reset the result
                 else
                     found = string.match(line, pattern) or found
