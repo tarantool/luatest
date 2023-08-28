@@ -353,8 +353,8 @@ end
 function Server:save_artifacts()
     local ok, err = fio.copytree(self.workdir, self.artifacts)
     if not ok then
-        error(('Failed to copy artifacts for server (alias: %s, workdir: %s, pid: %d): %s')
-            :format(self.alias, fio.basename(self.workdir), self.process.pid, err))
+        log.error(('Failed to copy artifacts for server (alias: %s, workdir: %s): %s')
+            :format(self.alias, fio.basename(self.workdir), err))
     end
 end
 
