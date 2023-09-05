@@ -4,8 +4,10 @@
 
 local checks = require('checks')
 local fiber = require('fiber')
+local fio = require('fio')
 local log = require('log')
 local socket = require('socket')
+local uri = require('uri')
 
 local utils = require('luatest.utils')
 local Connection = require('luatest.replica_conn')
@@ -97,6 +99,8 @@ function Proxy:start(opts)
     if opts ~= nil and opts.force then
         os.remove(self.client_socket_path)
     end
+
+    fio.mktree(fio.dirname(uri.parse(self.client_socket_path).service))
 
     if not self.client_socket:bind('unix/', self.client_socket_path) then
         log.error("Failed to bind client socket: %s", self.client_socket:error())

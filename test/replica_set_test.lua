@@ -5,26 +5,26 @@ local ReplicaSet = require('luatest.replica_set')
 local g = t.group()
 local Server = t.Server
 
-g.before_all(function()
+g.before_each(function()
+    g.rs = ReplicaSet:new()
     g.box_cfg = {
         replication_timeout = 0.1,
         replication_connect_timeout = 10,
         replication_sync_lag = 0.01,
         replication_connect_quorum = 3,
         replication = {
-            Server.build_listen_uri('replica1'),
-            Server.build_listen_uri('replica2'),
-            Server.build_listen_uri('replica3'),
+            Server.build_listen_uri('replica1', g.rs.id),
+            Server.build_listen_uri('replica2', g.rs.id),
+            Server.build_listen_uri('replica3', g.rs.id),
         }
     }
 end)
 
 g.before_test('test_save_rs_artifacts_when_test_failed', function()
-    g.rs = ReplicaSet:new()
-
     g.rs:build_and_add_server({alias = 'replica1', box_cfg = g.box_cfg})
     g.rs:build_and_add_server({alias = 'replica2', box_cfg = g.box_cfg})
     g.rs:build_and_add_server({alias = 'replica3', box_cfg = g.box_cfg})
+    g.rs:start()
 
     g.rs_artifacts = ('%s/artifacts/%s'):format(Server.vardir, g.rs.id)
     g.s1_artifacts = ('%s/%s'):format(g.rs_artifacts, g.rs:get_server('replica1').id)
@@ -53,8 +53,6 @@ g.test_save_rs_artifacts_when_test_failed = function()
 end
 
 g.before_test('test_save_rs_artifacts_when_server_workdir_passed', function()
-    g.rs = ReplicaSet:new()
-
     local s1_workdir = ('%s/%s'):format(Server.vardir, os.tmpname())
     local s2_workdir = ('%s/%s'):format(Server.vardir, os.tmpname())
     local s3_workdir = ('%s/%s'):format(Server.vardir, os.tmpname())
@@ -62,6 +60,7 @@ g.before_test('test_save_rs_artifacts_when_server_workdir_passed', function()
     g.rs:build_and_add_server({workdir = s1_workdir, alias = 'replica1', box_cfg = g.box_cfg})
     g.rs:build_and_add_server({workdir = s2_workdir, alias = 'replica2', box_cfg = g.box_cfg})
     g.rs:build_and_add_server({workdir = s3_workdir, alias = 'replica3', box_cfg = g.box_cfg})
+    g.rs:start()
 
     g.rs_artifacts = ('%s/artifacts/%s'):format(Server.vardir, g.rs.id)
     g.s1_artifacts = ('%s/%s'):format(g.rs_artifacts, g.rs:get_server('replica1').id)
@@ -91,11 +90,10 @@ g.test_save_rs_artifacts_when_server_workdir_passed = function()
 end
 
 g.before_test('test_remove_rs_artifacts_when_test_success', function()
-    g.rs = ReplicaSet:new()
-
     g.rs:build_and_add_server({alias = 'replica1', box_cfg = g.box_cfg})
     g.rs:build_and_add_server({alias = 'replica2', box_cfg = g.box_cfg})
     g.rs:build_and_add_server({alias = 'replica3', box_cfg = g.box_cfg})
+    g.rs:start()
 
     g.rs_artifacts = ('%s/artifacts/%s'):format(Server.vardir, g.rs.id)
     g.s1_artifacts = ('%s/%s'):format(g.rs_artifacts, g.rs:get_server('replica1').id)
@@ -108,10 +106,6 @@ g.test_remove_rs_artifacts_when_test_success = function()
 
     t.assert_equals(fio.path.exists(g.rs.workdir), false)
 end
-
-g.before_test('test_rs_no_socket_collision_with_custom_alias', function()
-    g.rs = ReplicaSet:new()
-end)
 
 g.test_rs_no_socket_collision_with_custom_alias = function()
     local s1 = g.rs:build_server({alias = 'foo'})
@@ -127,15 +121,11 @@ g.after_test('test_rs_no_socket_collision_with_custom_alias', function()
     g.rs:drop()
 end)
 
-g.before_test('test_rs_custom_properties_are_not_overridden', function()
-    g.rs = ReplicaSet:new()
-end)
-
 g.test_rs_custom_properties_are_not_overridden = function()
     local socket = ('%s/custom.sock'):format(Server.vardir)
     local workdir = ('%s/custom'):format(Server.vardir)
 
-    local s = g.rs:build_server({net_box_uri = socket, workdir=workdir})
+    local s = g.rs:build_server({net_box_uri = socket, workdir = workdir})
 
     t.assert_equals(s.net_box_uri, socket)
     t.assert_equals(s.workdir, workdir)
@@ -143,10 +133,6 @@ end
 
 g.after_test('test_rs_custom_properties_are_not_overridden', function()
     g.rs:drop()
-end)
-
-g.before_test('test_rs_raise_error_when_add_custom_server', function()
-    g.rs = ReplicaSet:new()
 end)
 
 g.test_rs_raise_error_when_add_custom_server = function()
