@@ -74,10 +74,10 @@ end
 --   Defaults to 'server'.
 -- @string[opt] object.workdir Working directory for the new server and the
 --   value of the `TARANTOOL_WORKDIR` env variable which is passed into the
---   server process.
+--   server process. The directory path will be created on the server start.
 --   Defaults to `<vardir>/<alias>-<random id>`.
 -- @string[opt] object.datadir Directory path whose contents will be recursively
---   copied into `object.workdir` during initialization.
+--   copied into `object.workdir` on the server start.
 -- @number[opt] object.http_port Port for HTTP connection to the new server and
 --   the value of the `TARANTOOL_HTTP_PORT` env variable which is passed into
 --   the server process.
@@ -87,7 +87,8 @@ end
 --   into the server process.
 -- @string[opt] object.net_box_uri URI for the `net.box` connection to the new
 --   server and the value of the `TARANTOOL_LISTEN` env variable which is passed
---   into the server process.
+--   into the server process. If it is a Unix socket, the corresponding socket
+--   directory path will be created on the server start.
 -- @tab[opt] object.net_box_credentials Override the default credentials for the
 --   `net.box` connection to the new server.
 -- @tab[opt] object.box_cfg Extra options for `box.cfg()` and the value of the
@@ -143,15 +144,6 @@ function Server:initialize()
         self.workdir = fio.pathjoin(self.vardir, self.id)
         fio.rmtree(self.workdir)
     end
-    fio.mktree(self.workdir)
-
-    if self.datadir ~= nil then
-        local ok, err = fio.copytree(self.datadir, self.workdir)
-        if not ok then
-            error(('Failed to copy directory: %s'):format(err))
-        end
-        self.datadir = nil
-    end
 
     if self.http_port then
         self.http_client = http_client.new()
@@ -163,8 +155,7 @@ function Server:initialize()
     if self.net_box_uri == nil and self.net_box_port then
         self.net_box_uri = 'localhost:' .. self.net_box_port
     end
-    local parsed_net_box_uri = uri.parse(self.net_box_uri)
-    if parsed_net_box_uri.host == 'unix/' then
+    if uri.parse(self.net_box_uri).host == 'unix/' then
         -- Linux uses max 108 bytes for Unix domain socket paths, which means a 107 characters
         -- string ended by a null terminator. Other systems use 104 bytes and 103 characters strings.
         local max_unix_socket_path = {linux = 107, other = 103}
@@ -173,7 +164,6 @@ function Server:initialize()
             error(('Net box URI must be <= max Unix domain socket path length (%d chars)')
                 :format(max_unix_socket_path[system]))
         end
-        fio.mktree(fio.dirname(parsed_net_box_uri.service))
     end
 
     self.env = utils.merge(self.env or {}, self:build_env())
@@ -253,6 +243,33 @@ function Server.build_listen_uri(server_alias, extra_path)
     return fio.pathjoin(Server.vardir, extra_path or '', server_alias .. '.sock')
 end
 
+--- Make the server's working directory.
+-- Invoked on the server's start.
+function Server:make_workdir()
+    fio.mktree(self.workdir)
+end
+
+--- Copy contents of the data directory into the server's working directory.
+-- Invoked on the server's start.
+function Server:copy_datadir()
+    if self.datadir ~= nil then
+        local ok, err = fio.copytree(self.datadir, self.workdir)
+        if not ok then
+            error(('Failed to copy %s to %s: %s'):format(self.datadir, self.workdir, err))
+        end
+        self.datadir = nil
+    end
+end
+
+--- Make directory for the server's Unix socket.
+-- Invoked on the server's start.
+function Server:make_socketdir()
+    local parsed_net_box_uri = uri.parse(self.net_box_uri)
+    if parsed_net_box_uri.host == 'unix/' then
+        fio.mktree(fio.dirname(parsed_net_box_uri.service))
+    end
+end
+
 --- Start a server.
 -- Optionally waits until the server is ready.
 --
@@ -264,6 +281,10 @@ function Server:start(opts)
     checks('table', {wait_until_ready = '?boolean'})
 
     self:initialize()
+
+    self:make_workdir()
+    self:copy_datadir()
+    self:make_socketdir()
 
     local command = self.command
     local args = table.copy(self.args)

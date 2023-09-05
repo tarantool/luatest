@@ -62,7 +62,6 @@ function ReplicaSet:initialize()
     self.alias = 'rs'
     self.id = ('%s-%s'):format(self.alias, utils.generate_id())
     self.workdir = fio.pathjoin(self._server.vardir, self.id)
-    fio.mktree(self.workdir)
 
     if self.servers then
         local configs = table.deepcopy(self.servers)
@@ -161,6 +160,8 @@ end
 --   Defaults to `true`.
 function ReplicaSet:start(opts)
     checks('table', {wait_until_ready = '?boolean'})
+
+    fio.mktree(self.workdir)
 
     for _, server in ipairs(self.servers) do
         if not server.process then
