@@ -149,11 +149,12 @@ function Server:initialize()
         self.http_client = http_client.new()
     end
 
-    if self.net_box_uri == nil and self.net_box_port == nil then
-        self.net_box_uri = self.build_listen_uri(self.alias, self.rs_id or self.id)
-    end
-    if self.net_box_uri == nil and self.net_box_port then
-        self.net_box_uri = 'localhost:' .. self.net_box_port
+    if self.net_box_uri == nil then
+        if self.net_box_port == nil then
+            self.net_box_uri = self.build_listen_uri(self.alias, self.rs_id or self.id)
+        else
+            self.net_box_uri = 'localhost:' .. self.net_box_port
+        end
     end
     if uri.parse(self.net_box_uri).host == 'unix/' then
         -- Linux uses max 108 bytes for Unix domain socket paths, which means a 107 characters
