@@ -163,7 +163,8 @@ function Server:initialize()
     if self.net_box_uri == nil and self.net_box_port then
         self.net_box_uri = 'localhost:' .. self.net_box_port
     end
-    if uri.parse(self.net_box_uri).host == 'unix/' then
+    local parsed_net_box_uri = uri.parse(self.net_box_uri)
+    if parsed_net_box_uri.host == 'unix/' then
         -- Linux uses max 108 bytes for Unix domain socket paths, which means a 107 characters
         -- string ended by a null terminator. Other systems use 104 bytes and 103 characters strings.
         local max_unix_socket_path = {linux = 107, other = 103}
@@ -172,7 +173,7 @@ function Server:initialize()
             error(('Net box URI must be <= max Unix domain socket path length (%d chars)')
                 :format(max_unix_socket_path[system]))
         end
-        fio.mktree(fio.dirname(self.net_box_uri))
+        fio.mktree(fio.dirname(parsed_net_box_uri.service))
     end
 
     self.env = utils.merge(self.env or {}, self:build_env())
