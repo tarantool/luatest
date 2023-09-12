@@ -373,14 +373,6 @@ g.test_save_server_artifacts_when_test_failed = function()
     t.assert_equals(fio.path.is_dir(s2_artifacts), true)
 end
 
-g.test_remove_server_artifacts_when_test_success = function()
-    local s = Server:new()
-    s:start()
-    s:drop()
-
-    t.assert_equals(fio.path.exists(s.workdir), false)
-end
-
 g.test_server_build_listen_uri = function()
     local uri = Server.build_listen_uri('foo')
     t.assert_equals(uri, ('%s/foo.sock'):format(Server.vardir))

@@ -12,6 +12,7 @@ local GenericOutput = require('luatest.output.generic')
 local hooks = require('luatest.hooks')
 local loader = require('luatest.loader')
 local pp = require('luatest.pp')
+local Server = require('luatest.server')
 local sorted_pairs = require('luatest.sorted_pairs')
 local TestInstance = require('luatest.test_instance')
 local utils = require('luatest.utils')
@@ -107,6 +108,8 @@ Options:
                           May be repeated to exclude several patterns
                           Make sure you escape magic chars like +? with %
   --coverage:             Use luacov to collect code coverage.
+  --no-clean:             Disable the var directory (default: /tmp/t) deletion before
+                          running tests.
 ]]
 
 function Runner.parse_cmd_line(args)
@@ -170,6 +173,8 @@ function Runner.parse_cmd_line(args)
             result.enable_capture = false
         elseif arg == '--coverage' then
             result.coverage_report = true
+        elseif arg == '--no-clean' then
+            result.no_clean = true
         elseif arg:sub(1,1) == '-' then
             error('Unknown option: ' .. arg)
         elseif arg:find('/') then
@@ -273,10 +278,17 @@ function Runner.mt:bootstrap()
     self.groups = self.luatest.groups
 end
 
+function Runner.mt:cleanup()
+    if not self.no_clean then
+        fio.rmtree(Server.vardir)
+    end
+end
+
 function Runner.mt:run()
     self:bootstrap()
     local filtered_list = self.class.filter_tests(self:find_tests(), self.tests_pattern)
     self:start_suite(#filtered_list[true], #filtered_list[false])
+    self:cleanup()
     self:run_tests(filtered_list[true])
     self:end_suite()
     if self.result.aborted then

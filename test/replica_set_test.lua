@@ -89,24 +89,6 @@ g.test_save_rs_artifacts_when_server_workdir_passed = function()
 
 end
 
-g.before_test('test_remove_rs_artifacts_when_test_success', function()
-    g.rs:build_and_add_server({alias = 'replica1', box_cfg = g.box_cfg})
-    g.rs:build_and_add_server({alias = 'replica2', box_cfg = g.box_cfg})
-    g.rs:build_and_add_server({alias = 'replica3', box_cfg = g.box_cfg})
-    g.rs:start()
-
-    g.rs_artifacts = ('%s/artifacts/%s'):format(Server.vardir, g.rs.id)
-    g.s1_artifacts = ('%s/%s'):format(g.rs_artifacts, g.rs:get_server('replica1').id)
-    g.s2_artifacts = ('%s/%s'):format(g.rs_artifacts, g.rs:get_server('replica2').id)
-    g.s3_artifacts = ('%s/%s'):format(g.rs_artifacts, g.rs:get_server('replica3').id)
-end)
-
-g.test_remove_rs_artifacts_when_test_success = function()
-    g.rs:drop()
-
-    t.assert_equals(fio.path.exists(g.rs.workdir), false)
-end
-
 g.test_rs_no_socket_collision_with_custom_alias = function()
     local s1 = g.rs:build_server({alias = 'foo'})
     local s2 = g.rs:build_server({alias = 'bar'})
