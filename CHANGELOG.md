@@ -52,6 +52,7 @@
 - Save server artifacts (logs, snapshots, etc.) if the test fails.
 - Group working directories of servers inside a replica set into one directory.
 - Fix collecting coverage if tarantool binary has a suffix.
+- Add `--no-clean` option to disable deletion of the var directory.
 
 ## 0.5.7
 

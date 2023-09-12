@@ -438,12 +438,15 @@ function Server:stop()
     end
 end
 
---- Stop the server and clean its working directory.
+--- Stop the server and save its artifacts if the test fails.
+-- This function should be used only at the end of the test (`after_test`,
+-- `after_each`, `after_all` hooks) to terminate the server process.
+-- Besides process termination, it saves the contents of the server
+-- working directory to the `<vardir>/artifacts` directory for further
+-- analysis if the test fails.
 function Server:drop()
     self:stop()
     self:save_artifacts()
-
-    fio.rmtree(self.workdir)
 
     self.instance_id = nil
     self.instance_uuid = nil
