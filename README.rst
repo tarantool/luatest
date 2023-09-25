@@ -25,7 +25,7 @@ Installation
 
 .. code-block:: bash
 
-    tarantoolctl rocks install luatest
+    tt rocks install luatest
     .rocks/bin/luatest --help # list available options
 
 ---------------------------------
@@ -439,7 +439,7 @@ There are several small helpers for common actions:
 luacov integration
 ---------------------------------
 
-- Install `luacov <https://github.com/keplerproject/luacov>`_ with ``tarantoolctl rocks install luacov``
+- Install `luacov <https://github.com/keplerproject/luacov>`_ with ``tt rocks install luacov``
 - Configure it with ``.luacov`` file
 - Clean old reports ``rm -f luacov.*.out*``
 - Run luatest with ``--coverage`` option
