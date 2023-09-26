@@ -338,6 +338,11 @@ function Runner.mt:update_status(node, err)
     elseif err.status == 'fail' or err.status == 'error' or err.status == 'skip'
         or err.status == 'xfail' or err.status == 'xsuccess' then
         node:update_status(err.status, err.message, err.trace)
+        if utils.table_len(node.servers) > 0 then
+            for _, server in pairs(node.servers) do
+                server:save_artifacts()
+            end
+        end
     else
         error('No such status: ' .. pp.tostring(err.status))
     end
@@ -458,13 +463,6 @@ end
 function Runner.mt:invoke_test_function(test)
     local err = self:protected_call(test.group, test.method, test.name)
     self:update_status(test, err)
-    if not test:is('success') then
-        if utils.table_len(test.servers) > 0 then
-            for _, server in pairs(test.servers) do
-                server:save_artifacts()
-            end
-        end
-    end
 end
 
 function Runner.mt:find_test(groups, name)
