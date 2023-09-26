@@ -372,13 +372,20 @@ function Server:restart(params, opts)
 end
 
 -- Save server artifacts by copying the working directory.
--- Throws an error when the copying is not successful.
+-- The save logic will only work once to avoid overwriting the artifacts directory.
+-- If an error occurred, then the server artifacts path will be replaced by the
+-- following string: `Failed to copy artifacts for server (alias: <alias>, workdir: <workdir>)`.
 function Server:save_artifacts()
+    if self.artifacts_saved then
+        return
+    end
     local ok, err = fio.copytree(self.workdir, self.artifacts)
     if not ok then
-        log.error(('Failed to copy artifacts for server (alias: %s, workdir: %s): %s')
-            :format(self.alias, fio.basename(self.workdir), err))
+        self.artifacts = ('Failed to copy artifacts for server (alias: %s, workdir: %s)')
+            :format(self.alias, fio.basename(self.workdir))
+        log.error(('%s: %s'):format(self.artifacts, err))
     end
+    self.artifacts_saved = true
 end
 
 -- Wait until the given condition is `true` (anything except `false` and `nil`).
