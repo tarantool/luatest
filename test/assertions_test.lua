@@ -62,3 +62,25 @@ g.test_assert_comparisons_error = function()
     helper.assert_failure_contains('must supply only number arguments.\n'..
     'Arguments supplied: \"one\", 3', t.assert_gt, 'one', 3)
 end
+
+local function external_error_fn(msg)
+    error(msg)
+end
+
+local g2 = t.group('g2', {
+    {fn = external_error_fn},
+    {fn = error},
+    {fn = function(msg) error(msg) end}
+})
+
+g2.test_assert_error_msg_content_equals = function(cg)
+    local msg = "error"
+    t.assert_error_msg_content_equals(msg, cg.params.fn, msg)
+    t.assert_error_msg_content_equals(msg, cg.params.fn, "foo.bar:1: " .. msg)
+    t.assert_error_msg_content_equals(msg, cg.params.fn, "foo.bar:123: " .. msg)
+    t.assert_error_msg_content_equals(msg, cg.params.fn, "/foo/bar.lua:1: " .. msg)
+    t.assert_error_msg_content_equals(msg, cg.params.fn, ".../foo/bar.lua:1: " .. msg)
+    t.assert_error_msg_content_equals(msg, cg.params.fn, "foo.bar:1: foo.bar:1: " .. msg)
+    t.assert_error_msg_content_equals(msg, cg.params.fn, "foo.bar:1: .../foo/bar.lua:1: " .. msg)
+    t.assert_error_msg_content_equals(msg, cg.params.fn, "foo.bar.bar:1: foo.bar.bar:1: " .. msg)
+end

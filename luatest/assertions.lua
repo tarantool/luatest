@@ -472,7 +472,8 @@ local function _assert_error_msg_equals(stripFileAndLine, expectedMsg, func, ...
     end
     local differ = false
     if stripFileAndLine then
-        if error_msg:gsub("^.+:%d+: ", "") ~= expectedMsg then
+        error_msg = error_msg:gsub("^.+:%d+: ", "")
+        if error_msg ~= expectedMsg then
             differ = true
         end
     else
