@@ -969,6 +969,16 @@ function g.test_assertTableAdditions()
     t.assert_not_equals({1,x=2,3,y=4}, {1,x=2,3})
 end
 
+function g.test_assert_one_of()
+    t.assert_one_of(1, {1,2,3})
+    t.assert_one_of({1}, {{1},{2},{3}})
+    t.assert_one_of("two", {"one", "two"})
+
+    assert_failure_contains("oh no", t.assert_one_of, 1, {2,3}, "oh no")
+    assert_failure_contains("Assertion failed: 1 must be one of {2, 3}", t.assert_one_of, 1, {2,3})
+    assert_failure_contains("Assertion failed: {1} must be one of {{2}, {3}}", t.assert_one_of, {1}, {{2},{3}})
+end
+
 g.test_assert_comparisons = function()
     -- assert_lt
     t.assert_lt(1.9, 2)
