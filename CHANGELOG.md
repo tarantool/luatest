@@ -2,7 +2,6 @@
 
 ## Unreleased
 
-- Add new module `replica_set.lua`.
 - Extend `server.lua` API:
   * Update parameters of the `Server:new()` function:
     - The `alias` parameter defaults to 'server'.
@@ -35,24 +34,24 @@
     - `Server:wait_for_vclock_of()`
     - `Server:update_box_cfg()`
     - `Server:get_box_cfg()`
-- Check docs generation with LDoc.
-- Add `--repeat-group` (`-R`) option to run tests in a circle within the group.
-- Forbid negative values for `--repeat` (`-r`) option.
-- Change `coverage_report` parameter type to boolean in `Server:new()` function.
-- Print Tarantool version used by luatest.
 - Add new module `replica_proxy.lua`.
+- Add new module `replica_set.lua`.
 - Add new module `tarantool.lua`.
-- Auto-require `luatest` module in `Server:exec()` function where it is available
-  via the corresponding upvalue.
-- Add new function `tarantool.skip_if_not_enterprise`.
-- Raise an error when non-array arguments passed to the `server:exec()`.
-- Raise an error in the `Server:wait_for_condition()` function when
-  the server process is terminated. This is useful to not wait for timeout, for example,
-  when a server fails to start due to bad configuration.
-- Save server artifacts (logs, snapshots, etc.) if the test fails.
-- Group working directories of servers inside a replica set into one directory.
-- Fix collecting coverage if tarantool binary has a suffix.
-- Add `--no-clean` option to disable deletion of the var directory.
+- Check docs generation with LDoc.
+- Add the `--repeat-group` (`-R`) option to run tests in a circle within the
+  group.
+- Forbid negative values for the `--repeat` (`-r`) option.
+- Change the `coverage_report` parameter type to boolean in the `Server:new()`
+  function.
+- Print Tarantool version used by luatest.
+- Auto-require the `luatest` module in the `Server:exec()` function where it is
+  available via the corresponding upvalue.
+- Raise an error when non-array arguments passed to the `Server:exec()`
+  function.
+- Save server artifacts (logs, snapshots, etc.) to the `${VARDIR}/artifacts`
+  directory if the test fails.
+- Fix requiring the internal test helper when running tests.
+- Fix collecting coverage if the tarantool binary has a suffix.
 
 ## 0.5.7
 
