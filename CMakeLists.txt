@@ -69,14 +69,14 @@ add_custom_target(lint
 )
 add_custom_target(selftest
   DEPENDS bootstrap
-  COMMAND bin/luatest --shuffle group
+  COMMAND bin/luatest -v --shuffle group
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
 )
 
-add_custom_target(test_with_coverage_report
+add_custom_target(selftest-coverage
   DEPENDS bootstrap
   COMMAND rm -f tmp/luacov.*.out*
-  COMMAND tarantool -l luatest.coverage bin/luatest
+  COMMAND tarantool -l luatest.coverage bin/luatest -v --shuffle group
   COMMAND .rocks/bin/luacov .
   COMMAND echo
   COMMAND grep -A999 '^Summary' tmp/luacov.report.out

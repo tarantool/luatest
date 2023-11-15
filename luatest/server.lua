@@ -176,13 +176,15 @@ function Server:initialize()
         self.coverage_report = true
     end
     if self.coverage_report then
-        -- If command is executable lua script, run it with `tarantool -l luatest.coverage script.lua`
+        -- If the command is an executable lua script, run it with
+        -- `tarantool -l luatest.coverage script.lua`.
+        -- If the command is `tarantool`, add `-l luatest.coverage`.
         if self.command:endswith('.lua') then
             table.insert(self.args, 1, '-l')
             table.insert(self.args, 2, 'luatest.coverage')
             table.insert(self.args, 3, self.command)
+            self.original_command = self.command
             self.command = arg[-1]
-        -- If command is tarantool, add `-l luatest.coverage`
         elseif utils.is_tarantool_binary(self.command) then
             if not fun.index('luatest.coverage', self.args) then
                 table.insert(self.args, 1, '-l')
@@ -291,7 +293,7 @@ function Server:start(opts)
     local args = table.copy(self.args)
     local env = table.copy(os.environ())
 
-    if not utils.is_tarantool_binary(self.command) then
+    if not utils.is_tarantool_binary(command) then
         -- When luatest is installed as a rock, the internal server_instance.lua
         -- script won't have execution permissions even though it has them in the
         -- source tree, and won't be able to be run while a server start. To bypass
@@ -317,7 +319,12 @@ function Server:start(opts)
         output_prefix = self.alias,
     })
 
-    local wait_until_ready = self.command == DEFAULT_INSTANCE
+    local wait_until_ready
+    if self.coverage_report then
+        wait_until_ready = self.original_command == DEFAULT_INSTANCE
+    else
+        wait_until_ready = self.command == DEFAULT_INSTANCE
+    end
     if opts ~= nil and opts.wait_until_ready ~= nil then
         wait_until_ready = opts.wait_until_ready
     end
