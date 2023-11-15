@@ -13,8 +13,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        dist: [ ubuntu ]
-        version: [ jammy ]
+        include:
+          - dist: ubuntu
+            version: jammy
+          - dist: el
+            version: 8
 
     runs-on: ubuntu-20.04
 

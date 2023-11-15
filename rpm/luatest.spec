@@ -7,10 +7,11 @@ License: MIT
 URL: https://github.com/tarantool/luatest
 Source0: https://github.com/tarantool/luatest/archive/%{version}/luatest-%{version}.tar.gz
 BuildArch: noarch
+BuildRequires: tarantool >= 1.9.0
 BuildRequires: tarantool-devel >= 1.9.0
-BuildRequires: tarantool-checks
+BuildRequires: tarantool-checks >= 3.0.1
 Requires: tarantool >= 1.9.0
-Requires: tarantool-checks
+Requires: tarantool-checks >= 3.0.1
 %description
 Simple Tarantool test framework for both unit and integration testing.
 
@@ -18,20 +19,19 @@ Simple Tarantool test framework for both unit and integration testing.
 %setup -q -n %{name}-%{version}
 
 %build
-%cmake . -DCMAKE_BUILD_TYPE=RelWithDebInfo -DVERSION=%{version}
+%cmake -B . -DCMAKE_BUILD_TYPE=RelWithDebInfo -DVERSION=%{version}
 make %{?_smp_mflags}
 
 %check
-ctest -VV
+make selftest
 
 %install
 %make_install
 
 %files
-#%{_libdir}/tarantool/*/
 %{_datarootdir}/tarantool/*/
 %{_bindir}/luatest
-%doc README.md
+%doc README.rst
 %{!?_licensedir:%global license %doc}
 %license LICENSE
 
@@ -52,7 +52,7 @@ ctest -VV
 - Add `xfail` status.
 - Add new `Server:exec()` function which runs a Lua function remotely.
 
-* Thu Sept 16 2021 Aleksandr Shemenev <a.shemenev@corp.mail.ru> 0.5.5-1
+* Thu Sep 16 2021 Aleksandr Shemenev <a.shemenev@corp.mail.ru> 0.5.5-1
 - Repeat `_each` and `_test` hooks when `--repeat` is specified.
 - Add group parametrization.
 
