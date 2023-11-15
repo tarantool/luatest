@@ -1,0 +1,49 @@
+name: Package test
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  package-test:
+    if: github.repository == 'tarantool/luatest' && (
+      github.event_name == 'push' || ( github.event_name == 'pull_request' &&
+      github.repository_owner != 'tarantool' ) )
+
+    strategy:
+      fail-fast: false
+      matrix:
+        dist: [ ubuntu ]
+        version: [ jammy ]
+
+    runs-on: ubuntu-20.04
+
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Check out packpack
+        uses: actions/checkout@v3
+        with:
+          repository: packpack/packpack
+          path: packpack
+
+      - name: Set package version
+        run: |
+          GIT_TAG=$(git tag --points-at HEAD)
+          GIT_DESCRIBE=$(git describe HEAD)
+          if [ -n "${GIT_TAG}" ]; then
+            echo "VERSION=${GIT_TAG}" >> $GITHUB_ENV
+          else
+            echo "VERSION=$(echo ${GIT_DESCRIBE} | sed ${SED_REPLACE_VERSION_REGEX}).dev" >> $GITHUB_ENV
+          fi
+        env:
+          SED_REPLACE_VERSION_REGEX: s/-\([0-9]\+\)-g[0-9a-f]\+$/.\1/
+
+      - name: Run packaging
+        run: ./packpack/packpack
+        env:
+          OS: ${{ matrix.dist }}
+          DIST: ${{ matrix.version }}

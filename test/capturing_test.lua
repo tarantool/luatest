@@ -19,8 +19,8 @@ end
 local function assert_captured(fn)
     helper.run_suite(fn)
     local captured = capture:flush()
-    t.assert_not_str_contains(captured.stdout, 'test-')
-    t.assert_not_str_contains(captured.stderr, 'test-')
+    t.assert_not_str_contains(captured.stdout, 'test-out')
+    t.assert_not_str_contains(captured.stderr, 'test-err')
     assert_capture_restored()
 end
 
