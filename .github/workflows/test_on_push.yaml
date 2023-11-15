@@ -22,15 +22,15 @@ jobs:
 
       - name: Install requirements for community
         run: |
-          cmake .
-          make bootstrap
+          cmake -S . -B build
+          make -C build bootstrap
 
       # This server starts and listen on 8084 port that is used for tests
       - name: Stop Mono server
         run: sudo kill -9 $(sudo lsof -t -i tcp:8084) || true
 
       - name: Run linter
-        run: make lint
+        run: make -C build lint
 
       - name: Run tests
         run: bin/luatest -v --shuffle group

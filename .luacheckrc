@@ -1,4 +1,4 @@
 include_files = {"**/*.lua", "*.rockspec", "*.luacheckrc"}
-exclude_files = {"lua_modules/", ".luarocks/", ".rocks/", "tmp/"}
+exclude_files = {"build.luarocks/", "lua_modules/", "tmp/", ".luarocks/", ".rocks/"}
 
 max_line_length = 120

@@ -37,30 +37,41 @@ set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_MAKE_CLEAN_FILES build)
 
 set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_MAKE_CLEAN_FILES .rocks)
 add_custom_command(
-  OUTPUT .rocks
+  OUTPUT ${PROJECT_SOURCE_DIR}/.rocks
   DEPENDS ${PROJECT_NAME}-scm-1.rockspec
   COMMAND tarantoolctl rocks make ./${PROJECT_NAME}-scm-1.rockspec
   COMMAND tarantoolctl rocks install http 1.1.0
   COMMAND tarantoolctl rocks install luacheck 0.25.0
   COMMAND tarantoolctl rocks install luacov 0.13.0
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
 )
 
-add_custom_target(bootstrap DEPENDS .rocks)
+add_custom_target(bootstrap DEPENDS ${PROJECT_SOURCE_DIR}/.rocks)
 
 add_custom_command(
-  OUTPUT .rocks/bin/ldoc
+  OUTPUT ${PROJECT_SOURCE_DIR}/.rocks/bin/ldoc
   DEPENDS bootstrap
   COMMAND tarantoolctl rocks install ldoc --server=http://rocks.moonscript.org
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
 )
 
 set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_MAKE_CLEAN_FILES doc)
 add_custom_target(doc
-  DEPENDS .rocks/bin/ldoc
+  DEPENDS ${PROJECT_SOURCE_DIR}/.rocks/bin/ldoc
   COMMAND .rocks/bin/ldoc -t ${PROJECT_NAME}-scm-1 -p ${PROJECT_NAME} --all .
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
 )
 
-add_custom_target(lint DEPENDS bootstrap COMMAND .rocks/bin/luacheck .)
-add_custom_target(selftest DEPENDS bootstrap COMMAND bin/luatest --shuffle group)
+add_custom_target(lint
+  DEPENDS bootstrap
+  COMMAND .rocks/bin/luacheck .
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+)
+add_custom_target(selftest
+  DEPENDS bootstrap
+  COMMAND bin/luatest --shuffle group
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+)
 
 add_custom_target(test_with_coverage_report
   DEPENDS bootstrap
@@ -69,6 +80,7 @@ add_custom_target(test_with_coverage_report
   COMMAND .rocks/bin/luacov .
   COMMAND echo
   COMMAND grep -A999 '^Summary' tmp/luacov.report.out
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
 )
 
 ## Test #######################################################################
