@@ -1,1 +1,1 @@
-curl -s https://packagecloud.io/install/repositories/tarantool/1_10/script.deb.sh | sudo bash
+curl -L https://tarantool.io/release/${LUATEST_TARANTOOL_SERIES:-2}/installer.sh | bash

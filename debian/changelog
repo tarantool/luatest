@@ -10,7 +10,7 @@ luatest (0.5.7-1) unstable; urgency=medium
   * Change test run summary report: use verbs in past simple tense (succeeded,
     failed, xfailed, etc.) instead of nouns (success(es), fail(s), xfail(s), etc.)
 
-  -- Nikolay Volynkin <n.volynkin@corp.mail.ru> Fri, 28 Jan 2022 14:00:00 +0300
+ -- Nikolay Volynkin <n.volynkin@corp.mail.ru>  Fri, 28 Jan 2022 14:00:00 +0300
 
 luatest (0.5.6-1) unstable; urgency=medium
 
@@ -51,8 +51,8 @@ luatest (0.5.3-1) unstable; urgency=medium
 
 luatest (0.5.2-1) unstable; urgency=medium
 
-- Throw parser error when .json is accessed on response with invalid body.
-- Set `Content-Type: application/json` for `:http_request(..., {json = ...})` requests.
+  * Throw parser error when .json is accessed on response with invalid body.
+  * Set `Content-Type: application/json` for `:http_request(..., {json = ...})` requests.
 
  -- Maxim Melentiev <m.melentiev@corp.mail.ru>  Thu, 25 Jun 2020 13:00:00 +0300
 

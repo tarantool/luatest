@@ -6,5 +6,7 @@ VERSION := $(shell echo $(DEB_VERSION) | sed 's/-[[:digit:]]\+$$//')
 DEB_CMAKE_EXTRA_FLAGS := -DCMAKE_INSTALL_LIBDIR=lib/$(DEB_HOST_MULTIARCH) \
 			-DCMAKE_BUILD_TYPE=RelWithDebInfo -DVERSION=$(VERSION)
 
+DEB_MAKE_CHECK_TARGET := selftest
+
 include /usr/share/cdbs/1/rules/debhelper.mk
 include /usr/share/cdbs/1/class/cmake.mk
