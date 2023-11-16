@@ -32,7 +32,6 @@ g.before_test('test_association_between_test_and_servers', function()
     g.test:start()
 end)
 
-
 g.test_association_between_test_and_servers = function()
     g.internal = Server:new({alias = 'internal'})
     g.internal:start()
@@ -56,6 +55,7 @@ g.test_association_between_test_and_servers = function()
 end
 
 g.after_test('test_association_between_test_and_servers', function()
+    g.internal:drop()
     g.test:drop()
     t.assert(fio.path.exists(g.test.artifacts))
 end)
@@ -68,4 +68,5 @@ end)
 g.after_all(function()
     g.all:drop()
     t.assert(fio.path.exists(g.all.artifacts))
+    g.public:drop()
 end)

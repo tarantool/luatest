@@ -29,6 +29,7 @@ g.after_test('test_foo', function()
         utils.table_len(g.foo_test.servers) ~= 2,
         'Test instance should contain all servers from replica set'
     )
+    g.rs:drop()
 end)
 
 g.after_test('test_bar', function()

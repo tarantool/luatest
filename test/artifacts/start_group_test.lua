@@ -29,3 +29,7 @@ g.after_test('test_bar', function()
         utils.table_len(g.bar_test.servers) ~= 0,
         'Test instance should not contain a servers')
 end)
+
+g.after_all(function()
+    g.s:drop()
+end)

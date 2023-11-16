@@ -19,9 +19,10 @@ g.after_all(function()
 
     t.fail_if(
         utils.table_len(g.foo_test.servers) ~= 0,
-        'Test instance `foo` should not contain a servers')
+        'Test instance `foo` should not contain servers')
 
     t.fail_if(
         utils.table_len(g.bar_test.servers) ~= 0,
-        'Test instance `bar` should not contain a servers')
+        'Test instance `bar` should not contain servers')
+    g.s:drop()
 end)
