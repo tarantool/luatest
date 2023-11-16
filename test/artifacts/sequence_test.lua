@@ -34,7 +34,12 @@ g.after_test('test_bar', function()
         'Test instance should contain server')
 end)
 
+g.after_each(function()
+    g.each:drop()
+end)
+
 g.after_all(function()
+    g.s:drop()
     t.fail_if(
         g.foo_test_server == g.bar_test_server,
         'Servers must be unique within the group'
