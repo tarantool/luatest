@@ -32,7 +32,7 @@ function Output.mt:update_status(node)
         if utils.table_len(node.servers) > 0 then
             print(prefix .. 'artifacts:')
             for _, server in pairs(node.servers) do
-                print(('%s%s -> %s'):format(prefix, server.alias, server.artifacts))
+                print(('%s\t%s -> %s'):format(prefix, server.alias, server.artifacts))
             end
         end
     end
