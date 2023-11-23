@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.0.0
 
 - Extend `server.lua` API:
   * Update parameters of the `Server:new()` function:
