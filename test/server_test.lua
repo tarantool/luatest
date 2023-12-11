@@ -1,5 +1,6 @@
 local fio = require('fio')
 local json = require('json')
+local urilib = require('uri')
 
 local t = require('luatest')
 local g = t.group()
@@ -319,6 +320,54 @@ g.test_unix_socket_not_include_uri_fields = function()
     t.helpers.retrying({}, function() s:connect_net_box() end)
     t.assert_equals(s:exec(function() return box.cfg.listen end), net_box_uri)
     s:stop()
+end
+
+g.test_table_uri_success = function()
+    t.skip_if(not utils.version_current_ge_than(2, 10, 0),
+              "URI as a table is supported since Tarantool 2.10.0.")
+    local workdir = fio.pathjoin(datadir, 'unix_socket')
+    fio.mktree(workdir)
+    local net_box_uri = {
+        uri = 'unix/:' .. fio.pathjoin(workdir, '/test_socket.sock'),
+        params = {
+            transport = 'plain'
+        },
+    }
+    local res = urilib.format(urilib.parse(net_box_uri))
+    local s = Server:new({
+        command = command,
+        workdir = workdir,
+        net_box_uri = net_box_uri,
+        http_port = 0, -- unused
+    })
+    s:start()
+    t.helpers.retrying({}, function() s:connect_net_box() end)
+    t.assert_equals(s:exec(function() return box.cfg.listen end), res)
+    s:stop()
+end
+
+g.test_table_uri_error = function()
+    t.skip_if(utils.version_current_ge_than(2, 10, 0),
+              "URI as a table is supported since Tarantool 2.10.0.")
+    local workdir = fio.pathjoin(datadir, 'unix_socket')
+    fio.mktree(workdir)
+    local net_box_uri = {
+        login = 'guest',
+        uri = 'unix/:' .. fio.pathjoin(workdir, '/test_socket.sock'),
+        params = {
+            transport = 'plain'
+        },
+    }
+    local err = [[bad argument #2 to 'uri_parse' (cannot convert 'table' ]] ..
+                [[to 'const char *')]]
+    t.assert_error_msg_contains(
+        err, Server.new, Server, {
+            command = command,
+            workdir = workdir,
+            net_box_uri = net_box_uri,
+            http_port = 0, -- unused
+        }
+    )
 end
 
 g.test_server_start_with_coverage_enabled = function()
