@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+  * Fixed incorrent unix socket path length check (gh-341).
+
 ## 1.0.0
 
 - Extend `server.lua` API:
