@@ -41,7 +41,7 @@ local Server = {
 
         http_port = '?number',
         net_box_port = '?number',
-        net_box_uri = '?string',
+        net_box_uri = '?string|table',
         net_box_credentials = '?table',
 
         alias = '?string',
@@ -166,6 +166,9 @@ function Server:initialize()
             error(('Net box URI must be <= max Unix domain socket path length (%d chars)')
                 :format(max_unix_socket_path[system]))
         end
+    end
+    if type(self.net_box_uri) == 'table' then
+        self.net_box_uri = uri.format(parsed_net_box_uri, true)
     end
 
     self.env = utils.merge(self.env or {}, self:build_env())
@@ -358,7 +361,7 @@ function Server:restart(params, opts)
 
         http_port = '?number',
         net_box_port = '?number',
-        net_box_uri = '?string',
+        net_box_uri = '?string|table',
         net_box_credentials = '?table',
 
         alias = '?string',
