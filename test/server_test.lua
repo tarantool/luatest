@@ -296,6 +296,31 @@ g.test_max_unix_socket_path_exceeded = function()
     )
 end
 
+g.test_unix_socket_not_include_uri_fields = function()
+    local max_unix_socket_path = {linux = 107, other = 103}
+    local system = os.execute('[ $(uname) = Linux ]') == 0 and 'linux' or
+                   'other'
+    local workdir = fio.pathjoin(datadir, 'unix_socket')
+    fio.mktree(workdir)
+    local workdir_len = string.len(workdir)
+    local socket_name_len = max_unix_socket_path[system] + 1 - workdir_len
+    local socket_name = string.format('test_socket%s.sock',
+                                      string.rep('t', socket_name_len - 18))
+    local socket_path = fio.pathjoin(workdir, socket_name)
+    t.assert_equals(string.len(socket_path), max_unix_socket_path[system])
+    local net_box_uri = 'unix/:' .. socket_path .. '?three=1&four=2'
+    local s = Server:new({
+        command = command,
+        workdir = workdir,
+        net_box_uri = net_box_uri,
+        http_port = 0, -- unused
+    })
+    s:start()
+    t.helpers.retrying({}, function() s:connect_net_box() end)
+    t.assert_equals(s:exec(function() return box.cfg.listen end), net_box_uri)
+    s:stop()
+end
+
 g.test_server_start_with_coverage_enabled = function()
     t.skip_if(server.coverage_report, 'Coverage is already enabled. Nothing to test')
     server:restart({coverage_report = true})
