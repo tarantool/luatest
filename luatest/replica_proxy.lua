@@ -31,8 +31,7 @@ function Proxy:inherit(object)
 end
 
 local function check_tarantool_version()
-    local version = utils.get_tarantool_version()
-    if utils.version_ge(version, utils.version(2, 10, 1)) then
+    if utils.version_current_ge_than(2, 10, 1) then
         return
     else
         error('Proxy requires Tarantool 2.10.1 and newer')

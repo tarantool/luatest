@@ -9,8 +9,7 @@ local fiber = require('fiber')
 local g = t.group('proxy-version-check')
 
 g.test_proxy_errors = function()
-    t.skip_if(utils.version_ge(utils.get_tarantool_version(),
-                               utils.version(2, 10, 1)),
+    t.skip_if(utils.version_current_ge_than(2, 10, 1),
               "Proxy works on Tarantool 2.10.1+, nothing to test")
     t.assert_error_msg_contains('Proxy requires Tarantool 2.10.1 and newer',
                                 proxy.new, proxy, {
@@ -26,8 +25,7 @@ local g1 = t.group('proxy', {
 
 g1.before_all(function(cg)
     -- Proxy only works on tarantool 2.10+
-    t.run_only_if(utils.version_ge(utils.get_tarantool_version(),
-                                   utils.version(2, 10, 1)),
+    t.run_only_if(utils.version_current_ge_than(2, 10, 1),
                   [[Proxy works on Tarantool 2.10.1+.
                     See tarantool/tarantool@57ecb6cd90b4 for details]])
     cg.rs = replica_set:new{}
