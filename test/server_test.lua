@@ -286,8 +286,8 @@ g.test_max_unix_socket_path_exceeded = function()
 
     t.assert_equals(string.len(net_box_uri), max_unix_socket_path[system] + 1)
     t.assert_error_msg_contains(
-        string.format('Net box URI must be <= max Unix domain socket path length (%s chars)',
-            max_unix_socket_path[system]),
+        string.format('Unix domain socket path cannot be longer than %d ' ..
+                      'chars. Current path is:', max_unix_socket_path[system]),
         Server.new, Server, {
             command = command,
             workdir = workdir,
