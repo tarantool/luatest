@@ -212,6 +212,10 @@ function Server:initialize()
 
     local prefix = fio.pathjoin(Server.vardir, 'artifacts', self.rs_id or '')
     self.artifacts = fio.pathjoin(prefix, self.id)
+
+    if rawget(_G, 'log_file') ~= nil then
+        self.unified_log_enabled = true
+    end
 end
 
 -- Create a table with env variables based on the constructor params.
@@ -223,6 +227,7 @@ end
 --   * `TARANTOOL_ALIAS`
 --   * `TARANTOOL_HTTP_PORT`
 --   * `TARANTOOL_BOX_CFG`
+--   * `TARANTOOL_UNIFIED_LOG_ENABLED`
 --
 -- @return table
 function Server:build_env()
@@ -234,6 +239,9 @@ function Server:build_env()
     }
     if self.box_cfg ~= nil then
         res.TARANTOOL_BOX_CFG = json.encode(self.box_cfg)
+    end
+    if self.unified_log_enabled then
+        res.TARANTOOL_UNIFIED_LOG_ENABLED = tostring(self.unified_log_enabled)
     end
     return res
 end
@@ -743,7 +751,16 @@ end
 function Server:grep_log(pattern, bytes_num, opts)
     local options = opts or {}
     local reset = options.reset or true
-    local filename = options.filename or self:exec(function() return box.cfg.log end)
+
+    -- `box.cfg.log` can contain not only the path to the log file.
+    -- When unified logging mode is on, `box.cfg.log` is as follows:
+    --
+    --     | tee ${TARANTOOL_WORKDIR}/${TARANTOOL_ALIAS}.log
+    --
+    -- Therefore, we set `_G.box_cfg_log_file` in server_instance.lua which
+    -- contains the log file path: ${TARANTOOL_WORKDIR}/${TARANTOOL_ALIAS}.log.
+    local filename = options.filename or self:exec(function()
+        return rawget(_G, 'box_cfg_log_file') or box.cfg.log end)
     local file = fio.open(filename, {'O_RDONLY', 'O_NONBLOCK'})
 
     local function fail(msg)
