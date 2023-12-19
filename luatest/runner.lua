@@ -4,6 +4,7 @@
 
 local clock = require('clock')
 local fio = require('fio')
+local log = require('log')
 
 local assertions = require('luatest.assertions')
 local capturing = require('luatest.capturing')
@@ -16,6 +17,7 @@ local Server = require('luatest.server')
 local sorted_pairs = require('luatest.sorted_pairs')
 local TestInstance = require('luatest.test_instance')
 local utils = require('luatest.utils')
+local OutputBeautifier = require('luatest.output_beautifier')
 
 local ROCK_VERSION = require('luatest.VERSION')
 
@@ -56,6 +58,50 @@ function Runner.run(args, options)
         end
         options = utils.merge(options.luatest.configure(), Runner.parse_cmd_line(args), options)
 
+        local log_prefix = options.log_prefix or 'luatest'
+        local log_cfg = string.format("%s.log", log_prefix)
+
+        if options.log_file then
+            -- Save the file descriptor as a global variable to use it
+            -- in the `output_beautifier` module: this module is connected to the
+            -- the `server` module. We cannot link the `server` module to the `runner`
+            -- module to explicitly give this parameter.
+            local fh = fio.open(options.log_file, {'O_CREAT', 'O_WRONLY'}, tonumber('640', 8))
+            rawset(_G, 'log_file', {fh = fh})
+
+            local output_beautifier = OutputBeautifier:new({prefix = log_prefix, runner = true})
+            output_beautifier:enable({enable_capture = options.enable_capture})
+            output_beautifier:hijack_output()
+
+            -- `tee` copy logs to file and also to standard output, but we need
+            -- process all captured data through the OutputBeatifier object.
+            -- Data will be redirected back to stderr of the current process.
+            -- `/dev/fd/2` is a symlink to `/proc/self/fd`, where `/proc/self` is
+            -- a symlink to `/proc/<PID>`. So `/dev/fd/2` is equal to `/proc/<PID>/fd/2`
+            -- and it means "stderr of the current process".
+            log_cfg = string.format("| tee %s > /dev/fd/2", log_cfg)
+        end
+        -- Logging cannot be initialized without configuring the `box` engine
+        -- on a version less than 2.5.1 (see more details at [1]). Otherwise,
+        -- this causes the `attempt to call field 'cfg' (a nil value)` error,
+        -- so there are the following limitations:
+        --     1. There is no `luatest.log` file (but logs are still available
+        --        in stdout and in the `run.log` file);
+        --     2. All logs from luatest are non-formatted and look like:
+        --
+        --        luatest | My log message
+        --
+        -- [1]: https://github.com/tarantool/tarantool/issues/689
+        if utils.version_current_ge_than(2, 5, 1) then
+            -- Initialize logging for luatest runner.
+            -- The log format will be as follows:
+            --     YYYY-MM-DD HH:MM:SS.ZZZ [ID] main/.../luatest I> ...
+            log.cfg{
+                log = log_cfg,
+                level = options.log_level or 5,
+            }
+        end
+
         if options.help then
             print(Runner.USAGE)
             return 0
@@ -85,12 +131,17 @@ Positional arguments:
 Options:
   -h, --help:             Print this help
   --version:              Print version information
-  -v, --verbose:          Increase verbosity
+  -v, --verbose:          Increase output verbosity for luatest runnner
+  -vv,                    Increase log verbosity to VERBOSE level for luatest runnner
+  -vvv,                   Increase log verbosity to DEBUG level for luatest runnner
   -q, --quiet:            Set verbosity to minimum
   -c                      Disable capture
   -b                      Print full backtrace (don't remove luatest frames)
   -e, --error:            Stop on first error
   -f, --failure:          Stop on first failure or error
+  -l, --log PATH:         Path to the unified log file
+  --runner-log-prefix NAME:
+                          Log prefix for luatest runner, 'luatest' by default
   --shuffle VALUE:        Set execution order:
                             - group[:seed] - shuffle tests within group
                             - all[:seed] - shuffle all tests
@@ -135,6 +186,12 @@ function Runner.parse_cmd_line(args)
             result.version = true
         elseif arg == '--verbose' or arg == '-v' then
             result.verbosity = GenericOutput.VERBOSITY.VERBOSE
+        elseif arg == '-vv' then
+            result.verbosity = GenericOutput.VERBOSITY.VERBOSE
+            result.log_level = 6 -- verbose
+        elseif arg == '-vvv' then
+            result.verbosity = GenericOutput.VERBOSITY.VERBOSE
+            result.log_level = 7 -- debug
         elseif arg == '--quiet' or arg == '-q' then
             result.verbosity = GenericOutput.VERBOSITY.QUIET
         elseif arg == '--fail-fast' or arg == '-f' then
@@ -145,6 +202,10 @@ function Runner.parse_cmd_line(args)
             if seed then
                 result.seed = tonumber(seed) or error('Invalid seed value')
             end
+        elseif arg == '-l' or arg == '--log' then
+            result.log_file = tostring(next_arg()) or error('Invalid log file path')
+        elseif arg == '--runner-log-prefix' then
+            result.log_prefix = tostring(next_arg())
         elseif arg == '--seed' then
             result.seed = tonumber(next_arg()) or error('Invalid seed value')
         elseif arg == '--output' or arg == '-o' then

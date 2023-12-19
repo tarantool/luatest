@@ -59,9 +59,10 @@ end
 -- @string object.prefix String to prefix each output line with.
 -- @string[opt] object.color Color name for prefix.
 -- @string[opt] object.color_code Color code for prefix.
+-- @boolean[opt] object.runner Mark OutputBeautifier object is created for runner process.
 -- @return input object.
 function OutputBeautifier:new(object)
-    checks('table', {prefix = 'string', color = '?string', color_code = '?string'})
+    checks('table', {prefix = 'string', color = '?string', color_code = '?string', runner = '?boolean'})
     return self:from(object)
 end
 
@@ -69,19 +70,30 @@ function OutputBeautifier.mt:initialize()
     self.color_code = self.color_code or
         self.class.COLOR_BY_NAME[self.color] or
         OutputBeautifier:next_color_code()
-    self.pipes = {stdout = ffi_io.create_pipe(), stderr = ffi_io.create_pipe()}
+    self.pipes = {stderr = ffi_io.create_pipe()}
+    if not self.runner then
+        self.pipes.stdout = ffi_io.create_pipe()
+    end
     self.stderr = ''
+    self.enable_capture = nil
 end
 
 -- Replace standard output descriptors with pipes.
+-- Stdout descriptor of the runner process will not be replaced
+-- because it is used for displaying all captured data from other processes.
 function OutputBeautifier.mt:hijack_output()
-    ffi_io.dup2_io(self.pipes.stdout[1], io.stdout)
+    if not self.runner then
+        ffi_io.dup2_io(self.pipes.stdout[1], io.stdout)
+    end
     ffi_io.dup2_io(self.pipes.stderr[1], io.stderr)
 end
 
 -- Start fibers that reads from pipes and prints formatted output.
 -- Pass `track_pid` option to automatically stop forwarder once process is finished.
 function OutputBeautifier.mt:enable(options)
+    if options and options.enable_capture ~= nil then
+        self.enable_capture = options.enable_capture == false
+    end
     if self.fibers then
         return
     end
@@ -140,8 +152,10 @@ end
 -- Every line with log level mark (` X> `) changes the color for all the following
 -- lines until the next one with the mark.
 function OutputBeautifier.mt:run(fd, pipe)
-    local prefix = self.color_code .. self.prefix .. ' | '
+    local prefix = self.prefix .. ' | '
+    local colored_prefix = self.color_code .. prefix
     local line_color_code = self.class.RESET_TERM
+    local log_file = rawget(_G, 'log_file')
     while fiber.testcancel() or true do
         self:process_fd_output(fd, function(chunks)
             local raw_lines = table.concat(chunks)
@@ -154,7 +168,16 @@ function OutputBeautifier.mt:run(fd, pipe)
             end
             for _, line in pairs(lines) do
                 line_color_code = self:color_for_line(line) or line_color_code
-                io.stdout:write(table.concat({prefix, line_color_code, line, self.class.RESET_TERM, '\n'}))
+                if not self.runner or self.enable_capture then
+                    io.stdout:write(
+                        table.concat(
+                            {colored_prefix, line_color_code, line, self.class.RESET_TERM,'\n'}
+                        )
+                    )
+                end
+                if log_file ~= nil then
+                    log_file.fh:write(table.concat({prefix, line, '\n'}))
+                end
                 fiber.yield()
             end
         end)

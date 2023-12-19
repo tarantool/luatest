@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Add logging to unified file (gh-324).
+
 ## 1.0.1
 
 - Fixed incorrect Unix domain socket path length check (gh-341).
