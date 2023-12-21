@@ -1,6 +1,9 @@
 local digest = require('digest')
 local fun = require('fun')
 local yaml = require('yaml')
+local log = require('log')
+
+local pp = require('luatest.pp')
 
 local utils = {}
 
@@ -189,6 +192,14 @@ end
 
 function utils.is_tarantool_binary(path)
     return path:find('^.*/tarantool[^/]*$') ~= nil
+end
+
+function utils.log(msg, ...)
+    local args = {...}
+    for k, v in pairs(args) do
+        args[k] = pp.tostringlog(v)
+    end
+    log.info(msg, unpack(args))
 end
 
 return utils
