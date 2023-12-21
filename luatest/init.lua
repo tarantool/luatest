@@ -33,6 +33,11 @@ luatest.ReplicaSet = require('luatest.replica_set')
 local Group = require('luatest.group')
 local hooks = require('luatest.hooks')
 local parametrizer = require('luatest.parametrizer')
+local utils = require('luatest.utils')
+
+--- Add syntax sugar for logging.
+--
+luatest.log = utils.log
 
 --- Add before suite hook.
 --

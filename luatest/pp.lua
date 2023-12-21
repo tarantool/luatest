@@ -21,7 +21,7 @@ local TABLE_TOSTRING_SEP_LEN = string.len(TABLE_TOSTRING_SEP)
 
 -- Final function called in format_table() to format the resulting list of
 -- string describing the table.
-local function _table_tostring_format_result(tbl, result, indentLevel, printTableRefs)
+local function _table_tostring_format_result(tbl, result, indentLevel, printTableRefs, isLogLine)
     local dispOnMultLines = false
 
     -- set dispOnMultLines to true if the maximum LINE_LENGTH would be exceeded with the values
@@ -46,7 +46,7 @@ local function _table_tostring_format_result(tbl, result, indentLevel, printTabl
     end
 
     -- now reformat the result table (currently holding element strings)
-    if dispOnMultLines then
+    if dispOnMultLines and not isLogLine then
         local indentString = string.rep("    ", indentLevel - 1)
         result = {
             "{\n    ",
@@ -77,7 +77,7 @@ function Formatter.mt:initialize(printTableRefs)
     self.recursionTable = {}
 end
 
-function Formatter.mt:format_table(tbl, indentLevel)
+function Formatter.mt:format_table(tbl, indentLevel, isLogLine)
     indentLevel = indentLevel or 1
     self.recursionTable[tbl] = true
 
@@ -133,16 +133,16 @@ function Formatter.mt:format_table(tbl, indentLevel)
             count = count + 1
             result[count] = entry
         end
-        return _table_tostring_format_result(tbl, result, indentLevel, self.printTableRefs)
+        return _table_tostring_format_result(tbl, result, indentLevel, self.printTableRefs, isLogLine)
     end
 end
 
-function Formatter.mt:format(v, indentLevel)
+function Formatter.mt:format(v, indentLevel, isLogLine)
     local type_v = type(v)
     if "string" == type_v  then
         return string.format("%q", v)
     elseif "table" == type_v then
-        return self:format_table(v, indentLevel)
+        return self:format_table(v, indentLevel, isLogLine)
     elseif "number" == type_v then
         -- eliminate differences in formatting between various Lua versions
         if v ~= v then
@@ -169,16 +169,22 @@ end
 --
 -- * string are enclosed with " by default, or with ' if string contains a "
 -- * tables are expanded to show their full content, with indentation in case of nested tables
-function pp.tostring(value)
+function pp.tostring(value, is_logline)
     local formatter = Formatter:new(pp.TABLE_REF_IN_ERROR_MSG)
-    local result = formatter:format(value)
+    local result = formatter:format(value, nil, is_logline)
     if formatter.recursionDetected and not pp.TABLE_REF_IN_ERROR_MSG then
         -- some table contain recursive references,
         -- so we must recompute the value by including all table references
         -- else the result looks like crap
-        return Formatter:new(true):format(value)
+        return Formatter:new(true):format(value, nil, is_logline)
     end
     return result
+end
+
+-- This function helps with displaying `value` of any type without line breaks ('\n')
+-- for logging. It is a simple wrapper over the tostring() function.
+function pp.tostringlog(value)
+    return pp.tostring(value, true)
 end
 
 local function has_new_line(s)
