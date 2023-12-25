@@ -4,10 +4,10 @@
 
 local checks = require('checks')
 local fio = require('fio')
-local log = require('log')
 
 local helpers = require('luatest.helpers')
 local Server = require('luatest.server')
+local log = require('luatest.log')
 local utils = require('luatest.utils')
 
 local ReplicaSet = {}
@@ -72,6 +72,7 @@ function ReplicaSet:initialize()
     else
         self.servers = {}
     end
+    log.info('Replica set %s initialized', self.id)
 end
 
 --- Build a server object for the replica set.
@@ -147,8 +148,7 @@ function ReplicaSet:delete_server(alias)
     if server_index then
         table.remove(self.servers, server_index)
     else
-        log.warn(('Server with alias "%s" does not exist in replica set')
-            :format(alias))
+        log.warn('Server %s does not exist in replica set %s', alias, self.id)
     end
 end
 
@@ -174,6 +174,7 @@ function ReplicaSet:start(opts)
             server:wait_until_ready()
         end
     end
+    log.info('All servers started in replica set %s', self.id)
 end
 
 --- Stop all servers in the replica set.
@@ -235,6 +236,7 @@ function ReplicaSet:wait_for_fullmesh(opts)
             end
         end
     end, self)
+    log.info('Full mesh is ready in replica set %s', self.id)
 end
 
 return ReplicaSet

@@ -6,6 +6,7 @@
 - Add memory leak detection during server process execution (gh-349).
 - Improve `luatest.log` function if a `nil` value is passed (gh-360).
 - Added `assert_error_covers`.
+- Add more logs (gh-326).
 
 ## 1.0.1
 

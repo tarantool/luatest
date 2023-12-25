@@ -10,7 +10,6 @@ local fio = require('fio')
 local fun = require('fun')
 local http_client = require('http.client')
 local json = require('json')
-local log = require('log')
 local net_box = require('net.box')
 local tarantool = require('tarantool')
 local uri = require('uri')
@@ -19,6 +18,7 @@ local _, luacov_runner = pcall(require, 'luacov.runner') -- luacov may not be in
 local assertions = require('luatest.assertions')
 local HTTPResponse = require('luatest.http_response')
 local Process = require('luatest.process')
+local log = require('luatest.log')
 local utils = require('luatest.utils')
 
 local DEFAULT_VARDIR = '/tmp/t'
@@ -117,6 +117,7 @@ function Server:new(object, extra)
                     if not object.tests[t.name] then
                         object.tests[t.name] = t
                         t.servers[object.id] = object
+                        log.verbose('Server %s used in %s test', object.alias, t.name)
                     end
                 end
                 return v(...)
@@ -324,7 +325,6 @@ function Server:start(opts)
     for _, v in ipairs(args) do
         table.insert(log_cmd, string.format('%q', v))
     end
-    log.debug(table.concat(log_cmd, ' '))
 
     self.process = Process:start(command, args, env, {
         chdir = self.chdir,
@@ -344,7 +344,7 @@ function Server:start(opts)
         self:wait_until_ready()
     end
 
-    log.debug('Started server PID: ' .. self.process.pid)
+    log.info('Server %s (pid: %d) started', self.alias, self.process.pid)
 end
 
 --- Restart the server with the given parameters.
@@ -378,7 +378,7 @@ function Server:restart(params, opts)
     }, {wait_until_ready = '?boolean'})
 
     if not self.process then
-        log.warn("Process wasn't started")
+        log.warn('Cannot restart server %s since its process not started', self.alias)
     end
     self:stop()
 
@@ -387,7 +387,7 @@ function Server:restart(params, opts)
     end
 
     self:start(opts)
-    log.debug('Restarted server PID: ' .. self.process.pid)
+    log.info('Server %s (pid: %d) restarted', self.alias, self.process.pid)
 end
 
 -- Save server artifacts by copying the working directory.
@@ -396,6 +396,7 @@ end
 -- following string: `Failed to copy artifacts for server (alias: <alias>, workdir: <workdir>)`.
 function Server:save_artifacts()
     if self.artifacts_saved then
+        log.verbose('Artifacts of server %s already saved to %s', self.alias, self.artifacts)
         return
     end
     local ok, err = fio.copytree(self.workdir, self.artifacts)
@@ -404,12 +405,16 @@ function Server:save_artifacts()
             :format(self.alias, fio.basename(self.workdir))
         log.error(('%s: %s'):format(self.artifacts, err))
     end
+    log.verbose('Artifacts of server %s saved from %s to %s',
+        self.alias, self.workdir, self.artifacts)
     self.artifacts_saved = true
 end
 
 -- Wait until the given condition is `true` (anything except `false` and `nil`).
 -- Throws an error when the server process is terminated or timeout exceeds.
 local function wait_for_condition(cond_desc, server, func, ...)
+    log.verbose('Wait for %s condition for server %s (pid: %d) within %d sec',
+        cond_desc, server.alias, server.process.pid, WAIT_TIMEOUT)
     local deadline = clock.time() + WAIT_TIMEOUT
     while true do
         if not server.process:is_alive() then
@@ -437,6 +442,7 @@ function Server:stop()
             self:coverage('shutdown')
         end
         self.net_box:close()
+        log.verbose('Connection to server %s (pid: %d) closed', self.alias, self.process.pid)
         self.net_box = nil
     end
 
@@ -470,7 +476,7 @@ function Server:stop()
                 )
             )
         end
-        log.debug('Killed server process PID ' .. self.process.pid)
+        log.info('Process of server %s (pid: %d) killed', self.alias, self.process.pid)
         self.process = nil
     end
 end
@@ -773,6 +779,8 @@ function Server:grep_log(pattern, bytes_num, opts)
     local filename = options.filename or self:exec(function()
         return rawget(_G, 'box_cfg_log_file') or box.cfg.log end)
     local file = fio.open(filename, {'O_RDONLY', 'O_NONBLOCK'})
+
+    log.verbose('Trying to grep %s in server\'s log file %s', pattern, filename)
 
     local function fail(msg)
         local err = errno.strerror()

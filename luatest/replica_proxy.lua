@@ -5,10 +5,10 @@
 local checks = require('checks')
 local fiber = require('fiber')
 local fio = require('fio')
-local log = require('log')
 local socket = require('socket')
 local uri = require('uri')
 
+local log = require('luatest.log')
 local utils = require('luatest.utils')
 local Connection = require('luatest.replica_conn')
 
