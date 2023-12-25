@@ -4,7 +4,7 @@
 
 local clock = require('clock')
 local fiber = require('fiber')
-local log = require('log')
+local log = require('luatest.log')
 
 local helpers = {}
 
@@ -69,8 +69,7 @@ function helpers.retrying(config, fn, ...)
         if (clock.time() - started_at) > timeout then
             return fn(...)
         end
-        log.debug('Retrying in ' .. delay .. ' sec. due to error:')
-        log.debug(result)
+        log.verbose('Retrying in %d sec due to error: %s', delay, result)
         fiber.sleep(delay)
     end
 end

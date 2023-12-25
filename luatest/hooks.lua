@@ -1,3 +1,4 @@
+local log = require('luatest.log')
 local utils = require('luatest.utils')
 local comparator = require('luatest.comparator')
 
@@ -129,6 +130,7 @@ local function run_group_hooks(runner, group, hooks_type)
 end
 
 local function run_test_hooks(self, test, hooks_type, legacy_name)
+    log.verbose('Run hook %s', hooks_type)
     local group = test.group
     local hook
     -- Support for group.setup/teardown methods (legacy API)
@@ -143,6 +145,7 @@ local function run_test_hooks(self, test, hooks_type, legacy_name)
 end
 
 local function run_named_test_hooks(self, test, hooks_type)
+    log.verbose('Run hook %s', hooks_type)
     local group = test.group
     local hook = group['run_' .. hooks_type]
     if hook then
@@ -172,7 +175,9 @@ function export.patch_runner(Runner)
             run_named_test_hooks(self, test, 'before_test')
 
             if test:is('success') then
+                log.info('Start test %s', test.name)
                 super(self, test, ...)
+                log.info('End test %s', test.name)
             end
 
             run_named_test_hooks(self, test, 'after_test')

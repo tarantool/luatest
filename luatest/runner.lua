@@ -4,13 +4,13 @@
 
 local clock = require('clock')
 local fio = require('fio')
-local log = require('log')
 
 local assertions = require('luatest.assertions')
 local capturing = require('luatest.capturing')
 local Class = require('luatest.class')
 local GenericOutput = require('luatest.output.generic')
 local hooks = require('luatest.hooks')
+local log = require('luatest.log')
 local loader = require('luatest.loader')
 local pp = require('luatest.pp')
 local Server = require('luatest.server')
@@ -96,7 +96,7 @@ function Runner.run(args, options)
             -- Initialize logging for luatest runner.
             -- The log format will be as follows:
             --     YYYY-MM-DD HH:MM:SS.ZZZ [ID] main/.../luatest I> ...
-            log.cfg{
+            require('log').cfg{
                 log = log_cfg,
                 level = options.log_level or 5,
             }
@@ -337,11 +337,13 @@ function Runner.mt:bootstrap()
         load_tests(path)
     end
     self.groups = self.luatest.groups
+    log.verbose('Bootstrap finished: %d test(s), %d group(s)', #self.paths, #self.groups)
 end
 
 function Runner.mt:cleanup()
     if not self.no_clean then
         fio.rmtree(Server.vardir)
+        log.verbose('Directory %s removed via cleanup procedure', Server.vardir)
     end
 end
 
@@ -505,6 +507,7 @@ function Runner.mt:run_tests(tests_list)
             end
             rawget(_G, 'current_test').value = test
             self:run_test(test)
+            log.verbose('Test %s marked as %s', test.name, test.status)
             if self.result.aborted then
                 break
             end
