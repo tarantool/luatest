@@ -4,6 +4,7 @@
 
   * Fixed incorrent unix socket path length check (gh-341).
   * Now net_box_uri can be accepted as table (gh-342).
+  * Fixed returning values from `Server:exec()` if some of them are nil (gh-350).
 
 ## 1.0.0
 

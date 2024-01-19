@@ -104,3 +104,12 @@ end
 g.after_test('test_exec_when_luatest_not_found', function()
     g.bad_env_server:drop()
 end)
+
+g.test_exec_with_sparse_output = function()
+    local res1, res2 = g.server:exec(function()
+        return nil, 'some error'
+    end)
+
+    t.assert_equals(res1, nil)
+    t.assert_equals(res2, 'some error')
+end

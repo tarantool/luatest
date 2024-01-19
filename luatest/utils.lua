@@ -191,4 +191,26 @@ function utils.is_tarantool_binary(path)
     return path:find('^.*/tarantool[^/]*$') ~= nil
 end
 
+function utils.unpack_sparse_array(array, index)
+    -- Embed everything so no upvalues required on server.
+    index = index or 1
+
+    local len = 0
+    for k, _ in pairs(array) do
+        if type(k) == 'number' then
+            len = math.max(len, k)
+        end
+    end
+
+    local function unpack_sparse_array_tail(array, index, len) -- luacheck: ignore
+        if index > len then
+            return
+        end
+
+        return array[index], unpack_sparse_array_tail(array, index + 1, len)
+    end
+
+    return unpack_sparse_array_tail(array, index, len)
+end
+
 return utils
