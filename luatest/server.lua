@@ -686,10 +686,6 @@ function Server:exec(fn, args, options)
             :format(utils.get_fn_location(fn)))
     end
 
-    local utils_dumps = {
-        unpack_sparse_array = string.dump(utils.unpack_sparse_array),
-    }
-
     -- The function `fn` can return multiple values and we cannot use the
     -- classical approach to work with the `pcall`:
     --
@@ -697,22 +693,17 @@ function Server:exec(fn, args, options)
     --
     -- `result` variable will contain only `1` value, not `1, 2, 3`.
     -- To solve this, we put everything from `pcall` in a table.
+    -- Table must be unpacked with `unpack(result, i, table.maxn(result))`,
+    -- otherwise nil return values won't be supported.
     return exec_tail(pcall(self.net_box.eval, self.net_box, [[
-        local fn_dump, args, passthrough_ups, utils_dumps = ...
-
-        local fn = loadstring(fn_dump)
+        local dump, args, passthrough_ups = ...
+        local fn = loadstring(dump)
         for i = 1, debug.getinfo(fn, 'u').nups do
             local name, _ = debug.getupvalue(fn, i)
             if passthrough_ups[name] then
                 debug.setupvalue(fn, i, require(passthrough_ups[name]))
             end
         end
-
-        local utils = {}
-        for k, v in pairs(utils_dumps) do
-            utils[k] = loadstring(v)
-        end
-
         local result
         if args == nil then
             result = {pcall(fn)}
@@ -725,8 +716,8 @@ function Server:exec(fn, args, options)
             end
             error(result[2], 0)
         end
-        return utils.unpack_sparse_array(result, 2)
-    ]], {string.dump(fn), args, passthrough_ups, utils_dumps}, options))
+        return unpack(result, 2, table.maxn(result))
+    ]], {string.dump(fn), args, passthrough_ups}, options))
 end
 
 function Server:coverage(action)
