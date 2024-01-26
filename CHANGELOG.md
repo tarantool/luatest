@@ -1,11 +1,11 @@
 # Changelog
 
-## Unreleased
+## 1.0.1
 
-  * Fixed incorrent unix socket path length check (gh-341).
-  * Now net_box_uri can be accepted as table (gh-342).
-  * Fixed returning values from `Server:exec()` if some of them are nil (gh-350).
-  * Introduce `luatest.log` helper (gh-326).
+- Fixed incorrect Unix domain socket path length check (gh-341).
+- Now `net_box_uri` can be accepted as a table (gh-342).
+- Fixed returning values from `Server:exec()` if some of them are nil (gh-350).
+- Introduce `luatest.log` helper (gh-326).
 
 ## 1.0.0
 
