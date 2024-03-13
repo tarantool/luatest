@@ -459,6 +459,17 @@ function Server:stop()
                 )
             )
         end
+        if self.process.output_beautifier.stderr:find('LeakSanitizer') then
+            error(
+                ('Memory leak during process execution (alias: %s, workdir: %s, pid: %s)\n%s')
+                :format(
+                    self.alias,
+                    fio.basename(self.workdir),
+                    self.process.pid,
+                    self.process.output_beautifier.stderr
+                )
+            )
+        end
         log.debug('Killed server process PID ' .. self.process.pid)
         self.process = nil
     end
