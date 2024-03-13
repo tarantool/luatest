@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Add logging to unified file (gh-324).
+- Add memory leak detection during server process execution (gh-349).
 
 ## 1.0.1
 
