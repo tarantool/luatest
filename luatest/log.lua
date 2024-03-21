@@ -11,9 +11,10 @@ local function _log(level, msg, ...)
     if not utils.version_current_ge_than(2, 5, 1) then
         return
     end
-    local args = {...}
-    for k, v in pairs(args) do
-        args[k] = pp.tostringlog(v)
+    local args = {}
+    for i = 1, select('#', ...) do
+        local v = select(i, ...)
+        table.insert(args, pp.tostringlog(v))
     end
     return tarantool_log[level](msg, unpack(args))
 end
