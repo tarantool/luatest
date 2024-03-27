@@ -118,3 +118,26 @@ function g.test_assert_errorMsgMatches()
     assert_failure(t.assert_error_msg_matches, ' This is an error', f_with_error, x)
     assert_failure(t.assert_error_msg_matches,  "This", f_with_table_error, 33)
 end
+
+function g.test_assert_errorCovers()
+    -- function executes successfully
+    assert_failure(t.assert_error_covers, {}, f, 1)
+    -- function expected to raise a table or has unpack()
+    assert_failure(t.assert_error_covers, {}, f_with_error, 1)
+
+    -- good error coverage, error is table
+    t.assert_error_covers({b = 2},
+                          function(a, b) error({a = a, b = b}) end, 1, 2)
+    local error_with_unpack = function(a, b)
+        local e = {}
+        e.unpack = function()
+            return {a = a, b = b}
+        end
+        error(e)
+    end
+    -- good error coverage, error has unpack()
+    t.assert_error_covers({b = 2}, error_with_unpack, 1, 2)
+    -- bad error coverage
+    assert_failure(t.assert_error_covers, {b = 2},
+                   function(a, b) error({a = a, b = b}) end, 1, 3)
+end

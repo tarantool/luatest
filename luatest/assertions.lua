@@ -563,6 +563,31 @@ function M.assert_error_msg_matches(pattern, fn, ...)
     end
 end
 
+--- Checks that error raised by function is table that includes expected one.
+---
+--- If error object supports unpack() method (like Tarantool errors) then
+--- error is unpacked to get the table to be compared.
+--
+-- @tab expected
+-- @func fn
+-- @param ... arguments for function
+function M.assert_error_covers(expected, fn, ...)
+    local ok, actual = pcall(fn, ...)
+    if ok then
+        fail_fmt(2, nil,
+                 'Function successfully returned: %s\nExpected error: %s',
+                  prettystr(actual), prettystr(expected))
+    end
+    if actual.unpack ~= nil then
+        actual = actual:unpack()
+    end
+    if type(actual) ~= 'table' or not table_covers(actual, expected) then
+        actual, expected = prettystr_pairs(actual, expected)
+        fail_fmt(2, nil, 'Error expected: %s\nError received: %s\n',
+                 expected, actual)
+    end
+end
+
 --- Alias for @{assert}.
 --
 -- @param value
