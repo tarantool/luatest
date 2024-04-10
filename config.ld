@@ -9,7 +9,8 @@ file = {
     'luatest/replica_set.lua',
     'luatest/justrun.lua',
     'luatest/cbuilder.lua',
-    'luatest/hooks.lua'
+    'luatest/hooks.lua',
+    'luatest/treegen.lua'
 }
 topics = {
     'CHANGELOG.md',

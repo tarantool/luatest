@@ -13,6 +13,7 @@
 - Make `assert_error_*` additionally check error trace if required.
 - Add `--list-test-cases` and `--run-test-case` CLI options.
 - Introduce preloaded hooks (gh-380).
+- Add `treegen` helper as a tree generator (gh-364).
 
 ## 1.0.1
 

@@ -165,14 +165,14 @@ Preloaded hooks extend base hooks. They behave like the pytest fixture with the 
     -- my_helper.lua
     local hooks = require('luatest.hooks')
 
-    hooks.before_all_preloaded(function() print('start foo') end)
-    hooks.after_all_preloaded(function() print('stop foo') end)
+    hooks.before_suite_preloaded(function() print('start foo') end)
+    hooks.after_suite_preloaded(function() print('stop foo') end)
 
-    hooks.before_each_preloaded(function() print('start bar') end)
-    hooks.after_each_preloaded(function() print('stop bar') end)
+    hooks.before_all_preloaded(function() print('start bar') end)
+    hooks.after_all_preloaded(function() print('stop bar') end)
 
-    hooks.before_all_preloaded(function() print('start baz') end)
-    hooks.after_all_preloaded(function() print('stop baz') end)
+    hooks.before_each_preloaded(function() print('start baz') end)
+    hooks.after_each_preloaded(function() print('stop baz') end)
 
 If you run the following test:
 
@@ -190,13 +190,13 @@ Then the hooks are executed in the following sequence:
 
 .. code-block:: text
     |\ start foo
-    | \ start baz
+    | \ start bar
     |  \ prepare
-    |   \ start bar
+    |   \ start baz
     |      test_print (everythings is ok)
-    |   / stop bar
+    |   / stop baz
     |  / cleanup
-    | / stop baz
+    | / stop bar
     |/ stop foo
 
 ---------------------------------
