@@ -38,6 +38,11 @@ local parametrizer = require('luatest.parametrizer')
 --
 luatest.log = require('luatest.log')
 
+--- Simple Tarantool runner and output catcher.
+--
+-- @see luatest.justrun
+luatest.justrun = require('luatest.justrun')
+
 --- Add before suite hook.
 --
 -- @function before_suite
