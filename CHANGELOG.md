@@ -9,6 +9,7 @@
 - Add more logs (gh-326).
 - Add `justrun` helper as a tarantool runner and output catcher (gh-365).
 - Changed error message for too long Unix domain socket paths (gh-341).
+- Add `cbuilder` helper as a declarative configuration builder (gh-366).
 
 ## 1.0.1
 
