@@ -43,6 +43,11 @@ luatest.log = require('luatest.log')
 -- @see luatest.justrun
 luatest.justrun = require('luatest.justrun')
 
+--- Declarative configuration builder helper.
+--
+-- @see luatest.cbuilder
+luatest.cbuilder = require('luatest.cbuilder')
+
 --- Add before suite hook.
 --
 -- @function before_suite
