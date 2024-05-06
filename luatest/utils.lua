@@ -191,4 +191,9 @@ function utils.is_tarantool_binary(path)
     return path:find('^.*/tarantool[^/]*$') ~= nil
 end
 
+-- Return args as table with 'n' set to args number.
+function utils.table_pack(...)
+    return {n = select('#', ...), ...}
+end
+
 return utils

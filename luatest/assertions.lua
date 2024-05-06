@@ -10,6 +10,8 @@ local mismatch_formatter = require('luatest.mismatch_formatter')
 local pp = require('luatest.pp')
 local log = require('luatest.log')
 local utils = require('luatest.utils')
+local tarantool = require('tarantool')
+local ffi = require('ffi')
 
 local prettystr = pp.tostring
 local prettystr_pairs = pp.tostring_pair
@@ -17,6 +19,8 @@ local prettystr_pairs = pp.tostring_pair
 local M = {}
 
 local xfail = false
+
+local box_error_type = ffi.typeof(box.error.new(box.error.UNKNOWN))
 
 -- private exported functions (for testing)
 M.private = {}
@@ -85,12 +89,87 @@ local function error_msg_equality(actual, expected, deep_analysis)
 end
 M.private.error_msg_equality = error_msg_equality
 
+--
+-- The wrapper is used when trace check is required. See pcall_check_trace.
+--
+-- Without wrapper the trace will point to the pcall implementation. So trace
+-- check is not strict enough (the trace can point to any pcall in below in
+-- call trace).
+--
+local trace_line = debug.getinfo(1, 'l').currentline + 2
+local function wrapped_call(fn, ...)
+    local res = utils.table_pack(fn(...))
+    -- With `return fn(...)` wrapper does not work due to tail call
+    -- optimization.
+    return unpack(res, 1, res.n)
+end
+
+-- Expected trace for trace check. See pcall_check_trace.
+local wrapped_trace = {
+    file = debug.getinfo(1, 'S').short_src,
+    line = trace_line,
+}
+
+-- Used in tests to force check for given module.
+M.private.check_trace_module = nil
+
+--
+-- Return true if error trace check is required for function. Basically it is
+-- just a wrapper around Tarantool's utils.proper_trace_required. Additionally
+-- old Tarantool versions where this function is not present are handled.
+--
+local function trace_check_is_required(fn)
+    local src = debug.getinfo(fn, 'S').short_src
+    if M.private.check_trace_module == src then
+        return true
+    end
+    if tarantool._internal ~= nil and
+       tarantool._internal.trace_check_is_required ~= nil then
+        local path = debug.getinfo(fn, 'S').short_src
+        return tarantool._internal.trace_check_is_required(path)
+    end
+    return false
+end
+
+--
+-- Substitute for pcall but additionally checks error trace if required.
+--
+-- The error should be box.error and trace should point to the place
+-- where fn is called.
+--
+-- level is used to set proper level in error assertions that use this function.
+--
+local function pcall_check_trace(level, fn, ...)
+    local fn_explicit = fn
+    if type(fn) ~= 'function' then
+        fn_explicit = debug.getmetatable(fn).__call
+    end
+    if not trace_check_is_required(fn_explicit) then
+        return pcall(fn, ...)
+    end
+    local ok, err = pcall(wrapped_call, fn, ...)
+    if ok then
+        return ok, err
+    end
+    if type(err) ~= 'cdata' or ffi.typeof(err) ~= box_error_type then
+        fail_fmt(level + 1, nil, 'Error raised is not a box.error: %s',
+                 prettystr(err))
+    end
+    local unpacked = err:unpack()
+    if not comparator.equals(unpacked.trace[1], wrapped_trace) then
+        fail_fmt(level + 1, nil,
+                 'Unexpected error trace, expected: %s, actual: %s',
+                 prettystr(wrapped_trace), prettystr(unpacked.trace[1]))
+    end
+    return ok, err
+end
+
 --- Check that calling fn raises an error.
 --
 -- @func fn
 -- @param ... arguments for function
 function M.assert_error(fn, ...)
-    local ok, err = pcall(fn, ...)
+    local ok, err = pcall_check_trace(2, fn, ...)
     if ok then
         failure("Expected an error when calling function but no error generated", nil, 2)
     end
@@ -464,7 +543,7 @@ function M.assert_str_matches(value, pattern, start, final, message)
 end
 
 local function _assert_error_msg_equals(stripFileAndLine, expectedMsg, func, ...)
-    local no_error, error_msg = pcall(func, ...)
+    local no_error, error_msg = pcall_check_trace(3, func, ...)
     if no_error then
         local failure_message = string.format(
             'Function successfully returned: %s\nExpected error: %s',
@@ -530,7 +609,7 @@ end
 -- @func fn
 -- @param ... arguments for function
 function M.assert_error_msg_contains(expected_partial, fn, ...)
-    local no_error, error_msg = pcall(fn, ...)
+    local no_error, error_msg = pcall_check_trace(2, fn, ...)
     log.info('Assert error message %s contains %s', error_msg, expected_partial)
     if no_error then
         local failure_message = string.format(
@@ -553,7 +632,7 @@ end
 -- @func fn
 -- @param ... arguments for function
 function M.assert_error_msg_matches(pattern, fn, ...)
-    local no_error, error_msg = pcall(fn, ...)
+    local no_error, error_msg = pcall_check_trace(2, fn, ...)
     if no_error then
         local failure_message = string.format(
             'Function successfully returned: %s\nExpected error matching: %s',
@@ -578,7 +657,7 @@ end
 -- @func fn
 -- @param ... arguments for function
 function M.assert_error_covers(expected, fn, ...)
-    local ok, actual = pcall(fn, ...)
+    local ok, actual = pcall_check_trace(2, fn, ...)
     if ok then
         fail_fmt(2, nil,
                  'Function successfully returned: %s\nExpected error: %s',

@@ -4,6 +4,7 @@ local g = t.group()
 local helper = require('test.helpers.general')
 local assert_failure = helper.assert_failure
 local assert_failure_equals = helper.assert_failure_equals
+local assert_failure_contains = helper.assert_failure_contains
 
 local function f()
 end
@@ -16,6 +17,28 @@ local function f_with_table_error()
     local ts = {__tostring = function() return 'This table has error!' end}
     error(setmetatable({this_table="has error"}, ts))
 end
+
+local f_check_trace = function(level)
+    box.error(box.error.UNKNOWN, level)
+end
+
+local line = debug.getinfo(1, 'l').currentline + 2
+local f_check_trace_wrapper = function()
+    f_check_trace(2)
+end
+
+local _, err = pcall(f_check_trace_wrapper)
+local box_error_has_level = err:unpack().trace[1].line == line
+
+local f_check_success = function()
+    return {1, 'foo'}
+end
+
+local THIS_MODULE = debug.getinfo(1, 'S').short_src
+
+g.after_each(function()
+    t.private.check_trace_module = nil
+end)
 
 function g.test_assert_error()
     local x = 1
@@ -51,6 +74,10 @@ function g.test_assert_error()
     -- error generated as table
     t.assert_error(f_with_table_error, 1)
 
+    -- test assert failure due to unexpected error trace
+    t.private.check_trace_module = THIS_MODULE
+    assert_failure_contains('Unexpected error trace, expected:',
+                            t.assert_error, f_check_trace, 1)
 end
 
 function g.test_assert_errorMsgContains()
@@ -64,6 +91,12 @@ function g.test_assert_errorMsgContains()
 
     -- error message is a table which converts to a string
     t.assert_error_msg_contains('This table has error', f_with_table_error, 1)
+
+    -- test assert failure due to unexpected error trace
+    t.private.check_trace_module = THIS_MODULE
+    assert_failure_contains('Unexpected error trace, expected:',
+                            t.assert_error_msg_contains, 'bar', f_check_trace,
+                            1)
 end
 
 function g.test_assert_error_msg_equals()
@@ -103,6 +136,11 @@ function g.test_assert_error_msg_equals()
 
     -- expected table, error generated as string, no match
     assert_failure(t.assert_error_msg_equals, {1}, function() error("{1}") end, 33)
+
+    -- test assert failure due to unexpected error trace
+    t.private.check_trace_module = THIS_MODULE
+    assert_failure_contains('Unexpected error trace, expected:',
+                            t.assert_error_msg_equals, 'bar', f_check_trace, 1)
 end
 
 function g.test_assert_errorMsgMatches()
@@ -117,6 +155,11 @@ function g.test_assert_errorMsgMatches()
     -- one space added to cause failure
     assert_failure(t.assert_error_msg_matches, ' This is an error', f_with_error, x)
     assert_failure(t.assert_error_msg_matches,  "This", f_with_table_error, 33)
+
+    -- test assert failure due to unexpected error trace
+    t.private.check_trace_module = THIS_MODULE
+    assert_failure_contains('Unexpected error trace, expected:',
+                            t.assert_error_msg_matches, 'bar', f_check_trace, 1)
 end
 
 function g.test_assert_errorCovers()
@@ -140,4 +183,36 @@ function g.test_assert_errorCovers()
     -- bad error coverage
     assert_failure(t.assert_error_covers, {b = 2},
                    function(a, b) error({a = a, b = b}) end, 1, 3)
+
+    -- test assert failure due to unexpected error trace
+    t.private.check_trace_module = THIS_MODULE
+    assert_failure_contains('Unexpected error trace, expected:',
+                            t.assert_error_covers, 'bar', f_check_trace, 1)
+end
+
+function g.test_error_trace_check()
+    local foo = function(a) error(a) end
+    -- test when trace check is NOT required
+    t.assert_error_msg_content_equals('foo', foo, 'foo')
+
+    local ftor = setmetatable({}, {
+        __call = function(_, ...) return f_check_trace(...) end
+    })
+    t.private.check_trace_module = THIS_MODULE
+
+    -- test when trace check IS required
+    if box_error_has_level then
+        t.assert_error_covers({code = box.error.UNKNOWN}, f_check_trace, 2)
+        t.assert_error_covers({code = box.error.UNKNOWN}, ftor, 2)
+    end
+
+    -- check if there is no error then the returned value is reported correctly
+    assert_failure_contains('Function successfully returned: {1, "foo"}',
+                            t.assert_error_msg_equals, 'bar', f_check_success)
+    -- test assert failure due to unexpected error type
+    assert_failure_contains('Error raised is not a box.error:',
+                            t.assert_error, foo, 'foo')
+    -- test assert failure due to unexpected error trace
+    assert_failure_contains('Unexpected error trace, expected:',
+                            t.assert_error, f_check_trace, 1)
 end
