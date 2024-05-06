@@ -10,6 +10,7 @@
 - Add `justrun` helper as a tarantool runner and output catcher (gh-365).
 - Changed error message for too long Unix domain socket paths (gh-341).
 - Add `cbuilder` helper as a declarative configuration builder (gh-366).
+- Make `assert_error_*` additionally check error trace if required.
 
 ## 1.0.1
 

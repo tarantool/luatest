@@ -22,3 +22,11 @@ g.test_is_tarantool_binary = function()
                         ("Unexpected result for %q"):format(path))
     end
 end
+
+g.test_table_pack = function()
+    t.assert_equals(utils.table_pack(), {n = 0})
+    t.assert_equals(utils.table_pack(1), {n = 1, 1})
+    t.assert_equals(utils.table_pack(1, 2), {n = 2, 1, 2})
+    t.assert_equals(utils.table_pack(1, 2, nil), {n = 3, 1, 2})
+    t.assert_equals(utils.table_pack(1, 2, nil, 3), {n = 4, 1, 2, nil, 3})
+end
