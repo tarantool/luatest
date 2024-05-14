@@ -39,10 +39,10 @@ set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_MAKE_CLEAN_FILES .rocks)
 add_custom_command(
   OUTPUT ${PROJECT_SOURCE_DIR}/.rocks
   DEPENDS ${PROJECT_NAME}-scm-1.rockspec
-  COMMAND tarantoolctl rocks make ./${PROJECT_NAME}-scm-1.rockspec
-  COMMAND tarantoolctl rocks install http 1.1.0
-  COMMAND tarantoolctl rocks install luacheck 0.25.0
-  COMMAND tarantoolctl rocks install luacov 0.13.0
+  COMMAND tt rocks make ./${PROJECT_NAME}-scm-1.rockspec
+  COMMAND tt rocks install http 1.1.0
+  COMMAND tt rocks install luacheck 0.25.0
+  COMMAND tt rocks install luacov 0.13.0
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
 )
 
@@ -51,7 +51,7 @@ add_custom_target(bootstrap DEPENDS ${PROJECT_SOURCE_DIR}/.rocks)
 add_custom_command(
   OUTPUT ${PROJECT_SOURCE_DIR}/.rocks/bin/ldoc
   DEPENDS bootstrap
-  COMMAND tarantoolctl rocks install ldoc --server=http://rocks.moonscript.org
+  COMMAND tt rocks install ldoc --server=http://rocks.moonscript.org
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
 )
 

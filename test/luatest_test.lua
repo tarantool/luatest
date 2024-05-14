@@ -40,26 +40,26 @@ g.test_assert_is_box_null = function()
 end
 
 g.test_assert_equals_tnt_tuples = function()
-    t.assert_equals(box.tuple.new(1), box.tuple.new(1))
-    t.assert_equals(box.tuple.new(1, 'a', box.NULL), box.tuple.new(1, 'a', box.NULL))
-    t.assert_equals(box.tuple.new(1, {'a'}), box.tuple.new(1, {'a'}))
-    t.assert_equals({box.tuple.new(1)}, {box.tuple.new(1)})
-    t.assert_equals({box.tuple.new(1)}, {{1}})
-    helper.assert_failure(t.assert_equals, box.tuple.new(1), box.tuple.new(2))
+    t.assert_equals(box.tuple.new({1}), box.tuple.new({1}))
+    t.assert_equals(box.tuple.new({1, 'a', box.NULL}), box.tuple.new({1, 'a', box.NULL}))
+    t.assert_equals(box.tuple.new({1, {'a'}}), box.tuple.new({1, {'a'}}))
+    t.assert_equals({box.tuple.new({1})}, {box.tuple.new({1})})
+    t.assert_equals({box.tuple.new({1})}, {{1}})
+    helper.assert_failure(t.assert_equals, box.tuple.new({1}), box.tuple.new({2}))
 
-    t.assert_not_equals(box.tuple.new(1), box.tuple.new(2))
-    t.assert_not_equals(box.tuple.new(1, 'a', box.NULL, {}), box.tuple.new(1, 'a'))
-    t.assert_not_equals(box.tuple.new(1, {'a'}), box.tuple.new(1, {'b'}))
-    helper.assert_failure(t.assert_not_equals, box.tuple.new(1), box.tuple.new(1))
+    t.assert_not_equals(box.tuple.new({1}), box.tuple.new({2}))
+    t.assert_not_equals(box.tuple.new({1, 'a', box.NULL, {}}), box.tuple.new({1, 'a'}))
+    t.assert_not_equals(box.tuple.new({1, {'a'}}), box.tuple.new({1, {'b'}}))
+    helper.assert_failure(t.assert_not_equals, box.tuple.new({1}), box.tuple.new({1}))
 
     -- Check that other cdata values works fine.
     t.assert_equals(1ULL, 0ULL + 1)
 end
 
-g.test_assert_items_equals_tnt_tuples = function()
-    t.assert_items_equals({box.tuple.new(1)}, {box.tuple.new(1)})
+g.test_assert_items_equals_tnt_tuples_v3 = function()
+    t.assert_items_equals({box.tuple.new({1})}, {box.tuple.new({1})})
     helper.assert_failure_contains('Item values of the tables are not identical',
-        t.assert_items_equals, {box.tuple.new(1)}, {box.tuple.new(2)})
+        t.assert_items_equals, {box.tuple.new({1})}, {box.tuple.new({2})})
 end
 
 g.test_fail_if_tnt_specific = function()
@@ -115,14 +115,14 @@ g.test_assert_covers = function()
     subject({a = 1, b = 2, c = 3}, {a = 1, c = 3})
     subject({a = 1, b = 2, c = 3}, {a = 1, b = 2, c = 3})
     subject({a = box.NULL}, {a = box.NULL})
-    subject({a = box.tuple.new(1)}, {a = box.tuple.new(1)})
+    subject({a = box.tuple.new({1})}, {a = box.tuple.new({1})})
 
     helper.assert_failure(subject, {a = 1, b = 2, c = 3}, {a = 2})
     helper.assert_failure(subject, {a = 1, b = 2, c = 3}, {a = 1, b = 1})
     helper.assert_failure(subject, {a = 1, b = 2, c = 3}, {a = 1, b = 2, c = 3, d = 4})
     helper.assert_failure(subject, {a = 1, b = 2, c = 3}, {d = 1})
     helper.assert_failure(subject, {a = nil}, {a = box.NULL})
-    helper.assert_failure(subject, {a = box.tuple.new(1)}, {a = box.tuple.new(2)})
+    helper.assert_failure(subject, {a = box.tuple.new({1})}, {a = box.tuple.new({2})})
     helper.assert_failure_contains('Argument 1 and 2 must be tables', subject, {a = 1, b = 2, c = 3}, nil)
 end
 
@@ -144,9 +144,9 @@ end
 
 g.test_assert_items_include = function()
     local subject = t.assert_items_include
-    subject({1, box.tuple.new(1)}, {box.tuple.new(1)})
+    subject({1, box.tuple.new({1})}, {box.tuple.new({1})})
 
-    helper.assert_failure(subject, {box.tuple.new(1)}, {box.tuple.new(2)})
+    helper.assert_failure(subject, {box.tuple.new({1})}, {box.tuple.new({2})})
 end
 
 g.test_assert_type = function()
