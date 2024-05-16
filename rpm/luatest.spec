@@ -10,6 +10,7 @@ BuildArch: noarch
 BuildRequires: tarantool >= 1.9.0
 BuildRequires: tarantool-devel >= 1.9.0
 BuildRequires: tarantool-checks >= 3.0.1
+BuildRequires: tt >= 2.2.1
 Requires: tarantool >= 1.9.0
 Requires: tarantool-checks >= 3.0.1
 %description

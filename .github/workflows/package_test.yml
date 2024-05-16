@@ -16,8 +16,8 @@ jobs:
         include:
           - dist: ubuntu
             version: jammy
-          - dist: el
-            version: 8
+          - dist: fedora
+            version: 36
 
     runs-on: ubuntu-20.04
 
