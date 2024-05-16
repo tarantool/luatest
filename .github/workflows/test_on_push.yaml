@@ -22,7 +22,7 @@ jobs:
 
       - name: Install tt utility
         run: |
-          curl -L https://tarantool.io/GcTQaQl/release/2/installer.sh | bash
+          curl -L https://tarantool.io/release/2/installer.sh | bash
           sudo apt-get -y install tt
 
       - name: Install requirements for community
