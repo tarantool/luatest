@@ -161,6 +161,9 @@ Options:
   --coverage:             Use luacov to collect code coverage.
   --no-clean:             Disable the var directory (default: /tmp/t) deletion before
                           running tests.
+  --list-test-cases       List all test cases.
+  --run-test-case CASE    Run one specific test case. Unlike --pattern the name
+                          should match verbatim.
 ]]
 
 function Runner.parse_cmd_line(args)
@@ -236,6 +239,10 @@ function Runner.parse_cmd_line(args)
             result.coverage_report = true
         elseif arg == '--no-clean' then
             result.no_clean = true
+        elseif arg == '--list-test-cases' then
+            result.list_test_cases = true
+        elseif arg == '--run-test-case' then
+            result.run_test_case = next_arg()
         elseif arg:sub(1,1) == '-' then
             error('Unknown option: ' .. arg)
         elseif arg:find('/') then
@@ -284,10 +291,16 @@ function Runner.is_test_name(s)
     return string.sub(s, 1, 4):lower() == 'test'
 end
 
-function Runner.filter_tests(tests, patterns)
+function Runner.filter_tests(tests, patterns, test_case)
     local result = {[true] = {}, [false] = {}}
     for _, test in ipairs(tests) do
-        table.insert(result[utils.pattern_filter(patterns, test.name)], test)
+        -- Handle --pattern CLI option.
+        local yesno = utils.pattern_filter(patterns, test.name)
+        -- Handle --run-test-case CLI option.
+        if test_case ~= nil then
+            yesno = yesno and test.name == test_case
+        end
+        table.insert(result[yesno], test)
     end
     return result
 end
@@ -349,7 +362,17 @@ end
 
 function Runner.mt:run()
     self:bootstrap()
-    local filtered_list = self.class.filter_tests(self:find_tests(), self.tests_pattern)
+    local filtered_list = self.class.filter_tests(self:find_tests(),
+        self.tests_pattern, self.run_test_case)
+
+    -- Handle the --list-test-case CLI option.
+    if self.list_test_cases then
+        for _, test_case in ipairs(filtered_list[true]) do
+            print(test_case.name)
+        end
+        return 0
+    end
+
     self:start_suite(#filtered_list[true], #filtered_list[false])
     self:cleanup()
     self:run_tests(filtered_list[true])

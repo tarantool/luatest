@@ -11,6 +11,7 @@
 - Changed error message for too long Unix domain socket paths (gh-341).
 - Add `cbuilder` helper as a declarative configuration builder (gh-366).
 - Make `assert_error_*` additionally check error trace if required.
+- Add `--list-test-cases` and `--run-test-case` CLI options.
 
 ## 1.0.1
 
