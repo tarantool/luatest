@@ -610,6 +610,12 @@ function g.test_parse_cmd_line()
         output_file_name='toto.xml',
     })
 
+    -- list-test-cases
+    assert_subject({'--list-test-cases'}, {list_test_cases = true})
+
+    -- run-test-case
+    assert_subject({'--run-test-case', 'foo'}, {run_test_case = 'foo'})
+
     t.assert_error_msg_contains('option: -$', subject, {'-$',})
 end
 
@@ -708,6 +714,21 @@ function g.test_filter_tests()
     included, excluded = subject(testset, {'foo', 'bar', '!t.t.', '%.bar'})
     t.assert_equals(included, {testset[2], testset[4], testset[6], testset[7], testset[8]})
     t.assert_equals(#excluded, 3)
+
+    -- --run-test-case without patterns
+    included, excluded = subject(testset, nil, 'toto.foo')
+    t.assert_equals(included, {testset[1]})
+    t.assert_equals(#excluded, 7)
+
+    -- --run-test-case with a matching pattern
+    included, excluded = subject(testset, {'toto'}, 'toto.foo')
+    t.assert_equals(included, {testset[1]})
+    t.assert_equals(#excluded, 7)
+
+    -- --run-test-case with a non-matching pattern
+    included, excluded = subject(testset, {'tutu'}, 'toto.foo')
+    t.assert_equals(included, {})
+    t.assert_equals(#excluded, 8)
 end
 
 function g.test_str_match()
