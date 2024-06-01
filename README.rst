@@ -156,6 +156,48 @@ To change default order use:
     local t = require('luatest')
     t.configure({shuffle = 'group'})
 
+---------------------------------
+Preloaded hooks
+---------------------------------
+Preloaded hooks extend base hooks. They behave like the pytest fixture with the ``autouse`` parameter.
+
+.. code-block:: lua
+    -- my_helper.lua
+    local hooks = require('luatest.hooks')
+
+    hooks.before_all_preloaded(function() print('start foo') end)
+    hooks.after_all_preloaded(function() print('stop foo') end)
+
+    hooks.before_each_preloaded(function() print('start bar') end)
+    hooks.after_each_preloaded(function() print('stop bar') end)
+
+    hooks.before_all_preloaded(function() print('start baz') end)
+    hooks.after_all_preloaded(function() print('stop baz') end)
+
+If you run the following test:
+
+.. code-block:: lua
+    local t = require('luatest')
+    local my_helper = require('my_helper')
+    local g = t.group()
+
+    g.before_all(function() print('prepare') end)
+    g.after_all(function() print('cleanup') end)
+
+    g.test_print = function() print('everythings is ok') end
+
+Then the hooks are executed in the following sequence:
+
+.. code-block:: text
+    |\ start foo
+    | \ start baz
+    |  \ prepare
+    |   \ start bar
+    |      test_print (everythings is ok)
+    |   / stop bar
+    |  / cleanup
+    | / stop baz
+    |/ stop foo
 
 ---------------------------------
 List of luatest functions

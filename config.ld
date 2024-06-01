@@ -8,7 +8,8 @@ file = {
     'luatest/server.lua',
     'luatest/replica_set.lua',
     'luatest/justrun.lua',
-    'luatest/cbuilder.lua'
+    'luatest/cbuilder.lua',
+    'luatest/hooks.lua'
 }
 topics = {
     'CHANGELOG.md',

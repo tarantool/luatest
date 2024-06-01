@@ -1,8 +1,87 @@
+--- Provide extra methods for hooks.
+--
+-- Preloaded hooks extend base hooks.
+-- They behave like the pytest fixture with the `autouse` parameter.
+--
+-- @usage
+--
+-- local hooks = require('luatest.hooks')
+--
+-- hooks.before_suite_preloaded(...)
+-- hooks.after_suite_preloaded(...)
+--
+-- hooks.before_all_preloaded(...)
+-- hooks.after_all_preloaded(...)
+--
+-- hooks.before_each_preloaded(...)
+-- hooks.after_each_preloaded(...)
+--
+-- @module luatest.hooks
+
 local log = require('luatest.log')
 local utils = require('luatest.utils')
 local comparator = require('luatest.comparator')
 
 local export = {}
+
+local preloaded_hooks = {
+    before_suite = {},
+    after_suite = {},
+
+    before_all = {},
+    after_all = {},
+
+    before_each = {},
+    after_each = {}
+}
+
+--- Register preloaded before hook in the `suite` scope.
+-- It will be done before the classic before_suite() hook in the tests.
+--
+-- @func fn The function where you will be preparing for the test.
+function export.before_suite_preloaded(fn)
+    table.insert(preloaded_hooks.before_suite, {fn, {}})
+end
+
+--- Register preloaded after hook in the `suite` scope.
+-- It will be done after the classic after_suite() hook in the tests.
+--
+-- @func fn The function where you will be cleaning up for the test.
+function export.after_suite_preloaded(fn)
+    table.insert(preloaded_hooks.after_suite, {fn, {}})
+end
+
+--- Register preloaded before hook in the `all` scope.
+-- It will be done before the classic before_all() hook in the tests.
+--
+-- @func fn The function where you will be preparing for the test.
+function export.before_all_preloaded(fn)
+    table.insert(preloaded_hooks.before_all, {fn, {}})
+end
+
+--- Register preloaded after hook in the `all` scope.
+-- It will be done after the classic after_all() hook in the tests.
+--
+-- @func fn The function where you will be cleaning up for the test.
+function export.after_all_preloaded(fn)
+    table.insert(preloaded_hooks.after_all, {fn, {}})
+end
+
+--- Register preloaded before hook in the `each` scope.
+-- It will be done before the classic before_each() hook in the tests.
+--
+-- @func fn The function where you will be preparing for the test.
+function export.before_each_preloaded(fn)
+    table.insert(preloaded_hooks.before_each, {fn, {}})
+end
+
+--- Register preloaded after hook in the `each` scope.
+-- It will be done after the classic after_each() hook in the tests.
+--
+-- @func fn The function where you will be cleaning up for the test.
+function export.after_each_preloaded(fn)
+    table.insert(preloaded_hooks.after_each, {fn, {}})
+end
 
 local function check_params(required, actual)
     for param_name, param_val in pairs(required) do
@@ -14,7 +93,7 @@ local function check_params(required, actual)
     return true
 end
 
-local function define_hooks(object, hooks_type)
+local function define_hooks(object, hooks_type, preloaded_hook)
     local hooks = {}
     object[hooks_type .. '_hooks'] = hooks
 
@@ -35,12 +114,44 @@ local function define_hooks(object, hooks_type)
     end
     object['_original_' .. hooks_type] = object[hooks_type] -- for leagacy hooks support
 
+    local function run_preloaded_hooks()
+        if preloaded_hook == nil then
+            return
+        end
+
+        -- before_* -- direct order
+        -- after_* -- reverse order
+        local from = 1
+        local to = #preloaded_hook
+        local step = 1
+        if hooks_type:startswith('after_') then
+            from, to = to, from
+            step = -step
+        end
+
+        for i = from, to, step do
+            local hook = preloaded_hook[i]
+            if check_params(hook[2], object.params) then
+                hook[1](object)
+            end
+        end
+    end
+
     object['run_' .. hooks_type] = function()
+        -- before_* -- run before test hooks
+        if hooks_type:startswith('before_') then
+            run_preloaded_hooks()
+        end
+
         local active_hooks = object[hooks_type .. '_hooks']
         for _, hook in ipairs(active_hooks) do
             if check_params(hook[2], object.params) then
                 hook[1](object)
             end
+        end
+        -- after_* -- run after test hooks
+        if hooks_type:startswith('after_') then
+            run_preloaded_hooks()
         end
     end
 end
@@ -97,11 +208,11 @@ local function define_named_hooks(object, hooks_type)
 end
 
 -- Define hooks on group.
-function export.define_group_hooks(group)
-    define_hooks(group, 'before_each')
-    define_hooks(group, 'after_each')
-    define_hooks(group, 'before_all')
-    define_hooks(group, 'after_all')
+function export._define_group_hooks(group)
+    define_hooks(group, 'before_each', preloaded_hooks.before_each)
+    define_hooks(group, 'after_each',  preloaded_hooks.after_each)
+    define_hooks(group, 'before_all',  preloaded_hooks.before_all)
+    define_hooks(group, 'after_all',   preloaded_hooks.after_all)
 
     define_named_hooks(group, 'before_test')
     define_named_hooks(group, 'after_test')
@@ -109,9 +220,9 @@ function export.define_group_hooks(group)
 end
 
 -- Define suite hooks on luatest.
-function export.define_suite_hooks(luatest)
-    define_hooks(luatest, 'before_suite')
-    define_hooks(luatest, 'after_suite')
+function export._define_suite_hooks(luatest)
+    define_hooks(luatest, 'before_suite', preloaded_hooks.before_suite)
+    define_hooks(luatest, 'after_suite',  preloaded_hooks.after_suite)
 end
 
 local function run_group_hooks(runner, group, hooks_type)
@@ -153,7 +264,7 @@ local function run_named_test_hooks(self, test, hooks_type)
     end
 end
 
-function export.patch_runner(Runner)
+function export._patch_runner(Runner)
     -- Last run test to set error for when group.after_all hook fails.
     local last_test = nil
 
