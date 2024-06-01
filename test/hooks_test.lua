@@ -62,6 +62,73 @@ g.test_hooks = function()
     t.assert_equals(hooks, expected)
 end
 
+g.test_predefined_hooks = function()
+    local _hooks = require('luatest.hooks')
+    local hooks = {}
+
+    _hooks.before_suite_preloaded(function() table.insert(hooks, 'before_suite') end)
+    _hooks.after_suite_preloaded(function() table.insert(hooks, 'after_suite') end)
+    _hooks.before_suite_preloaded(function() table.insert(hooks, 'before_suite2') end)
+    _hooks.after_suite_preloaded(function() table.insert(hooks, 'after_suite2') end)
+
+    _hooks.before_all_preloaded(function() table.insert(hooks, 'before_all') end)
+    _hooks.after_all_preloaded(function() table.insert(hooks, 'after_all') end)
+    _hooks.before_all_preloaded(function() table.insert(hooks, 'before_all2') end)
+    _hooks.after_all_preloaded(function() table.insert(hooks, 'after_all2') end)
+
+    _hooks.before_each_preloaded(function() table.insert(hooks, 'before_each') end)
+    _hooks.after_each_preloaded(function() table.insert(hooks, 'after_each') end)
+    _hooks.before_each_preloaded(function() table.insert(hooks, 'before_each2') end)
+    _hooks.after_each_preloaded(function() table.insert(hooks, 'after_each2') end)
+
+    _hooks.before_suite_preloaded(function() table.insert(hooks, 'before_suite3') end)
+    _hooks.before_all_preloaded(function() table.insert(hooks, 'before_all3') end)
+    _hooks.before_all_preloaded(function() table.insert(hooks, 'before_all4') end)
+    _hooks.after_suite_preloaded(function() table.insert(hooks, 'after_suite3') end)
+    _hooks.after_all_preloaded(function() table.insert(hooks, 'after_all3') end)
+    _hooks.after_all_preloaded(function() table.insert(hooks, 'after_all4') end)
+
+    local result = helper.run_suite(function(lu2)
+        local t2 = lu2.group('test')
+        t2.before_all(function() table.insert(hooks, 'before_all_inner') end)
+        lu2.before_suite(function() table.insert(hooks, 'before_suite_inner') end)
+        lu2.after_suite(function() table.insert(hooks, 'after_suite_inner') end)
+        t2.after_all(function() table.insert(hooks, 'after_all_inner') end)
+        t2.before_each(function() table.insert(hooks, 'before_each_inner') end)
+        t2.after_each(function() table.insert(hooks, 'after_each_inner') end)
+        t2.test = function() table.insert(hooks, 'test') end
+    end)
+
+    t.assert_equals(result, 0)
+    t.assert_equals(hooks, {
+        "before_suite",
+        "before_suite2",
+        "before_suite3",
+        "before_suite_inner",
+        "before_all",
+        "before_all2",
+        "before_all3",
+        "before_all4",
+        "before_all_inner",
+        "before_each",
+        "before_each2",
+        "before_each_inner",
+        "test",
+        "after_each_inner",
+        "after_each2",
+        "after_each",
+        "after_all_inner",
+        "after_all4",
+        "after_all3",
+        "after_all2",
+        "after_all",
+        "after_suite_inner",
+        "after_suite3",
+        "after_suite2",
+        "after_suite",
+    })
+end
+
 g.test_hooks_legacy = function()
     local hooks = {}
     local expected = {}

@@ -599,7 +599,7 @@ function Runner.mt:all_test_names()
     return result
 end
 
-hooks.patch_runner(Runner)
+hooks._patch_runner(Runner)
 capturing(Runner)
 
 return Runner

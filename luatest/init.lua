@@ -57,7 +57,12 @@ luatest.cbuilder = require('luatest.cbuilder')
 --
 -- @function after_suite
 -- @func fn
-hooks.define_suite_hooks(luatest)
+hooks._define_suite_hooks(luatest)
+
+--- Add extra hooks methods.
+--
+-- @see luatest.hooks
+luatest.hooks = hooks
 
 luatest.groups = {}
 

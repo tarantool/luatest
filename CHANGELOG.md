@@ -12,6 +12,7 @@
 - Add `cbuilder` helper as a declarative configuration builder (gh-366).
 - Make `assert_error_*` additionally check error trace if required.
 - Add `--list-test-cases` and `--run-test-case` CLI options.
+- Introduce preloaded hooks (gh-380).
 
 ## 1.0.1
 
