@@ -648,10 +648,39 @@ function M.assert_error_msg_matches(pattern, fn, ...)
     end
 end
 
+-- If it is box.error that unpack it recursively. If it is not then
+-- return argument unchanged.
+local function error_unpack(err)
+    if type(err) ~= 'cdata' or ffi.typeof(err) ~= box_error_type then
+        return err
+    end
+    local unpacked = err:unpack()
+    local tmp = unpacked
+    while tmp.prev ~= nil do
+        tmp.prev = tmp.prev:unpack()
+        tmp = tmp.prev
+    end
+    return unpacked
+end
+
+-- Return table with keys from expected but values from actual. Apply
+-- same changes recursively for key 'prev'.
+local function error_slice(actual, expected)
+    if type(expected) ~= 'table' or type(actual) ~= 'table' then
+        return actual
+    end
+    local sliced = {}
+    for k, _ in pairs(expected) do
+        sliced[k] = actual[k]
+    end
+    sliced.prev = error_slice(sliced.prev, expected.prev)
+    return sliced
+end
+
 --- Checks that error raised by function is table that includes expected one.
----
---- If error object supports unpack() method (like Tarantool errors) then
---- error is unpacked to get the table to be compared.
+--- box.error is unpacked to convert to table. Stacked errors are supported.
+--- That is if there is prev field in expected then it should cover prev field
+--- in actual and so on recursively.
 --
 -- @tab expected
 -- @func fn
@@ -663,12 +692,10 @@ function M.assert_error_covers(expected, fn, ...)
                  'Function successfully returned: %s\nExpected error: %s',
                   prettystr(actual), prettystr(expected))
     end
-    if actual.unpack ~= nil then
-        actual = actual:unpack()
-    end
-    if type(actual) ~= 'table' or not table_covers(actual, expected) then
-        actual, expected = prettystr_pairs(actual, expected)
-        fail_fmt(2, nil, 'Error expected: %s\nError received: %s\n',
+    local unpacked = error_unpack(actual)
+    if not comparator.equals(error_slice(unpacked, expected), expected) then
+        actual, expected = prettystr_pairs(unpacked, expected)
+        fail_fmt(2, nil, 'Error expected: %s\nError received: %s',
                  expected, actual)
     end
 end
