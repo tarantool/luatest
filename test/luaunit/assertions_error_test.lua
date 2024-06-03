@@ -5,6 +5,7 @@ local helper = require('test.helpers.general')
 local assert_failure = helper.assert_failure
 local assert_failure_equals = helper.assert_failure_equals
 local assert_failure_contains = helper.assert_failure_contains
+local assert_failure_matches = helper.assert_failure_matches
 
 local function f()
 end
@@ -22,13 +23,13 @@ local f_check_trace = function(level)
     box.error(box.error.UNKNOWN, level)
 end
 
-local line = debug.getinfo(1, 'l').currentline + 2
+local wrapper_line = debug.getinfo(1, 'l').currentline + 2
 local f_check_trace_wrapper = function()
     f_check_trace(2)
 end
 
-local _, err = pcall(f_check_trace_wrapper)
-local box_error_has_level = err:unpack().trace[1].line == line
+local _, wrapper_err = pcall(f_check_trace_wrapper)
+local box_error_has_level = wrapper_err:unpack().trace[1].line == wrapper_line
 
 local f_check_success = function()
     return {1, 'foo'}
@@ -163,26 +164,85 @@ function g.test_assert_errorMsgMatches()
 end
 
 function g.test_assert_errorCovers()
+    local actual
+    local expected
     -- function executes successfully
-    assert_failure(t.assert_error_covers, {}, f, 1)
-    -- function expected to raise a table or has unpack()
-    assert_failure(t.assert_error_covers, {}, f_with_error, 1)
-
-    -- good error coverage, error is table
-    t.assert_error_covers({b = 2},
-                          function(a, b) error({a = a, b = b}) end, 1, 2)
-    local error_with_unpack = function(a, b)
-        local e = {}
-        e.unpack = function()
-            return {a = a, b = b}
-        end
-        error(e)
+    assert_failure_equals('Function successfully returned: {1, "foo"}\n' ..
+                          'Expected error: {}', t.assert_error_covers, {},
+                          function() return {1, 'foo'} end)
+    ----------------
+    -- good coverage
+    ----------------
+    t.assert_error_covers({}, error, {})
+    t.assert_error_covers({b = 2}, error, {b = 2})
+    t.assert_error_covers({b = 2}, error, {a = 1, b = 2})
+    actual = {a = 1, b = 2, prev = {x = 3, y = 4}}
+    expected = {b = 2, prev = {x = 3}}
+    t.assert_error_covers(expected, error, actual)
+    actual.prev.prev = {i = 5, j = 6}
+    expected.prev.prev = {j = 6}
+    t.assert_error_covers(expected, error, actual)
+    ---------------
+    -- bad coverage
+    ---------------
+    local msg = 'Error expected: .*\nError received: .*'
+    assert_failure_matches(msg, t.assert_error_covers,
+                           {b = 2}, error, {a = 1, b = 3})
+    assert_failure_matches(msg, t.assert_error_covers, {b = 2}, error, {a = 1})
+    assert_failure_matches(msg, t.assert_error_covers, {b = 2}, error, {})
+    actual = {a = 1, b = 2, prev = {x = 3, y = 4}}
+    expected = {b = 2, prev = {x = 4}}
+    assert_failure_matches(msg, t.assert_error_covers, expected, error, actual)
+    actual = {a = 1, b = 2, prev = {x = 3, y = 4, prev = {i = 5, j = 6}}}
+    expected = {b = 2, prev = {x = 3, prev = {i = 6}}}
+    assert_failure_matches(msg, t.assert_error_covers, expected, error, actual)
+    --------
+    --- misc
+    --------
+    -- several arguments for tested function
+    local error_args = function(a, b) error({a = a, b = b}) end
+    t.assert_error_covers({b = 2}, error_args, 1, 2)
+    -- full error message
+    assert_failure_equals('Error expected: {b = 2}\n' ..
+                          'Error received: {a = 1, b = 3}',
+                          t.assert_error_covers, {b = 2}, error, {a = 1, b = 3})
+    ---------------
+    -- corner cases
+    ---------------
+    -- strange, but still
+    t.assert_error_covers('foo', error, 'foo')
+    -- same but for stacked diagnostics
+    t.assert_error_covers({b = 2, prev = 'foo'},
+                          error, {a = 1, b = 2, prev = 'foo'})
+    -- actual error is not table
+    assert_failure_matches(msg, t.assert_error_covers, {}, error, 'foo')
+    -- expected in not a table
+    assert_failure_matches(msg, t.assert_error_covers, 2, error, {})
+    -- actual error is not indexable
+    assert_failure_matches(msg, t.assert_error_covers, {}, error, 1LL)
+    -- actual error prev is not table
+    assert_failure_matches(msg, t.assert_error_covers, {prev = {}},
+                           error, {prev = 'foo'})
+    -- expected error prev is not table
+    assert_failure_matches(msg, t.assert_error_covers, {prev = 'foo'},
+                           error, {prev = {}})
+    -- actual error prev is not indexable
+    assert_failure_matches(msg, t.assert_error_covers, {prev = {}},
+                           error, {prev = 1LL})
+    ------------
+    -- box.error
+    ------------
+    t.assert_error_covers({type = 'ClientError', code = 0}, box.error, 0)
+    local err = box.error.new(box.error.UNKNOWN)
+    if err.set_prev ~= nil then
+        err:set_prev(box.error.new(box.error.ILLEGAL_PARAMS, 'foo'))
+        expected = {
+            type = 'ClientError',
+            code = box.error.UNKNOWN,
+            prev = {code = box.error.ILLEGAL_PARAMS}
+        }
+        t.assert_error_covers(expected, err.raise, err)
     end
-    -- good error coverage, error has unpack()
-    t.assert_error_covers({b = 2}, error_with_unpack, 1, 2)
-    -- bad error coverage
-    assert_failure(t.assert_error_covers, {b = 2},
-                   function(a, b) error({a = a, b = b}) end, 1, 3)
 
     -- test assert failure due to unexpected error trace
     t.private.check_trace_module = THIS_MODULE
