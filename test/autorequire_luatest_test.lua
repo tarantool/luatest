@@ -75,12 +75,15 @@ g.test_exec_with_upvalue_and_local_variable = function()
 end
 
 g.before_test('test_exec_when_luatest_not_found', function()
-    -- Setup custom server without LUA_PATH variable
+    -- Setup custom server without luatest in LUA_PATH.
     g.bad_env_server = Server:new({
         command = command,
         workdir = fio.tempdir(),
         http_port = 8183,
         net_box_port = 3134,
+        env = {
+            LUA_PATH = '',
+        },
     })
 
     fio.mktree(g.bad_env_server.workdir)
