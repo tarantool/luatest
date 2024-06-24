@@ -542,6 +542,18 @@ function M.assert_str_matches(value, pattern, start, final, message)
     end
 end
 
+-- Convert an error object to an error message
+-- @param err error object
+-- @return error message
+local function error_to_msg(err)
+    if type(err) == 'cdata' then
+        -- We assume that this is a `box.error` instance.
+        return err.message
+    else
+        return tostring(err)
+    end
+end
+
 local function _assert_error_msg_equals(stripFileAndLine, expectedMsg, func, ...)
     local no_error, error_msg = pcall_check_trace(3, func, ...)
     if no_error then
@@ -551,8 +563,7 @@ local function _assert_error_msg_equals(stripFileAndLine, expectedMsg, func, ...
         failure(failure_message, nil, 3)
     end
     if type(expectedMsg) == "string" and type(error_msg) ~= "string" then
-        -- table are converted to string automatically
-        error_msg = tostring(error_msg)
+        error_msg = error_to_msg(error_msg)
     end
     local differ = false
     if stripFileAndLine then
@@ -618,7 +629,7 @@ function M.assert_error_msg_contains(expected_partial, fn, ...)
         failure(failure_message, nil, 2)
     end
     if type(error_msg) ~= "string" then
-        error_msg = tostring(error_msg)
+        error_msg = error_to_msg(error_msg)
     end
     if not string.find(error_msg, expected_partial, nil, true) then
         error_msg, expected_partial = prettystr_pairs(error_msg, expected_partial)
@@ -640,7 +651,7 @@ function M.assert_error_msg_matches(pattern, fn, ...)
         failure(failure_message, nil, 2)
     end
     if type(error_msg) ~= "string" then
-        error_msg = tostring(error_msg)
+        error_msg = error_to_msg(error_msg)
     end
     if not str_match(error_msg, pattern) then
         pattern, error_msg = prettystr_pairs(pattern, error_msg)
