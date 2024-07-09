@@ -70,6 +70,31 @@ function comparator.is_subset(actual, expected)
     return #expected_array - found_count
 end
 
+-- Checks that any element from the actual is an element from the expected.
+function comparator.any(actual, expected)
+    if (type(actual) ~= 'table') or (type(expected) ~= 'table') then
+        return false
+    end
+
+    local expected_array = {}
+    local expected_casted = {}
+    for _, v in pairs(expected) do
+        table.insert(expected_array, v)
+    end
+
+    for _, a in pairs(actual) do
+        for i, b in ipairs(expected_array) do
+            if not expected_casted[i] then
+                expected_casted[i] = comparator.cast(b)
+            end
+            if comparator.equals(a, expected_casted[i]) then
+                return true
+            end
+        end
+    end
+    return false
+end
+
 -- This is a specialized metatable to help with the bookkeeping of recursions
 -- in table_equals(). It provides an __index table that implements utility
 -- functions for easier management of the table. The "cached" method queries
