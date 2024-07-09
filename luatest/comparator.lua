@@ -70,6 +70,23 @@ function comparator.is_subset(actual, expected)
     return #expected_array - found_count
 end
 
+-- Returns false if 'actual' or 'expected' are not tables or their value sets
+-- intersect. Returns true otherwise.
+function comparator.are_disjoint(actual, expected)
+    if (type(actual) ~= 'table') or (type(expected) ~= 'table') then
+        return false
+    end
+
+    for _, a in pairs(actual) do
+        for _, b in pairs(expected) do
+            if comparator.equals(a, b) then
+                return false
+            end
+        end
+    end
+    return true
+end
+
 -- This is a specialized metatable to help with the bookkeeping of recursions
 -- in table_equals(). It provides an __index table that implements utility
 -- functions for easier management of the table. The "cached" method queries
