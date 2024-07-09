@@ -1,4 +1,5 @@
 # Changelog
+- Added `assert_items_exclude`.
 
 ## Unreleased
 
