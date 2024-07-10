@@ -14,6 +14,7 @@
 - Add `--list-test-cases` and `--run-test-case` CLI options.
 - Introduce preloaded hooks (gh-380).
 - Add `treegen` helper as a tree generator (gh-364).
+- Add support declarative configuration in `server.lua` (gh-367).
 
 ## 1.0.1
 

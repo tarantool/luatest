@@ -10,6 +10,7 @@ local fio = require('fio')
 local fun = require('fun')
 local http_client = require('http.client')
 local json = require('json')
+local yaml = require('yaml')
 local net_box = require('net.box')
 local tarantool = require('tarantool')
 local uri = require('uri')
@@ -38,6 +39,9 @@ local Server = {
         env = '?table',
         args = '?table',
         box_cfg = '?table',
+
+        config_file = '?string',
+        remote_config = '?table',
 
         http_port = '?number',
         net_box_port = '?number',
@@ -93,6 +97,10 @@ end
 --   `net.box` connection to the new server.
 -- @tab[opt] object.box_cfg Extra options for `box.cfg()` and the value of the
 --   `TARANTOOL_BOX_CFG` env variable which is passed into the server process.
+-- @string[opt] object.config_file Declarative YAML configuration for server
+--   instance. Used to deduce advertise URI to connect net.box to the instance.
+-- @tab[opt] object.remote_config If `config_file` is not passed, this config
+--   value is used to deduce the advertise URI to connect net.box to the instance.
 -- @tab[opt] extra Table with extra properties for the server object.
 -- @return table
 function Server:new(object, extra)
@@ -127,8 +135,115 @@ function Server:new(object, extra)
     return object
 end
 
+-- Determine advertise URI for given instance from a cluster
+-- configuration.
+local function find_advertise_uri(config, instance_name, dir)
+    local urilib = require('uri')
+    if config == nil or next(config) == nil then
+        return nil
+    end
+
+    -- Determine listen and advertise options that are in effect
+    -- for the given instance.
+    local advertise
+    local listen
+
+    for _, group in pairs(config.groups or {}) do
+        for _, replicaset in pairs(group.replicasets or {}) do
+            local instance = (replicaset.instances or {})[instance_name]
+            if instance == nil then
+                break
+            end
+            if instance.iproto ~= nil then
+                if instance.iproto.advertise ~= nil then
+                    advertise = advertise or instance.iproto.advertise.client
+                end
+                listen = listen or instance.iproto.listen
+            end
+            if replicaset.iproto ~= nil then
+                if replicaset.iproto.advertise ~= nil then
+                    advertise = advertise or replicaset.iproto.advertise.client
+                end
+                listen = listen or replicaset.iproto.listen
+            end
+            if group.iproto ~= nil then
+                if group.iproto.advertise ~= nil then
+                    advertise = advertise or group.iproto.advertise.client
+                end
+                listen = listen or group.iproto.listen
+            end
+        end
+    end
+
+    if config.iproto ~= nil then
+        if config.iproto.advertise ~= nil then
+            advertise = advertise or config.iproto.advertise.client
+        end
+        listen = listen or config.iproto.listen
+    end
+
+    local uris
+    if advertise ~= nil then
+        uris = {{uri = advertise}}
+    else
+        uris = listen
+    end
+    -- luacheck: push ignore 431
+    for _, uri in ipairs(uris or {}) do
+        uri = table.copy(uri)
+        uri.uri = uri.uri:gsub('{{ *instance_name *}}', instance_name)
+        uri.uri = uri.uri:gsub('unix/:%./', ('unix/:%s/'):format(dir))
+        local u = urilib.parse(uri)
+        if u.ipv4 ~= '0.0.0.0' and u.ipv6 ~= '::' and u.service ~= '0' then
+            return uri
+        end
+    end
+    -- luacheck: pop
+    error('No suitable URI to connect is found')
+end
+
 -- Initialize the server object.
 function Server:initialize()
+    if self.config_file ~= nil then
+        self.command = arg[-1]
+
+        self.args = fun.chain(self.args or {}, {
+            '--name', self.alias
+        }):totable()
+
+        if self.config_file ~= '' then
+            table.insert(self.args, '--config')
+            table.insert(self.args, self.config_file)
+
+            -- Take into account self.chdir to calculate a config
+            -- file path.
+            local config_file_path = utils.pathjoin(self.chdir, self.config_file)
+
+            -- Read the provided config file.
+            local fh, err = fio.open(config_file_path, {'O_RDONLY'})
+            if fh == nil then
+                error(('Unable to open file %q: %s'):format(config_file_path,
+                    err))
+            end
+            self.config = yaml.decode(fh:read())
+            fh:close()
+        end
+
+        if self.net_box_uri == nil then
+            local config = self.config or self.remote_config
+
+            -- NB: listen and advertise URIs are relative to
+            -- process.work_dir, which, in turn, is relative to
+            -- self.chdir.
+            local work_dir
+            if config.process ~= nil and config.process.work_dir ~= nil then
+                work_dir = config.process.work_dir
+            end
+            local dir = utils.pathjoin(self.chdir, work_dir)
+            self.net_box_uri = find_advertise_uri(config, self.alias, dir)
+        end
+    end
+
     if self.alias == nil then
         self.alias = DEFAULT_ALIAS
     end
@@ -296,6 +411,11 @@ end
 --   the server object.
 function Server:start(opts)
     checks('table', {wait_until_ready = '?boolean'})
+
+    opts = opts or {}
+    if self.config_file and opts.wait_until_ready == nil then
+        opts.wait_until_ready = self.net_box_uri ~= nil
+    end
 
     self:initialize()
 
@@ -550,6 +670,18 @@ function Server:connect_net_box()
         error(connection.error)
     end
     self.net_box = connection
+
+    if self.config_file ~= nil then
+        -- Replace the ready condition.
+        local saved_eval = self.net_box.eval
+        self.net_box.eval = function(self, expr, args, opts) -- luacheck:ignore 432
+            if expr == 'return _G.ready' then
+                expr = "return require('config'):info().status == 'ready' or " ..
+                          "require('config'):info().status == 'check_warnings'"
+            end
+            return saved_eval(self, expr, args, opts)
+        end
+    end
 end
 
 local function is_header_set(headers, name)
