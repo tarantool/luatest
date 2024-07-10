@@ -1,4 +1,5 @@
 local digest = require('digest')
+local fio = require('fio')
 local fun = require('fun')
 local yaml = require('yaml')
 
@@ -194,6 +195,27 @@ end
 -- Return args as table with 'n' set to args number.
 function utils.table_pack(...)
     return {n = select('#', ...), ...}
+end
+
+-- Join paths in an intuitive way.
+-- If a component is nil, it is skipped.
+-- If a component is an absolute path, it skips all the previous
+-- components.
+-- The wrapper is written for two components for simplicity.
+function utils.pathjoin(a, b)
+    -- No first path -- skip it.
+    if a == nil then
+        return b
+    end
+    -- No second path -- skip it.
+    if b == nil then
+        return a
+    end
+    -- The absolute path is checked explicitly due to gh-8816.
+    if b:startswith('/') then
+        return b
+    end
+    return fio.pathjoin(a, b)
 end
 
 return utils

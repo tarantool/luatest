@@ -12,7 +12,8 @@ local http_client = require('http.client')
 local json = require('json')
 local net_box = require('net.box')
 local tarantool = require('tarantool')
-local uri = require('uri')
+local urilib = require('uri')
+local yaml = require('yaml')
 local _, luacov_runner = pcall(require, 'luacov.runner') -- luacov may not be installed
 
 local assertions = require('luatest.assertions')
@@ -38,6 +39,9 @@ local Server = {
         env = '?table',
         args = '?table',
         box_cfg = '?table',
+
+        config_file = '?string',
+        remote_config = '?table',
 
         http_port = '?number',
         net_box_port = '?number',
@@ -93,6 +97,12 @@ end
 --   `net.box` connection to the new server.
 -- @tab[opt] object.box_cfg Extra options for `box.cfg()` and the value of the
 --   `TARANTOOL_BOX_CFG` env variable which is passed into the server process.
+-- @string[opt] object.config_file Declarative YAML configuration for a server
+--   instance. Used to deduce advertise URI to connect net.box to the instance.
+--   The special value '' means running without `--config <...>` CLI option
+--   (but still passes `--name <alias>`).
+-- @tab[opt] object.remote_config If `config_file` is not passed, this config
+--   value is used to deduce advertise URI to connect net.box to the instance.
 -- @tab[opt] extra Table with extra properties for the server object.
 -- @return table
 function Server:new(object, extra)
@@ -127,8 +137,111 @@ function Server:new(object, extra)
     return object
 end
 
+-- Determine advertise URI for given instance from a cluster
+-- configuration.
+local function find_advertise_uri(config, instance_name, dir)
+    if config == nil or next(config) == nil then
+        return nil
+    end
+
+    -- Determine listen and advertise options that are in effect
+    -- for the given instance.
+    local advertise
+    local listen
+
+    for _, group in pairs(config.groups or {}) do
+        for _, replicaset in pairs(group.replicasets or {}) do
+            local instance = (replicaset.instances or {})[instance_name]
+            if instance == nil then
+                break
+            end
+            if instance.iproto ~= nil then
+                if instance.iproto.advertise ~= nil then
+                    advertise = advertise or instance.iproto.advertise.client
+                end
+                listen = listen or instance.iproto.listen
+            end
+            if replicaset.iproto ~= nil then
+                if replicaset.iproto.advertise ~= nil then
+                    advertise = advertise or replicaset.iproto.advertise.client
+                end
+                listen = listen or replicaset.iproto.listen
+            end
+            if group.iproto ~= nil then
+                if group.iproto.advertise ~= nil then
+                    advertise = advertise or group.iproto.advertise.client
+                end
+                listen = listen or group.iproto.listen
+            end
+        end
+    end
+
+    if config.iproto ~= nil then
+        if config.iproto.advertise ~= nil then
+            advertise = advertise or config.iproto.advertise.client
+        end
+        listen = listen or config.iproto.listen
+    end
+
+    local uris
+    if advertise ~= nil then
+        uris = {{uri = advertise}}
+    else
+        uris = listen
+    end
+
+    for _, uri in ipairs(uris or {}) do
+        uri = table.copy(uri)
+        uri.uri = uri.uri:gsub('{{ *instance_name *}}', instance_name)
+        uri.uri = uri.uri:gsub('unix/:%./', ('unix/:%s/'):format(dir))
+        local u = urilib.parse(uri)
+        if u.ipv4 ~= '0.0.0.0' and u.ipv6 ~= '::' and u.service ~= '0' then
+            return uri
+        end
+    end
+
+    error('No suitable URI to connect is found')
+end
+
 -- Initialize the server object.
 function Server:initialize()
+    if self.config_file ~= nil then
+        self.command = arg[-1]
+
+        self.args = fun.chain(self.args or {}, {'--name', self.alias}):totable()
+
+        if self.config_file ~= '' then
+            table.insert(self.args, '--config')
+            table.insert(self.args, self.config_file)
+
+            -- Take into account self.chdir to calculate a config
+            -- file path.
+            local config_file_path = utils.pathjoin(self.chdir, self.config_file)
+
+            -- Read the provided config file.
+            local fh, err = fio.open(config_file_path, {'O_RDONLY'})
+            if fh == nil then
+                error(('Unable to open file %q: %s'):format(config_file_path, err))
+            end
+            self.config = yaml.decode(fh:read())
+            fh:close()
+        end
+
+        if self.net_box_uri == nil then
+            local config = self.config or self.remote_config
+
+            -- NB: listen and advertise URIs are relative to
+            -- process.work_dir, which, in turn, is relative to
+            -- self.chdir.
+            local work_dir
+            if config.process ~= nil and config.process.work_dir ~= nil then
+                work_dir = config.process.work_dir
+            end
+            local dir = utils.pathjoin(self.chdir, work_dir)
+            self.net_box_uri = find_advertise_uri(config, self.alias, dir)
+        end
+    end
+
     if self.alias == nil then
         self.alias = DEFAULT_ALIAS
     end
@@ -157,7 +270,7 @@ function Server:initialize()
             self.net_box_uri = 'localhost:' .. self.net_box_port
         end
     end
-    local parsed_net_box_uri = uri.parse(self.net_box_uri)
+    local parsed_net_box_uri = urilib.parse(self.net_box_uri)
     if parsed_net_box_uri.host == 'unix/' then
         -- Linux uses max 108 bytes for Unix domain socket paths, which means a 107 characters
         -- string ended by a null terminator. Other systems use 104 bytes and 103 characters strings.
@@ -170,7 +283,7 @@ function Server:initialize()
         end
     end
     if type(self.net_box_uri) == 'table' then
-        self.net_box_uri = uri.format(parsed_net_box_uri, true)
+        self.net_box_uri = urilib.format(parsed_net_box_uri, true)
     end
 
     self.env = utils.merge(self.env or {}, self:build_env())
@@ -281,7 +394,7 @@ end
 --- Make directory for the server's Unix socket.
 -- Invoked on the server's start.
 function Server:make_socketdir()
-    local parsed_net_box_uri = uri.parse(self.net_box_uri)
+    local parsed_net_box_uri = urilib.parse(self.net_box_uri)
     if parsed_net_box_uri.host == 'unix/' then
         fio.mktree(fio.dirname(parsed_net_box_uri.service))
     end
@@ -333,10 +446,14 @@ function Server:start(opts)
     })
 
     local wait_until_ready
-    if self.coverage_report then
-        wait_until_ready = self.original_command == DEFAULT_INSTANCE
+    if self.config_file then
+        wait_until_ready = self.net_box_uri ~= nil
     else
-        wait_until_ready = self.command == DEFAULT_INSTANCE
+        if self.coverage_report then
+            wait_until_ready = self.original_command == DEFAULT_INSTANCE
+        else
+            wait_until_ready = self.command == DEFAULT_INSTANCE
+        end
     end
     if opts ~= nil and opts.wait_until_ready ~= nil then
         wait_until_ready = opts.wait_until_ready
@@ -499,10 +616,18 @@ end
 --- Wait until the server is ready after the start.
 -- A server is considered ready when its `_G.ready` variable becomes `true`.
 function Server:wait_until_ready()
+    local expr
+    if self.config_file ~= nil then
+        expr = "return require('config'):info().status == 'ready' or " ..
+            "require('config'):info().status == 'check_warnings'"
+    else
+        expr = 'return _G.ready'
+    end
+
     wait_for_condition('server is ready', self, function()
         local ok, is_ready = pcall(function()
             self:connect_net_box()
-            return self.net_box:eval('return _G.ready') == true
+            return self.net_box:eval(expr) == true
         end)
         return ok and is_ready
     end)
