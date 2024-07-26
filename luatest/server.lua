@@ -277,9 +277,8 @@ function Server:initialize()
         local max_unix_socket_path = {linux = 107, other = 103}
         local system = os.execute('[ $(uname) = Linux ]') == 0 and 'linux' or 'other'
         if parsed_net_box_uri.unix:len() > max_unix_socket_path[system] then
-            error(('Unix domain socket path cannot be longer than %d chars. ' ..
-                   'Current path is: %s'):format(max_unix_socket_path[system],
-                                                 parsed_net_box_uri.unix))
+            error(('Unix domain socket path cannot be longer than %d chars. Current path is: %s')
+                :format(max_unix_socket_path[system], parsed_net_box_uri.unix))
         end
     end
     if type(self.net_box_uri) == 'table' then
@@ -572,27 +571,16 @@ function Server:stop()
         if not ok and not err:find('Process is terminated when waiting for') then
             error(err)
         end
-        if self.process.output_beautifier.stderr:find('Segmentation fault') then
-            error(
-                ('Segmentation fault during process termination (alias: %s, workdir: %s, pid: %d)\n%s')
-                :format(
-                    self.alias,
-                    fio.basename(self.workdir),
-                    self.process.pid,
-                    self.process.output_beautifier.stderr
-                )
-            )
+        local workdir = fio.basename(self.workdir)
+        local pid = self.process.pid
+        local stderr = self.process.output_beautifier.stderr
+        if stderr:find('Segmentation fault') then
+            error(('Segmentation fault during process termination (alias: %s, workdir: %s, pid: %d)\n%s')
+                :format(self.alias, workdir, pid, stderr))
         end
-        if self.process.output_beautifier.stderr:find('LeakSanitizer') then
-            error(
-                ('Memory leak during process execution (alias: %s, workdir: %s, pid: %s)\n%s')
-                :format(
-                    self.alias,
-                    fio.basename(self.workdir),
-                    self.process.pid,
-                    self.process.output_beautifier.stderr
-                )
-            )
+        if stderr:find('LeakSanitizer') then
+            error(('Memory leak during process execution (alias: %s, workdir: %s, pid: %s)\n%s')
+                :format(self.alias, workdir, pid, stderr))
         end
         log.info('Process of server %s (pid: %d) killed', self.alias, self.process.pid)
         self.process = nil
@@ -833,8 +821,7 @@ function Server:exec(fn, args, options)
     end
 
     if not are_fn_args_array(fn, args) then
-        error(('bad argument #3 for exec at %s: an array is required')
-            :format(utils.get_fn_location(fn)))
+        error(('bad argument #3 for exec at %s: an array is required'):format(utils.get_fn_location(fn)))
     end
 
     -- The function `fn` can return multiple values and we cannot use the
