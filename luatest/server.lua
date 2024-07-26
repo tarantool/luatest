@@ -13,7 +13,7 @@ local json = require('json')
 local yaml = require('yaml')
 local net_box = require('net.box')
 local tarantool = require('tarantool')
-local uri = require('uri')
+local urilib = require('uri')
 local _, luacov_runner = pcall(require, 'luacov.runner') -- luacov may not be installed
 
 local assertions = require('luatest.assertions')
@@ -97,10 +97,12 @@ end
 --   `net.box` connection to the new server.
 -- @tab[opt] object.box_cfg Extra options for `box.cfg()` and the value of the
 --   `TARANTOOL_BOX_CFG` env variable which is passed into the server process.
--- @string[opt] object.config_file Declarative YAML configuration for server
+-- @string[opt] object.config_file Declarative YAML configuration for a server
 --   instance. Used to deduce advertise URI to connect net.box to the instance.
+--   The special value '' means running without `--config <...>` CLI option (but
+--   still pass `--name <alias>`).
 -- @tab[opt] object.remote_config If `config_file` is not passed, this config
---   value is used to deduce the advertise URI to connect net.box to the instance.
+--   value is used to deduce advertise URI to connect net.box to the instance.
 -- @tab[opt] extra Table with extra properties for the server object.
 -- @return table
 function Server:new(object, extra)
@@ -138,7 +140,6 @@ end
 -- Determine advertise URI for given instance from a cluster
 -- configuration.
 local function find_advertise_uri(config, instance_name, dir)
-    local urilib = require('uri')
     if config == nil or next(config) == nil then
         return nil
     end
@@ -207,9 +208,7 @@ function Server:initialize()
     if self.config_file ~= nil then
         self.command = arg[-1]
 
-        self.args = fun.chain(self.args or {}, {
-            '--name', self.alias
-        }):totable()
+        self.args = fun.chain(self.args or {}, {'--name', self.alias}):totable()
 
         if self.config_file ~= '' then
             table.insert(self.args, '--config')
@@ -222,8 +221,7 @@ function Server:initialize()
             -- Read the provided config file.
             local fh, err = fio.open(config_file_path, {'O_RDONLY'})
             if fh == nil then
-                error(('Unable to open file %q: %s'):format(config_file_path,
-                    err))
+                error(('Unable to open file %q: %s'):format(config_file_path, err))
             end
             self.config = yaml.decode(fh:read())
             fh:close()
@@ -272,7 +270,7 @@ function Server:initialize()
             self.net_box_uri = 'localhost:' .. self.net_box_port
         end
     end
-    local parsed_net_box_uri = uri.parse(self.net_box_uri)
+    local parsed_net_box_uri = urilib.parse(self.net_box_uri)
     if parsed_net_box_uri.host == 'unix/' then
         -- Linux uses max 108 bytes for Unix domain socket paths, which means a 107 characters
         -- string ended by a null terminator. Other systems use 104 bytes and 103 characters strings.
@@ -285,7 +283,7 @@ function Server:initialize()
         end
     end
     if type(self.net_box_uri) == 'table' then
-        self.net_box_uri = uri.format(parsed_net_box_uri, true)
+        self.net_box_uri = urilib.format(parsed_net_box_uri, true)
     end
 
     self.env = utils.merge(self.env or {}, self:build_env())
@@ -396,7 +394,7 @@ end
 --- Make directory for the server's Unix socket.
 -- Invoked on the server's start.
 function Server:make_socketdir()
-    local parsed_net_box_uri = uri.parse(self.net_box_uri)
+    local parsed_net_box_uri = urilib.parse(self.net_box_uri)
     if parsed_net_box_uri.host == 'unix/' then
         fio.mktree(fio.dirname(parsed_net_box_uri.service))
     end
@@ -411,11 +409,6 @@ end
 --   the server object.
 function Server:start(opts)
     checks('table', {wait_until_ready = '?boolean'})
-
-    opts = opts or {}
-    if self.config_file and opts.wait_until_ready == nil then
-        opts.wait_until_ready = self.net_box_uri ~= nil
-    end
 
     self:initialize()
 
@@ -619,10 +612,18 @@ end
 --- Wait until the server is ready after the start.
 -- A server is considered ready when its `_G.ready` variable becomes `true`.
 function Server:wait_until_ready()
+    local expr
+    if self.config_file ~= nil then
+        expr = "return require('config'):info().status == 'ready' or " ..
+            "require('config'):info().status == 'check_warnings'"
+    else
+        expr = 'return _G.ready'
+    end
+
     wait_for_condition('server is ready', self, function()
         local ok, is_ready = pcall(function()
             self:connect_net_box()
-            return self.net_box:eval('return _G.ready') == true
+            return self.net_box:eval(expr) == true
         end)
         return ok and is_ready
     end)
@@ -670,18 +671,6 @@ function Server:connect_net_box()
         error(connection.error)
     end
     self.net_box = connection
-
-    if self.config_file ~= nil then
-        -- Replace the ready condition.
-        local saved_eval = self.net_box.eval
-        self.net_box.eval = function(self, expr, args, opts) -- luacheck:ignore 432
-            if expr == 'return _G.ready' then
-                expr = "return require('config'):info().status == 'ready' or " ..
-                          "require('config'):info().status == 'check_warnings'"
-            end
-            return saved_eval(self, expr, args, opts)
-        end
-    end
 end
 
 local function is_header_set(headers, name)
