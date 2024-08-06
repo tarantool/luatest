@@ -742,7 +742,9 @@ end
 
 local function exec_tail(ok, ...)
     if not ok then
-        local _ok, res = pcall(json.decode, tostring(...))
+        local err = ...
+        -- net.box's eval method always throws a `box.error`.
+        local _ok, res = pcall(json.decode, err.message)
         error(_ok and res or ..., 0)
     else
         return ...
