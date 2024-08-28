@@ -239,6 +239,9 @@ List of luatest functions
 +--------------------------------------------------------------------+-----------------------------------------------+
 | ``assert_eval_to_true (value[, message])``                         | Alias for assert.                             |
 +--------------------------------------------------------------------+-----------------------------------------------+
+| ``assert_items_exclude (actual, expected[, message])``             | Checks that one table does not include any    |
+|                                                                    | items of another, irrespective of their keys. |
++--------------------------------------------------------------------+-----------------------------------------------+
 | ``assert_items_include (actual, expected[, message])``             | Checks that one table includes all items of   |
 |                                                                    | another, irrespective of their keys.          |
 +--------------------------------------------------------------------+-----------------------------------------------+

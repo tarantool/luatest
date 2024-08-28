@@ -333,6 +333,27 @@ function g.test_assert_items_include()
     assert_failure(subject, {1,2,3}, {1,1,2,3})
 end
 
+function g.test_assert_items_exclude()
+    local subject = t.assert_items_exclude
+    assert_failure(subject, {1,2,3}, {3,1,2})
+    assert_failure(subject, {one=1,two=2,three=3}, {two=2,one=1,three=3})
+    assert_failure(subject, {one=1,two=2,three=3}, {a=1,b=2,c=3})
+    assert_failure(subject, {1,2,three=3}, {3,1,two=2})
+
+    assert_failure(subject, {1,2,3,4}, {3,1,2})
+    assert_failure(subject, {1,1,2,3}, {3,1,2})
+
+    assert_failure(subject, nil, {1})
+    assert_failure(subject, {}, nil)
+    assert_failure(subject, {1,2,3}, {1,2,3,4})
+    assert_failure(subject, {1,2,3}, {1,1,2,3})
+
+    subject({}, {1})
+    subject({},{})
+    subject({nil},{nil})
+    subject({1},{})
+end
+
 function g.test_assert_nan()
     assert_failure(t.assert_nan, "hi there!")
     assert_failure(t.assert_nan, nil)
