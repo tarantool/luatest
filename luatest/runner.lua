@@ -61,6 +61,9 @@ function Runner.run(args, options)
         local log_prefix = options.log_prefix or 'luatest'
         local log_cfg = string.format("%s.log", log_prefix)
 
+        fio.mktree(Server.vardir)
+        log_cfg = fio.pathjoin(Server.vardir, log_cfg)
+
         if options.log_file then
             -- Save the file descriptor as a global variable to use it
             -- in the `output_beautifier` module: this module is connected to the
