@@ -411,15 +411,22 @@ function M.assert_items_include(actual, expected, message)
     end
 end
 
+local function table_slice(actual, expected)
+    if type(expected) ~= 'table' or type(actual) ~= 'table' then
+        return actual
+    end
+    local sliced = {}
+    for k, _ in pairs(expected) do
+        sliced[k] = table_slice(actual[k], expected[k])
+    end
+    return sliced
+end
+
 local function table_covers(actual, expected)
     if type(actual) ~= 'table' or type(expected) ~= 'table' then
         failure('Argument 1 and 2 must be tables', nil, 3)
     end
-    local sliced = {}
-    for k, _ in pairs(expected) do
-        sliced[k] = actual[k]
-    end
-    return comparator.equals(sliced, expected)
+    return comparator.equals(table_slice(actual, expected), expected)
 end
 
 --- Checks that actual map includes expected one.
@@ -663,20 +670,6 @@ local function error_unpack(err)
     return unpacked
 end
 
--- Return table with keys from expected but values from actual. Apply
--- same changes recursively for key 'prev'.
-local function error_slice(actual, expected)
-    if type(expected) ~= 'table' or type(actual) ~= 'table' then
-        return actual
-    end
-    local sliced = {}
-    for k, _ in pairs(expected) do
-        sliced[k] = actual[k]
-    end
-    sliced.prev = error_slice(sliced.prev, expected.prev)
-    return sliced
-end
-
 --- Checks that error raised by function is table that includes expected one.
 --- box.error is unpacked to convert to table. Stacked errors are supported.
 --- That is if there is prev field in expected then it should cover prev field
@@ -693,7 +686,7 @@ function M.assert_error_covers(expected, fn, ...)
                   prettystr(actual), prettystr(expected))
     end
     local unpacked = error_unpack(actual)
-    if not comparator.equals(error_slice(unpacked, expected), expected) then
+    if not comparator.equals(table_slice(unpacked, expected), expected) then
         actual, expected = prettystr_pairs(unpacked, expected)
         fail_fmt(2, nil, 'Error expected: %s\nError received: %s',
                  expected, actual)
