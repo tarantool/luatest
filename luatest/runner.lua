@@ -138,7 +138,7 @@ Options:
   -vv,                    Increase log verbosity to VERBOSE level for luatest runnner
   -vvv,                   Increase log verbosity to DEBUG level for luatest runnner
   -q, --quiet:            Set verbosity to minimum
-  -c                      Disable capture
+  -c, --no-capture        Disable capture
   -b                      Print full backtrace (don't remove luatest frames)
   -e, --error:            Stop on first error
   -f, --failure:          Stop on first failure or error
@@ -236,7 +236,7 @@ function Runner.parse_cmd_line(args)
             table.insert(result.tests_pattern, '!' .. next_arg())
         elseif arg == '-b' then
             result.full_backtrace = true
-        elseif arg == '-c' then
+        elseif arg == '--no-capture' or arg == '-c' then
             result.enable_capture = false
         elseif arg == '--coverage' then
             result.coverage_report = true

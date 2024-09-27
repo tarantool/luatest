@@ -16,6 +16,7 @@
 - Add `treegen` helper as a tree generator (gh-364).
 - Add support for declarative configuration to `server.lua` (gh-367).
 - Make `assert_covers` recursive (gh-379).
+- Add alias `--no-capture` for the option `-c` (gh-391).
 
 ## 1.0.1
 
