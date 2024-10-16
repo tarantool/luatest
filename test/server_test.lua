@@ -6,6 +6,8 @@ local t = require('luatest')
 local g = t.group()
 local utils = require('luatest.utils')
 
+local helper = require('test.helpers.general')
+
 local Process = t.Process
 local Server = t.Server
 
@@ -17,6 +19,9 @@ local server = Server:new({
     command = command,
     workdir = fio.pathjoin(datadir, 'common'),
     env = {
+        LUA_PATH = root .. '/?.lua;' ..
+            root .. '/?/init.lua;' ..
+            root .. '/.rocks/share/tarantool/?.lua',
         TARANTOOL_LOG = fio.pathjoin(datadir, 'server_test.log'),
         custom_env = 'test_value',
     },
@@ -562,4 +567,23 @@ g.test_grep_log = function()
 
     server.net_box:close()
     server.net_box = nil
+end
+
+g.before_test('test_assertion_failure', function()
+    -- The compat module option may be unavailable.
+    pcall(function()
+        local compat = require('compat')
+        compat.box_error_serialize_verbose = 'new'
+    end)
+end)
+
+g.after_test('test_assertion_failure', function()
+    pcall(function()
+        require('compat').box_error_serialize_verbose = 'default'
+    end)
+end)
+
+g.test_assertion_failure = function()
+    server:connect_net_box()
+    helper.assert_failure(server.exec, server, function() t.assert(false) end)
 end
