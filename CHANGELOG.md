@@ -17,6 +17,8 @@
 - Add support for declarative configuration to `server.lua` (gh-367).
 - Make `assert_covers` recursive (gh-379).
 - Add alias `--no-capture` for the option `-c` (gh-391).
+- Fix reporting of an assertion failure in `Server:exec()` in case verbose
+  error serialization is enabled in Tarantool (gh-376).
 
 ## 1.0.1
 

@@ -742,8 +742,7 @@ end
 
 local function exec_tail(ok, ...)
     if not ok then
-        local _ok, res = pcall(json.decode, tostring(...))
-        error(_ok and res or ..., 0)
+        error(..., 0)
     else
         return ...
     end
@@ -824,16 +823,11 @@ function Server:exec(fn, args, options)
         error(('bad argument #3 for exec at %s: an array is required'):format(utils.get_fn_location(fn)))
     end
 
-    -- The function `fn` can return multiple values and we cannot use the
-    -- classical approach to work with the `pcall`:
-    --
-    --    local status, result = pcall(function() return 1, 2, 3 end)
-    --
-    -- `result` variable will contain only `1` value, not `1, 2, 3`.
-    -- To solve this, we put everything from `pcall` in a table.
-    -- Table must be unpacked with `unpack(result, i, table.maxn(result))`,
-    -- otherwise nil return values won't be supported.
-    return exec_tail(pcall(self.net_box.eval, self.net_box, [[
+    -- If the function fails an assertion in an open transaction, Tarantool
+    -- will raise the "Transaction is active at return from function" error,
+    -- thus overwriting the original error raised by the assertion. To avoid
+    -- that, let's rollback the active transaction on failure.
+    return exec_tail(self.net_box:eval([[
         local dump, args, passthrough_ups = ...
         local fn = loadstring(dump)
         for i = 1, debug.getinfo(fn, 'u').nups do
@@ -849,12 +843,9 @@ function Server:exec(fn, args, options)
             result = {pcall(fn, unpack(args))}
         end
         if not result[1] then
-            if type(result[2]) == 'table' then
-                result[2] = require('json').encode(result[2])
-            end
-            error(result[2], 0)
+            box.rollback()
         end
-        return unpack(result, 2, table.maxn(result))
+        return unpack(result, 1, table.maxn(result))
     ]], {string.dump(fn), args, passthrough_ups}, options))
 end
 
