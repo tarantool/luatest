@@ -21,6 +21,8 @@
   error serialization is enabled in Tarantool (gh-376).
 - Added `assert_items_exclude`.
 - Strip useless `...` lines from error trace.
+- Fix error trace reporting for functions executed with `Server:exec()`
+  (gh-396).
 
 ## 1.0.1
 

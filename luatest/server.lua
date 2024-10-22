@@ -823,6 +823,10 @@ function Server:exec(fn, args, options)
         error(('bad argument #3 for exec at %s: an array is required'):format(utils.get_fn_location(fn)))
     end
 
+    -- Note that we wrap any error raised by the executed function to save
+    -- the original trace. It will be used by the runner to report the full
+    -- error trace, see Runner:protected_call().
+    --
     -- If the function fails an assertion in an open transaction, Tarantool
     -- will raise the "Transaction is active at return from function" error,
     -- thus overwriting the original error raised by the assertion. To avoid
@@ -836,12 +840,19 @@ function Server:exec(fn, args, options)
                 debug.setupvalue(fn, i, require(passthrough_ups[name]))
             end
         end
-        local result
-        if args == nil then
-            result = {pcall(fn)}
-        else
-            result = {pcall(fn, unpack(args))}
-        end
+        local result = {xpcall(function()
+            if args == nil then
+                return fn()
+            else
+                return fn(unpack(args))
+            end
+        end, function(e)
+            return {
+                class = 'LuatestErrorWrapper',
+                error = e,
+                trace = debug.traceback('', 3):sub(2),
+            }
+        end)}
         if not result[1] then
             box.rollback()
         end
