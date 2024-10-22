@@ -19,6 +19,8 @@
 - Add alias `--no-capture` for the option `-c` (gh-391).
 - Fix reporting of an assertion failure in `Server:exec()` in case verbose
   error serialization is enabled in Tarantool (gh-376).
+- Fix error trace reporting for functions executed with `Server:exec()`
+  (gh-396).
 
 ## 1.0.1
 

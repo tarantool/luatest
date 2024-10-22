@@ -475,6 +475,10 @@ function Runner.mt:protected_call(instance, method, pretty_name)
         -- transform error into a table, adding the traceback information
         local trace = debug.traceback('', 3):sub(2)
         if utils.is_luatest_error(e) then
+            if e.trace ~= nil then
+                trace = e.trace .. '\n' ..
+                        trace:sub(string.len('stack traceback:\n') + 1)
+            end
             return {status = e.status, message = e.message, trace = trace}
         else
             return {status = 'error', message = e, trace = trace}

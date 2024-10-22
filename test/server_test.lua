@@ -208,10 +208,11 @@ g.test_net_box_exec = function()
 
     do
         local _l_fn, fn = l(), function() error('X_x') end
-        t.assert_error_msg_equals(
-            efmt(_l_fn, 'X_x'),
-            exec, fn
-        )
+        t.assert_error_covers({
+            class = 'LuatestError',
+            status = 'error',
+            message = efmt(_l_fn, 'X_x'),
+        }, exec, fn)
     end
 
     do
@@ -512,20 +513,24 @@ end)
 g.test_error_level_is_correct = function()
     local c = require('net.box').connect(g.s.net_box_uri)
 
-    t.assert_error_msg_contains( -- error in exec
-        "My error", g.s.exec, g.s,
-        function() error("My error") end)
+    t.assert_error_covers({ -- error in exec
+        class = 'LuatestError',
+        status = 'error',
+        message = "My error",
+    }, g.s.exec, g.s, function() error("My error", 0) end)
 
     t.assert_error_msg_contains( -- error in eval
         "eval", g.s.eval, g.s,
         [[error("My error")]])
 
-    t.assert_error_msg_contains( -- error in closures
-        "My error", g.s.exec, g.s,
-        function()
-            local function internal() error("My error") end
-            internal()
-        end)
+    t.assert_error_covers({ -- error in closures
+        class = 'LuatestError',
+        status = 'error',
+        message = "My error",
+    }, g.s.exec, g.s, function()
+        local function internal() error("My error", 0) end
+        internal()
+    end)
 
     t.assert_error_msg_contains( -- error in tx netbox connection
         "My error", c.eval, c,
@@ -535,16 +540,20 @@ g.test_error_level_is_correct = function()
         "My error", g.s.eval, g.s,
         [[box.begin() error("My error")]])
 
-    t.assert_error_msg_contains( -- error in tx exec
-        "My error", g.s.exec, g.s,
-        function() box.begin() error("My error") end)
+    t.assert_error_covers({ -- error in tx exec
+        class = 'LuatestError',
+        status = 'error',
+        message = "My error",
+    }, g.s.exec, g.s, function() box.begin() error("My error", 0) end)
 
-    t.assert_error_msg_contains( -- error in tx closures
-        "My error", g.s.exec, g.s,
-        function()
-            local function internal() box.begin() error("My error") end
-            internal()
-        end)
+    t.assert_error_covers({ -- error in tx closures
+        class = 'LuatestError',
+        status = 'error',
+        message = "My error",
+    }, g.s.exec, g.s, function()
+        local function internal() box.begin() error("My error", 0) end
+        internal()
+    end)
 end
 
 g.after_test('test_error_level_is_correct', function()
