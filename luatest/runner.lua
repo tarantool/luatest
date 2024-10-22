@@ -474,6 +474,16 @@ function Runner.mt:protected_call(instance, method, pretty_name)
     end, function(e)
         -- transform error into a table, adding the traceback information
         local trace = debug.traceback('', 3):sub(2)
+        if type(e) == 'table' and e.class == 'LuatestErrorWrapper' then
+            -- This is an error wrapped by Server:exec() to save the trace.
+            -- Concatenate the current trace with the saved trace and restore
+            -- the original error.
+            assert(e.trace ~= nil)
+            assert(e.error ~= nil)
+            trace = e.trace .. '\n' ..
+                    trace:sub(string.len('stack traceback:\n') + 1)
+            e = e.error
+        end
         if utils.is_luatest_error(e) then
             return {status = e.status, message = e.message, trace = trace}
         else

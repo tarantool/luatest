@@ -224,3 +224,30 @@ g.test_show_help = function()
     local captured = capture:flush()
     t.assert_str_contains(captured.stdout, 'Usage: luatest')
 end
+
+g.test_trace = function()
+    local f = io.popen('bin/luatest test/fixtures/trace.lua')
+    local output = f:read('*a')
+    f:close()
+    t.assert_str_matches(
+        output,
+        ".*" ..
+        "[^\n]*trace%.lua:29: test error[^\n]*\n" ..
+        "stack traceback:\n" ..
+        "[^\n]*trace%.lua:29: in function 'inner'\n" ..
+        "[^\n]*trace%.lua:31: in function <[^\n]*trace%.lua:27>\n" ..
+        "[^\n]*trace%.lua:27: in function 'outer'\n" ..
+        "[^\n]*trace%.lua:34: in function 'fixtures%.trace%.test_error'\n" ..
+        ".*")
+    t.assert_str_matches(
+        output,
+        ".*" ..
+        "[^\n]*trace%.lua:41: expected: a value evaluating to true, " ..
+            "actual: false[^\n]*\n" ..
+        "stack traceback:\n" ..
+        "[^\n]*trace%.lua:41: in function 'inner'\n" ..
+        "[^\n]*trace%.lua:43: in function <[^\n]*trace%.lua:39>\n" ..
+        "[^\n]*trace%.lua:39: in function 'outer'\n" ..
+        "[^\n]*trace%.lua:46: in function 'fixtures%.trace%.test_fail'\n" ..
+        ".*")
+end

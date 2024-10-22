@@ -164,12 +164,26 @@ local function pcall_check_trace(level, fn, ...)
     return ok, err
 end
 
+--
+-- Wrapper around pcall that:
+-- * checks the stack trace for box errors;
+-- * unwraps the error if it was wrapped by Server:exec().
+--
+local function pcall_wrapper(level, fn, ...)
+    local ok, err = pcall_check_trace(level + 1, fn, ...)
+    if not ok and type(err) == 'table' and
+            err.class == 'LuatestErrorWrapper' then
+        err = err.error
+    end
+    return ok, err
+end
+
 --- Check that calling fn raises an error.
 --
 -- @func fn
 -- @param ... arguments for function
 function M.assert_error(fn, ...)
-    local ok, err = pcall_check_trace(2, fn, ...)
+    local ok, err = pcall_wrapper(2, fn, ...)
     if ok then
         failure("Expected an error when calling function but no error generated", nil, 2)
     end
@@ -565,7 +579,7 @@ function M.assert_str_matches(value, pattern, start, final, message)
 end
 
 local function _assert_error_msg_equals(stripFileAndLine, expectedMsg, func, ...)
-    local no_error, error_msg = pcall_check_trace(3, func, ...)
+    local no_error, error_msg = pcall_wrapper(3, func, ...)
     if no_error then
         local failure_message = string.format(
             'Function successfully returned: %s\nExpected error: %s',
@@ -631,7 +645,7 @@ end
 -- @func fn
 -- @param ... arguments for function
 function M.assert_error_msg_contains(expected_partial, fn, ...)
-    local no_error, error_msg = pcall_check_trace(2, fn, ...)
+    local no_error, error_msg = pcall_wrapper(2, fn, ...)
     log.info('Assert error message %s contains %s', error_msg, expected_partial)
     if no_error then
         local failure_message = string.format(
@@ -654,7 +668,7 @@ end
 -- @func fn
 -- @param ... arguments for function
 function M.assert_error_msg_matches(pattern, fn, ...)
-    local no_error, error_msg = pcall_check_trace(2, fn, ...)
+    local no_error, error_msg = pcall_wrapper(2, fn, ...)
     if no_error then
         local failure_message = string.format(
             'Function successfully returned: %s\nExpected error matching: %s',
@@ -694,7 +708,7 @@ end
 -- @func fn
 -- @param ... arguments for function
 function M.assert_error_covers(expected, fn, ...)
-    local ok, actual = pcall_check_trace(2, fn, ...)
+    local ok, actual = pcall_wrapper(2, fn, ...)
     if ok then
         fail_fmt(2, nil,
                  'Function successfully returned: %s\nExpected error: %s',
