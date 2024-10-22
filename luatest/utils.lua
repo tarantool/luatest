@@ -61,22 +61,32 @@ end
 
 -- Check if line of stack trace comes from inside luatest.
 local function is_luatest_internal_line(s)
-    return s:find('[/\\]luatest[/\\]') or s:find('bin[/\\]luatest')
+    return s:find('bin[/\\]luatest') or
+        (s:find('[/\\]luatest[/\\]') and
+         not s:find('[/\\]luatest[/\\]test[/\\]'))
 end
 
 function utils.strip_luatest_trace(trace)
     local lines = trace:split('\n')
-    local result = {lines[1]} -- always keep 1st line
-    local keep = true
-    for i = 2, table.maxn(lines) do
+    local result = {}
+    local keep = false
+    for i = table.maxn(lines), 2, -1 do
         local line = lines[i]
-        -- `[C]:` lines don't change context
-        if not line:find('^%s+%[C%]:') then
+        -- `[C]:`, `...`, `eval:` lines don't change context
+        if not (line:find('^%s+%[C%]:') or
+                line:find('^%s+%.%.%.$') or
+                line:find('^%s+eval:')) then
             keep = not is_luatest_internal_line(line)
         end
         if keep then
             table.insert(result, line)
         end
+    end
+    table.insert(result, lines[1]) -- always keep 1st line
+    for i = 1, math.floor(#result / 2) do
+        local v = result[#result - i + 1]
+        result[#result - i + 1] = result[i]
+        result[i] = v
     end
     return table.concat(result, '\n')
 end
