@@ -20,6 +20,7 @@
 - Fix reporting of an assertion failure in `Server:exec()` in case verbose
   error serialization is enabled in Tarantool (gh-376).
 - Added `assert_items_exclude`.
+- Strip useless `...` lines from error trace.
 
 ## 1.0.1
 

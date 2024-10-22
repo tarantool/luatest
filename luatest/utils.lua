@@ -61,22 +61,46 @@ end
 
 -- Check if line of stack trace comes from inside luatest.
 local function is_luatest_internal_line(s)
-    return s:find('[/\\]luatest[/\\]') or s:find('bin[/\\]luatest')
+    if s:find('bin[/\\]luatest') then
+        return true
+    end
+    if s:find('[/\\]luatest[/\\]') then
+        -- Do not strip lines originating from luatest test files because
+        -- we want to see stack traces when we test luatest.
+        return not s:find('[/\\]luatest[/\\]test[/\\]')
+    end
+    return false
 end
 
 function utils.strip_luatest_trace(trace)
     local lines = trace:split('\n')
-    local result = {lines[1]} -- always keep 1st line
+
+    -- Scan the stack trace backwards (from caller to callee) and strip all
+    -- frames related to luatest, as well as `[C]:`, `...`, `eval:` frames
+    -- called by them because they don't change context.
+    local result = {}
     local keep = true
-    for i = 2, table.maxn(lines) do
+    for i = table.maxn(lines), 2, -1 do
         local line = lines[i]
-        -- `[C]:` lines don't change context
-        if not line:find('^%s+%[C%]:') then
+        if not (line:find('^%s+%[C%]:') or
+                line:find('^%s+%.%.%.$') or
+                line:find('^%s+eval:')) then
             keep = not is_luatest_internal_line(line)
         end
         if keep then
             table.insert(result, line)
         end
+    end
+
+    -- Always keep the 1st line because it's the header ('stack traceback:').
+    table.insert(result, lines[1])
+
+    -- Since we scanned the stack trace backwards, we need to reverse
+    -- the result.
+    for i = 1, math.floor(#result / 2) do
+        local v = result[#result - i + 1]
+        result[#result - i + 1] = result[i]
+        result[i] = v
     end
     return table.concat(result, '\n')
 end

@@ -847,6 +847,43 @@ function g.test_stripStackTrace()
         [[stack traceback:
     luaunit2/example_with_luaunit.lua:124: in function 'test1_withFailure']]
     )
+
+    t.assert_equals(subject([[stack traceback:
+    /tmp/luatest/luatest/utils.lua:55: in function 'luatest_error'
+    /tmp/luatest/luatest/assertions.lua:66: in function 'failure'
+    /tmp/luatest/luatest/assertions.lua:71: in function 'fail_fmt'
+    /tmp/luatest/luatest/assertions.lua:341: in function 'assert_le'
+    /tmp/luatest/test/example_test.lua:37: in function 'check'
+    /tmp/luatest/test/example_test.lua:40: in function </tmp/luatest/test/example_test.lua:34>
+    [C]: in function 'xpcall'
+    eval:9: in main chunk
+    [C]: at 0x5da8d110ced6
+    /tmp/luatest/luatest/server.lua:745: in function 'exec'
+    /tmp/luatest/test/example_test.lua:34: in function 'test.test_fail_server'
+    /tmp/luatest/luatest/runner.lua:472: in function </tmp/luatest/luatest/runner.lua:471>
+    [C]: in function 'xpcall'
+    /tmp/luatest/luatest/runner.lua:471: in function 'super'
+    /tmp/luatest/luatest/capturing.lua:106: in function 'protected_call'
+    /tmp/luatest/luatest/runner.lua:559: in function 'super'
+    /tmp/luatest/luatest/hooks.lua:290: in function 'invoke_test_function'
+    /tmp/luatest/luatest/runner.lua:554: in function 'super'
+    ...
+    [C]: in function 'xpcall'
+    /tmp/luatest/luatest/utils.lua:39: in function 'run_tests'
+    /tmp/luatest/luatest/runner.lua:381: in function </tmp/luatest/luatest/runner.lua:366>
+    [C]: in function 'xpcall'
+    /tmp/luatest/luatest/capturing.lua:74: in function </tmp/luatest/luatest/capturing.lua:72>
+    [C]: in function 'xpcall'
+    /tmp/luatest/luatest/runner.lua:55: in function 'fn'
+    .../vlad/src/tarantool/luatest/luatest/sandboxed_runner.lua:14: in function 'run'
+    /tmp/luatest/luatest/cli_entrypoint.lua:4: in function </tmp/luatest/luatest/cli_entrypoint.lua:3>
+    /tmp/luatest/bin/luatest:5: in main chunk]]
+        ),
+        [[stack traceback:
+    /tmp/luatest/test/example_test.lua:37: in function 'check'
+    /tmp/luatest/test/example_test.lua:40: in function </tmp/luatest/test/example_test.lua:34>
+    /tmp/luatest/test/example_test.lua:34: in function 'test.test_fail_server']]
+    )
 end
 
 function g.test_eps_value()
