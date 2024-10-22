@@ -411,6 +411,21 @@ function M.assert_items_include(actual, expected, message)
     end
 end
 
+--- Checks that one table does not include any items of another, irrespective of their keys.
+--
+-- @param actual
+-- @param expected
+-- @string[opt] message
+function M.assert_items_exclude(actual, expected, message)
+    if type(actual) ~= 'table' or type(expected) ~= 'table' then
+        failure('Argument 1 and 2 must be tables', nil, 2)
+    end
+    if not comparator.are_disjoint(expected, actual) then
+        expected, actual = prettystr_pairs(expected, actual)
+        fail_fmt(2, message, 'Expected no item values from: %s\nTo be present in: %s', expected, actual)
+    end
+end
+
 local function table_slice(actual, expected)
     if type(expected) ~= 'table' or type(actual) ~= 'table' then
         return actual
