@@ -548,6 +548,10 @@ end
 
 function Runner.mt:invoke_test_function(test)
     local err = self:protected_call(test.group, test.method, test.name)
+    if err.status == 'fail' or err.status == 'error' then
+        log.error(err.message)
+        log.error(err.trace)
+    end
     self:update_status(test, err)
 end
 
