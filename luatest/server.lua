@@ -127,7 +127,7 @@ function Server:new(object, extra)
                     if not object.tests[t.name] then
                         object.tests[t.name] = t
                         t.servers[object.id] = object
-                        log.info('Server %s used in %s test', object.alias, t.name)
+                        log.info('Server %q used in %s test', object.alias, t.name)
                     end
                 end
                 return v(...)
@@ -461,7 +461,7 @@ function Server:start(opts)
         self:wait_until_ready()
     end
 
-    log.info('Server %s (pid: %d) started', self.alias, self.process.pid)
+    log.info('Server %q (pid: %d) started', self.alias, self.process.pid)
 end
 
 --- Restart the server with the given parameters.
@@ -495,7 +495,7 @@ function Server:restart(params, opts)
     }, {wait_until_ready = '?boolean'})
 
     if not self.process then
-        log.warn('Cannot restart server %s since its process not started', self.alias)
+        log.warn('Cannot restart server %q since its process not started', self.alias)
     end
     self:stop()
 
@@ -504,7 +504,7 @@ function Server:restart(params, opts)
     end
 
     self:start(opts)
-    log.info('Server %s (pid: %d) restarted', self.alias, self.process.pid)
+    log.info('Server %q (pid: %d) restarted', self.alias, self.process.pid)
 end
 
 -- Save server artifacts by copying the working directory.
@@ -513,7 +513,7 @@ end
 -- following string: `Failed to copy artifacts for server (alias: <alias>, workdir: <workdir>)`.
 function Server:save_artifacts()
     if self.artifacts_saved then
-        log.info('Artifacts of server %s already saved to %s', self.alias, self.artifacts)
+        log.info('Artifacts of server %q already saved to %s', self.alias, self.artifacts)
         return
     end
     local ok, err = fio.copytree(self.workdir, self.artifacts)
@@ -522,7 +522,7 @@ function Server:save_artifacts()
             :format(self.alias, fio.basename(self.workdir))
         log.error(('%s: %s'):format(self.artifacts, err))
     end
-    log.info('Artifacts of server %s saved from %s to %s',
+    log.info('Artifacts of server %q saved from %s to %s',
         self.alias, self.workdir, self.artifacts)
     self.artifacts_saved = true
 end
@@ -530,7 +530,7 @@ end
 -- Wait until the given condition is `true` (anything except `false` and `nil`).
 -- Throws an error when the server process is terminated or timeout exceeds.
 local function wait_for_condition(cond_desc, server, func, ...)
-    log.info('Wait for %s condition for server %s (pid: %d) within %d sec',
+    log.info('Wait for %q condition for server %q (pid: %d) within %d sec',
         cond_desc, server.alias, server.process.pid, WAIT_TIMEOUT)
     local deadline = clock.time() + WAIT_TIMEOUT
     while true do
@@ -559,7 +559,7 @@ function Server:stop()
             self:coverage('shutdown')
         end
         self.net_box:close()
-        log.info('Connection to server %s (pid: %d) closed', self.alias, self.process.pid)
+        log.info('Connection to server %q (pid: %d) closed', self.alias, self.process.pid)
         self.net_box = nil
     end
 
@@ -582,7 +582,7 @@ function Server:stop()
             error(('Memory leak during process execution (alias: %s, workdir: %s, pid: %s)\n%s')
                 :format(self.alias, workdir, pid, stderr))
         end
-        log.info('Process of server %s (pid: %d) killed', self.alias, self.process.pid)
+        log.info('Process of server %q (pid: %d) killed', self.alias, self.process.pid)
         self.process = nil
     end
 end
@@ -895,7 +895,7 @@ function Server:grep_log(pattern, bytes_num, opts)
         return rawget(_G, 'box_cfg_log_file') or box.cfg.log end)
     local file = fio.open(filename, {'O_RDONLY', 'O_NONBLOCK'})
 
-    log.info('Trying to grep %s in server\'s log file %s', pattern, filename)
+    log.info('Trying to grep %q in server\'s log file %s', pattern, filename)
 
     local function fail(msg)
         local err = errno.strerror()
