@@ -4,7 +4,6 @@
 
 - Add logging to unified file (gh-324).
 - Add memory leak detection during server process execution (gh-349).
-- Improve `luatest.log` function if a `nil` value is passed (gh-360).
 - Added `assert_error_covers`.
 - Add more logs (gh-326).
 - Add `justrun` helper as a tarantool runner and output catcher (gh-365).
@@ -23,6 +22,7 @@
 - Strip useless `...` lines from error trace.
 - Fix error trace reporting for functions executed with `Server:exec()`
   (gh-396).
+- Remove pretty-printing of `luatest.log` arguments.
 
 ## 1.0.1
 

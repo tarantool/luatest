@@ -1,22 +1,15 @@
 local tarantool_log = require('log')
 
 local utils = require('luatest.utils')
-local pp = require('luatest.pp')
 
 -- Utils for logging
 local log = {}
 local default_level = 'info'
 
 local function _log(level, msg, ...)
-    if not utils.version_current_ge_than(2, 5, 1) then
-        return
+    if utils.version_current_ge_than(2, 5, 1) then
+        return tarantool_log[level](msg, ...)
     end
-    local args = {}
-    for i = 1, select('#', ...) do
-        local v = select(i, ...)
-        table.insert(args, pp.tostringlog(v))
-    end
-    return tarantool_log[level](msg, unpack(args))
 end
 
 --- Extra wrapper for `__call` function
