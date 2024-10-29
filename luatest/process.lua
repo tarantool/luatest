@@ -77,7 +77,7 @@ function Process.mt:initialize()
         self._pid_ull = ffi.cast('void*', 0ULL + self.pid)
         ffi.gc(self._pid_ull, function(x)
             local pid = tonumber(ffi.cast(ffi.typeof(0ULL), x))
-            log.debug("Killing GC'ed process %d", pid)
+            log.info("Killing GC'ed process %d", pid)
             Process.kill_pid(pid, nil, {quiet = true})
         end)
     end

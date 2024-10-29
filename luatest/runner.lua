@@ -96,10 +96,7 @@ function Runner.run(args, options)
             -- Initialize logging for luatest runner.
             -- The log format will be as follows:
             --     YYYY-MM-DD HH:MM:SS.ZZZ [ID] main/.../luatest I> ...
-            require('log').cfg{
-                log = log_cfg,
-                level = options.log_level or 5,
-            }
+            require('log').cfg{log = log_cfg}
         end
 
         if options.help then
@@ -132,8 +129,6 @@ Options:
   -h, --help:             Print this help
   --version:              Print version information
   -v, --verbose:          Increase output verbosity for luatest runnner
-  -vv,                    Increase log verbosity to VERBOSE level for luatest runnner
-  -vvv,                   Increase log verbosity to DEBUG level for luatest runnner
   -q, --quiet:            Set verbosity to minimum
   -c, --no-capture        Disable capture
   -b                      Print full backtrace (don't remove luatest frames)
@@ -189,12 +184,6 @@ function Runner.parse_cmd_line(args)
             result.version = true
         elseif arg == '--verbose' or arg == '-v' then
             result.verbosity = GenericOutput.VERBOSITY.VERBOSE
-        elseif arg == '-vv' then
-            result.verbosity = GenericOutput.VERBOSITY.VERBOSE
-            result.log_level = 6 -- verbose
-        elseif arg == '-vvv' then
-            result.verbosity = GenericOutput.VERBOSITY.VERBOSE
-            result.log_level = 7 -- debug
         elseif arg == '--quiet' or arg == '-q' then
             result.verbosity = GenericOutput.VERBOSITY.QUIET
         elseif arg == '--fail-fast' or arg == '-f' then
@@ -350,13 +339,13 @@ function Runner.mt:bootstrap()
         load_tests(path)
     end
     self.groups = self.luatest.groups
-    log.verbose('Bootstrap finished: %d test(s), %d group(s)', #self.paths, #self.groups)
+    log.info('Bootstrap finished: %d test(s), %d group(s)', #self.paths, #self.groups)
 end
 
 function Runner.mt:cleanup()
     if not self.no_clean then
         fio.rmtree(Server.vardir)
-        log.verbose('Directory %s removed via cleanup procedure', Server.vardir)
+        log.info('Directory %s removed via cleanup procedure', Server.vardir)
     end
 end
 
@@ -540,7 +529,7 @@ function Runner.mt:run_tests(tests_list)
             end
             rawget(_G, 'current_test').value = test
             self:run_test(test)
-            log.verbose('Test %s marked as %s', test.name, test.status)
+            log.info('Test %s marked as %s', test.name, test.status)
             if self.result.aborted then
                 break
             end
