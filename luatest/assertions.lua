@@ -11,6 +11,7 @@ local pp = require('luatest.pp')
 local log = require('luatest.log')
 local utils = require('luatest.utils')
 local tarantool = require('tarantool')
+local fio = require('fio')
 local ffi = require('ffi')
 
 local prettystr = pp.tostring
@@ -271,7 +272,6 @@ end
 -- @string[opt] message
 -- @bool[opt] deep_analysis print diff.
 function M.assert_equals(actual, expected, message, deep_analysis)
-    log.info('Assert %s equals to %s', actual, expected)
     if not comparator.equals(actual, expected) then
         failure(M.private.error_msg_equality(actual, expected, deep_analysis), message, 2)
     end
@@ -378,7 +378,6 @@ end
 -- @param expected
 -- @string[opt] message
 function M.assert_not_equals(actual, expected, message)
-    log.info('Assert %s not equals to %s', actual, expected)
     if comparator.equals(actual, expected) then
         fail_fmt(2, message, 'Actual and expected values are equal: %s', prettystr(actual))
     end
@@ -502,8 +501,6 @@ M.private.str_match = str_match
 -- @bool[opt] is_pattern
 -- @string[opt] message
 function M.assert_str_contains(value, expected, is_pattern, message)
-    log.info('Assert string %s contains %s', value, expected)
-
     M.assert_type(value, 'string', nil, 2)
     M.assert_type(expected, 'string', nil, 2)
 
@@ -646,7 +643,6 @@ end
 -- @param ... arguments for function
 function M.assert_error_msg_contains(expected_partial, fn, ...)
     local no_error, error_msg = pcall_wrapper(2, fn, ...)
-    log.info('Assert error message %s contains %s', error_msg, expected_partial)
     if no_error then
         local failure_message = string.format(
             'Function successfully returned: %s\nExpected error containing: %s',
@@ -888,6 +884,18 @@ end
 function M.assert_not_minus_zero(value, message)
     if type(value) == 'number' and (1/value == -math.huge) then
         failure("expected: not -0.0, actual: -0.0", message, 2)
+    end
+end
+
+-- Log all checked assertions for debugging.
+for func_name, func in pairs(M) do
+    if func_name:startswith('assert') and type(func) == 'function' then
+        M[func_name] = function(...)
+            local info = debug.getinfo(2, 'Sl')
+            log.info('Checking assertion at %s:%s',
+                     fio.basename(info.short_src), info.currentline)
+            return func(...)
+        end
     end
 end
 

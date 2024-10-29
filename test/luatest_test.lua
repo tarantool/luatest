@@ -103,11 +103,6 @@ g.test_success_if_tnt_specific = function()
     t.assert_equals(helper.assert_failure(t.success_if, {}).status, 'success')
 end
 
-g.test_assert_aliases = function ()
-    t.assert_is(t.assert, t.assert_eval_to_true)
-    t.assert_is(t.assert_not, t.assert_eval_to_false)
-end
-
 g.test_assert_covers = function()
     local subject = t.assert_covers
     subject({a = 1, b = 2, c = 3}, {})
