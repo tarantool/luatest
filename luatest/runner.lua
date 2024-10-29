@@ -72,17 +72,14 @@ function Runner.run(args, options)
             local fh = fio.open(options.log_file, {'O_CREAT', 'O_WRONLY'}, tonumber('640', 8))
             rawset(_G, 'log_file', {fh = fh})
 
-            local output_beautifier = OutputBeautifier:new({prefix = log_prefix, runner = true})
+            local output_beautifier = OutputBeautifier:new({prefix = log_prefix})
             output_beautifier:enable()
-            output_beautifier:hijack_output()
 
             -- `tee` copy logs to file and also to standard output, but we need
             -- process all captured data through the OutputBeatifier object.
-            -- Data will be redirected back to stderr of the current process.
-            -- `/dev/fd/2` is a symlink to `/proc/self/fd`, where `/proc/self` is
-            -- a symlink to `/proc/<PID>`. So `/dev/fd/2` is equal to `/proc/<PID>/fd/2`
-            -- and it means "stderr of the current process".
-            log_cfg = string.format("| tee %s > /dev/fd/2", log_cfg)
+            -- So we redirect stdout to the pipe created by OutputBeautifier.
+            log_cfg = string.format("| tee %s > /dev/fd/%d",
+                                    log_cfg, output_beautifier.pipes.stdout[1])
         end
         -- Logging cannot be initialized without configuring the `box` engine
         -- on a version less than 2.5.1 (see more details at [1]). Otherwise,

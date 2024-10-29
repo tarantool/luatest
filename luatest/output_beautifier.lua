@@ -59,10 +59,9 @@ end
 -- @string object.prefix String to prefix each output line with.
 -- @string[opt] object.color Color name for prefix.
 -- @string[opt] object.color_code Color code for prefix.
--- @boolean[opt] object.runner Mark OutputBeautifier object is created for runner process.
 -- @return input object.
 function OutputBeautifier:new(object)
-    checks('table', {prefix = 'string', color = '?string', color_code = '?string', runner = '?boolean'})
+    checks('table', {prefix = 'string', color = '?string', color_code = '?string'})
     return self:from(object)
 end
 
@@ -70,20 +69,13 @@ function OutputBeautifier.mt:initialize()
     self.color_code = self.color_code or
         self.class.COLOR_BY_NAME[self.color] or
         OutputBeautifier:next_color_code()
-    self.pipes = {stderr = ffi_io.create_pipe()}
-    if not self.runner then
-        self.pipes.stdout = ffi_io.create_pipe()
-    end
+    self.pipes = {stdout = ffi_io.create_pipe(), stderr = ffi_io.create_pipe()}
     self.stderr = ''
 end
 
 -- Replace standard output descriptors with pipes.
--- Stdout descriptor of the runner process will not be replaced
--- because it is used for displaying all captured data from other processes.
 function OutputBeautifier.mt:hijack_output()
-    if not self.runner then
-        ffi_io.dup2_io(self.pipes.stdout[1], io.stdout)
-    end
+    ffi_io.dup2_io(self.pipes.stdout[1], io.stdout)
     ffi_io.dup2_io(self.pipes.stderr[1], io.stderr)
 end
 
