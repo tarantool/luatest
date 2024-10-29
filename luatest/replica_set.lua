@@ -72,7 +72,7 @@ function ReplicaSet:initialize()
     else
         self.servers = {}
     end
-    log.info('Replica set %s initialized', self.id)
+    log.info('Replica set %q initialized', self.id)
 end
 
 --- Build a server object for the replica set.
@@ -148,7 +148,7 @@ function ReplicaSet:delete_server(alias)
     if server_index then
         table.remove(self.servers, server_index)
     else
-        log.warn('Server %s does not exist in replica set %s', alias, self.id)
+        log.warn('Server %q does not exist in replica set %q', alias, self.id)
     end
 end
 
@@ -174,7 +174,7 @@ function ReplicaSet:start(opts)
             server:wait_until_ready()
         end
     end
-    log.info('All servers started in replica set %s', self.id)
+    log.info('All servers started in replica set %q', self.id)
 end
 
 --- Stop all servers in the replica set.
@@ -236,7 +236,7 @@ function ReplicaSet:wait_for_fullmesh(opts)
             end
         end
     end, self)
-    log.info('Full mesh is ready in replica set %s', self.id)
+    log.info('Full mesh is ready in replica set %q', self.id)
 end
 
 return ReplicaSet
