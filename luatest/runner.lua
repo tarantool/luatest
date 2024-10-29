@@ -73,7 +73,7 @@ function Runner.run(args, options)
             rawset(_G, 'log_file', {fh = fh})
 
             local output_beautifier = OutputBeautifier:new({prefix = log_prefix, runner = true})
-            output_beautifier:enable({enable_capture = options.enable_capture})
+            output_beautifier:enable()
             output_beautifier:hijack_output()
 
             -- `tee` copy logs to file and also to standard output, but we need
