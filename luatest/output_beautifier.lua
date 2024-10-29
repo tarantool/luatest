@@ -75,7 +75,6 @@ function OutputBeautifier.mt:initialize()
         self.pipes.stdout = ffi_io.create_pipe()
     end
     self.stderr = ''
-    self.enable_capture = nil
 end
 
 -- Replace standard output descriptors with pipes.
@@ -91,9 +90,6 @@ end
 -- Start fibers that reads from pipes and prints formatted output.
 -- Pass `track_pid` option to automatically stop forwarder once process is finished.
 function OutputBeautifier.mt:enable(options)
-    if options and options.enable_capture ~= nil then
-        self.enable_capture = options.enable_capture == false
-    end
     if self.fibers then
         return
     end
@@ -167,16 +163,17 @@ function OutputBeautifier.mt:run(fd, pipe)
                 table.remove(lines)
             end
             for _, line in pairs(lines) do
-                line_color_code = self:color_for_line(line) or line_color_code
-                if not self.runner or self.enable_capture then
+                if log_file ~= nil then
+                    -- Redirect all output to the log file if unified logging
+                    -- is enabled.
+                    log_file.fh:write(table.concat({prefix, line, '\n'}))
+                else
+                    line_color_code = self:color_for_line(line) or line_color_code
                     io.stdout:write(
                         table.concat(
                             {colored_prefix, line_color_code, line, self.class.RESET_TERM,'\n'}
                         )
                     )
-                end
-                if log_file ~= nil then
-                    log_file.fh:write(table.concat({prefix, line, '\n'}))
                 end
                 fiber.yield()
             end
