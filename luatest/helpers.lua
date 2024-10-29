@@ -69,7 +69,7 @@ function helpers.retrying(config, fn, ...)
         if (clock.time() - started_at) > timeout then
             return fn(...)
         end
-        log.verbose('Retrying in %d sec due to error: %s', delay, result)
+        log.info('Retrying in %d sec due to error: %s', delay, result)
         fiber.sleep(delay)
     end
 end

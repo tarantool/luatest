@@ -30,14 +30,6 @@ function log.info(msg, ...)
     return _log('info', msg, ...)
 end
 
-function log.verbose(msg, ...)
-    return _log('verbose', msg, ...)
-end
-
-function log.debug(msg, ...)
-    return _log('debug', msg, ...)
-end
-
 function log.warn(msg, ...)
     return _log('warn', msg, ...)
 end
