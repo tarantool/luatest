@@ -24,6 +24,9 @@
 - Fix error trace reporting for functions executed with `Server:exec()`
   (gh-396).
 
+## 1.0.2
+- Support for json output
+
 ## 1.0.1
 
 - Fixed incorrect Unix domain socket path length check (gh-341).

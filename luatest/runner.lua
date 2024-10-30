@@ -46,7 +46,7 @@ Runner.mt.tests_path = 'test'
 -- @func[opt] options.load_tests Function to load tests. Called once for every item in `paths`.
 -- @string[opt='none'] options.shuffle Shuffle method (none, all, group)
 -- @int[opt] options.seed Random seed for shuffle
--- @string[opt='text'] options.output Output formatter (text, tap, junit, nil)
+-- @string[opt='text'] options.output Output formatter (text, tap, junit, json, nil)
 function Runner.run(args, options)
     args = args or rawget(_G, 'arg')
     options = options or {}
@@ -151,7 +151,7 @@ Options:
                             - none - sort tests within group by line number (default)
   --seed NUMBER:          Set seed value for shuffler
   -o, --output OUTPUT:    Set output type to OUTPUT
-                          Possible values: text, tap, junit, nil
+                          Possible values: text, tap, junit, json, nil
   -n, --name NAME:        For junit only, mandatory name of xml file
   -r, --repeat NUM:       Execute all tests NUM times, e.g. to trig the JIT
   -R, --repeat-group NUM: Execute all groups of tests NUM times, e.g. to trig the JIT
