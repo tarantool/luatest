@@ -57,6 +57,7 @@ local output_presets = {
     tap = {'-o', 'tap'},
     tap_verbose = {'-o', 'tap', '-v'},
     ['nil'] = {'-o', 'nil'},
+    json = {'-o', 'json'},
 }
 
 for output_type, options in pairs(output_presets) do
