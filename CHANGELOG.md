@@ -23,6 +23,7 @@
 - Fix error trace reporting for functions executed with `Server:exec()`
   (gh-396).
 - Remove pretty-printing of `luatest.log` arguments.
+- Fixed calculation of coverage percentage (gh-402)
 
 ## 1.0.1
 

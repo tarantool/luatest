@@ -29,6 +29,17 @@ local function with_cwd(dir, fn)
     assert(fio.chdir(old), 'Failed to chdir to ' .. old)
 end
 
+local function find_luas(list_of_lua_modules, path)
+    for _, filename in pairs(fio.listdir(path)) do
+        local full_filename = fio.pathjoin(path, filename)
+        if fio.path.is_dir(full_filename) then
+            find_luas(list_of_lua_modules, full_filename)
+        elseif full_filename:endswith(".lua") then
+            list_of_lua_modules[full_filename] = {max = 0, max_hits = 0}
+        end
+    end
+end
+
 function export.enable()
     local root = os.getenv('LUATEST_LUACOV_ROOT')
     if not root then
@@ -42,6 +53,10 @@ function export.enable()
         for _, item in pairs(export.DEFAULT_EXCLUDE) do
             table.insert(config.exclude, item)
         end
+
+        runner.data = {}
+        find_luas(runner.data, root)
+
         runner.init(config)
     end)
 end
