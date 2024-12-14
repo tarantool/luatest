@@ -23,6 +23,7 @@
 - Fix error trace reporting for functions executed with `Server:exec()`
   (gh-396).
 - Remove pretty-printing of `luatest.log` arguments.
+- Add `cluster` helper as a tool for managing a Tarantool cluster (gh-368).
 
 ## 1.0.1
 
