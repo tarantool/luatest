@@ -48,6 +48,11 @@ luatest.justrun = require('luatest.justrun')
 -- @see luatest.cbuilder
 luatest.cbuilder = require('luatest.cbuilder')
 
+--- Tarantool cluster management utils.
+--
+-- @see luatest.cluster
+luatest.cluster = require('luatest.cluster')
+
 --- Add before suite hook.
 --
 -- @function before_suite
