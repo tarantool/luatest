@@ -10,7 +10,8 @@ file = {
     'luatest/justrun.lua',
     'luatest/cbuilder.lua',
     'luatest/hooks.lua',
-    'luatest/treegen.lua'
+    'luatest/treegen.lua',
+    'luatest/cluster.lua'
 }
 topics = {
     'CHANGELOG.md',
