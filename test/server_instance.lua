@@ -5,11 +5,10 @@ local json = require('json')
 local workdir = os.getenv('TARANTOOL_WORKDIR')
 local listen = os.getenv('TARANTOOL_LISTEN')
 local http_port = os.getenv('TARANTOOL_HTTP_PORT')
-local log = os.getenv('TARANTOOL_LOG')
 
 local httpd = require('http.server').new('0.0.0.0', http_port)
 
-box.cfg({work_dir = workdir, log = log})
+box.cfg({work_dir = workdir})
 box.schema.user.grant('guest', 'super', nil, nil, {if_not_exists = true})
 box.cfg({listen = listen})
 

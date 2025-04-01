@@ -327,9 +327,7 @@ function Server:initialize()
     local prefix = fio.pathjoin(Server.vardir, 'artifacts', self.rs_id or '')
     self.artifacts = fio.pathjoin(prefix, self.id)
 
-    if rawget(_G, 'log_file') ~= nil then
-        self.unified_log_enabled = true
-    end
+    self.log_file = fio.pathjoin(self.workdir, self.alias .. '.log')
 end
 
 -- Create a table with env variables based on the constructor params.
@@ -341,7 +339,6 @@ end
 --   * `TARANTOOL_ALIAS`
 --   * `TARANTOOL_HTTP_PORT`
 --   * `TARANTOOL_BOX_CFG`
---   * `TARANTOOL_UNIFIED_LOG_ENABLED`
 --
 -- @return table
 function Server:build_env()
@@ -353,9 +350,6 @@ function Server:build_env()
     }
     if self.box_cfg ~= nil then
         res.TARANTOOL_BOX_CFG = json.encode(self.box_cfg)
-    end
-    if self.unified_log_enabled then
-        res.TARANTOOL_UNIFIED_LOG_ENABLED = tostring(self.unified_log_enabled)
     end
     return res
 end
@@ -442,6 +436,7 @@ function Server:start(opts)
     self.process = Process:start(command, args, env, {
         chdir = self.chdir,
         output_prefix = self.alias,
+        output_file = self.log_file,
     })
 
     local wait_until_ready
@@ -573,14 +568,16 @@ function Server:stop()
         end
         local workdir = fio.basename(self.workdir)
         local pid = self.process.pid
-        local stderr = self.process.output_beautifier.stderr
-        if stderr:find('Segmentation fault') then
-            error(('Segmentation fault during process termination (alias: %s, workdir: %s, pid: %d)\n%s')
-                :format(self.alias, workdir, pid, stderr))
-        end
-        if stderr:find('LeakSanitizer') then
-            error(('Memory leak during process execution (alias: %s, workdir: %s, pid: %s)\n%s')
-                :format(self.alias, workdir, pid, stderr))
+        -- Check the log file for crash and memory leak reports.
+        if fio.path.exists(self.log_file) then
+            if self:grep_log('Segmentation fault$', math.huge) then
+                error(('Segmentation fault during process termination (alias: %s, workdir: %s, pid: %d)')
+                    :format(self.alias, workdir, pid))
+            end
+            if self:grep_log('LeakSanitizer: detected memory leaks$', math.huge) then
+                error(('Memory leak during process execution (alias: %s, workdir: %s, pid: %s)')
+                    :format(self.alias, workdir, pid))
+            end
         end
         log.info('Process of server %q (pid: %d) killed', self.alias, self.process.pid)
         self.process = nil
@@ -869,7 +866,6 @@ end
 --
 
 --- Search a string pattern in the server's log file.
--- If the server has crashed, `opts.filename` is required.
 --
 -- @string pattern String pattern to search in the server's log file.
 -- @number[opt] bytes_num Number of bytes to read from the server's log file.
@@ -878,21 +874,12 @@ end
 --   pattern is found, which means that the server was restarted.
 --   Defaults to `true`.
 -- @string[opt] opts.filename Path to the server's log file.
---   Defaults to `box.cfg.log`.
+--   Defaults to `<workdir>/<alias>.log`.
 -- @return string|nil
 function Server:grep_log(pattern, bytes_num, opts)
     local options = opts or {}
     local reset = options.reset or true
-
-    -- `box.cfg.log` can contain not only the path to the log file.
-    -- When unified logging mode is on, `box.cfg.log` is as follows:
-    --
-    --     | tee ${TARANTOOL_WORKDIR}/${TARANTOOL_ALIAS}.log
-    --
-    -- Therefore, we set `_G.box_cfg_log_file` in server_instance.lua which
-    -- contains the log file path: ${TARANTOOL_WORKDIR}/${TARANTOOL_ALIAS}.log.
-    local filename = options.filename or self:exec(function()
-        return rawget(_G, 'box_cfg_log_file') or box.cfg.log end)
+    local filename = options.filename or self.log_file
     local file = fio.open(filename, {'O_RDONLY', 'O_NONBLOCK'})
 
     log.info('Trying to grep %q in server\'s log file %s', pattern, filename)
