@@ -36,6 +36,7 @@ function Process:start(path, args, env, options)
         chdir = '?string',
         ignore_gc = '?boolean',
         output_prefix = '?string',
+        output_file = '?string',
     })
     args = args and table.copy(args) or {}
     env = env or {}
@@ -43,9 +44,13 @@ function Process:start(path, args, env, options)
 
     table.insert(args, 1, path)
 
-    local output_beautifier = options.output_prefix and OutputBeautifier:new({
-        prefix = options.output_prefix,
-    })
+    local output_beautifier
+    if options.output_prefix or options.output_file then
+        output_beautifier = OutputBeautifier:new({
+            prefix = options.output_prefix,
+            file = options.output_file,
+        })
+    end
 
     local env_list = fun.iter(env):map(function(k, v) return k .. '=' .. v end):totable()
     local pid = ffi.C.fork()

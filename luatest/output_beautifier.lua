@@ -1,5 +1,6 @@
 local checks = require('checks')
 local fiber = require('fiber')
+local fio = require('fio')
 local fun = require('fun')
 
 local Class = require('luatest.class')
@@ -57,11 +58,13 @@ end
 --- Build OutputBeautifier object.
 -- @param object
 -- @string object.prefix String to prefix each output line with.
+-- @string[opt] object.file Path to the file to append all output too.
 -- @string[opt] object.color Color name for prefix.
 -- @string[opt] object.color_code Color code for prefix.
 -- @return input object.
 function OutputBeautifier:new(object)
-    checks('table', {prefix = 'string', color = '?string', color_code = '?string'})
+    checks('table', {prefix = 'string', file = '?string',
+                     color = '?string', color_code = '?string'})
     return self:from(object)
 end
 
@@ -70,7 +73,6 @@ function OutputBeautifier.mt:initialize()
         self.class.COLOR_BY_NAME[self.color] or
         OutputBeautifier:next_color_code()
     self.pipes = {stdout = ffi_io.create_pipe(), stderr = ffi_io.create_pipe()}
-    self.stderr = ''
 end
 
 -- Replace standard output descriptors with pipes.
@@ -87,7 +89,7 @@ function OutputBeautifier.mt:enable(options)
     end
     self.fibers = {}
     for i, pipe in pairs(self.pipes) do
-        self.fibers[i] = fiber.new(self.run, self, pipe[0], i)
+        self.fibers[i] = fiber.new(self.run, self, pipe[0])
     end
     self.fibers.pid_tracker = options and options.track_pid and fiber.new(function()
         Process = Process or require('luatest.process')
@@ -99,6 +101,10 @@ function OutputBeautifier.mt:enable(options)
             fiber.sleep(self.class.PID_TRACKER_INTERVAL)
         end
     end)
+    if self.file then
+        self.fh = fio.open(self.file, {'O_CREAT', 'O_WRONLY', 'O_APPEND'},
+                           tonumber('640', 8))
+    end
 end
 
 -- Stop fibers.
@@ -111,6 +117,10 @@ function OutputBeautifier.mt:disable()
         end
     end
     self.fibers = nil
+    if self.fh then
+        self.fh:close()
+    end
+    self.fh = nil
 end
 
 -- Process all available data from fd using synchronization with monitor.
@@ -139,22 +149,21 @@ end
 --
 -- Every line with log level mark (` X> `) changes the color for all the following
 -- lines until the next one with the mark.
-function OutputBeautifier.mt:run(fd, pipe)
+function OutputBeautifier.mt:run(fd)
     local prefix = self.prefix .. ' | '
     local colored_prefix = self.color_code .. prefix
     local line_color_code = self.class.RESET_TERM
     local log_file = rawget(_G, 'log_file')
     while fiber.testcancel() or true do
         self:process_fd_output(fd, function(chunks)
-            local raw_lines = table.concat(chunks)
-            if pipe == 'stderr' then
-                self.stderr = self.stderr .. raw_lines
-            end
-            local lines = raw_lines:split('\n')
+            local lines = table.concat(chunks):split('\n')
             if lines[#lines] == '' then
                 table.remove(lines)
             end
             for _, line in pairs(lines) do
+                if self.fh ~= nil then
+                    self.fh:write(table.concat({prefix, line, '\n'}))
+                end
                 if log_file ~= nil then
                     -- Redirect all output to the log file if unified logging
                     -- is enabled.

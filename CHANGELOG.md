@@ -24,6 +24,9 @@
   (gh-396).
 - Remove pretty-printing of `luatest.log` arguments.
 - Add `cluster` helper as a tool for managing a Tarantool cluster (gh-368).
+- Fix `Server:grep_log()` to work with a server instance started using
+  the `cluster` helper (gh-389).
+- Fix `Server:grep_log()` to work with a stopped server instance (gh-397).
 
 ## 1.0.1
 
