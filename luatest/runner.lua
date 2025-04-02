@@ -69,7 +69,8 @@ function Runner.run(args, options)
             -- in the `output_beautifier` module: this module is connected to the
             -- the `server` module. We cannot link the `server` module to the `runner`
             -- module to explicitly give this parameter.
-            local fh = fio.open(options.log_file, {'O_CREAT', 'O_WRONLY'}, tonumber('640', 8))
+            local fh = fio.open(options.log_file, {'O_CREAT', 'O_WRONLY', 'O_TRUNC'},
+                                tonumber('640', 8))
             rawset(_G, 'log_file', {fh = fh})
 
             local output_beautifier = OutputBeautifier:new({prefix = log_prefix})
