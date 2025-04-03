@@ -17,7 +17,6 @@ local Server = require('luatest.server')
 local sorted_pairs = require('luatest.sorted_pairs')
 local TestInstance = require('luatest.test_instance')
 local utils = require('luatest.utils')
-local OutputBeautifier = require('luatest.output_beautifier')
 
 local ROCK_VERSION = require('luatest.VERSION')
 
@@ -58,47 +57,11 @@ function Runner.run(args, options)
         end
         options = utils.merge(options.luatest.configure(), Runner.parse_cmd_line(args), options)
 
-        local log_prefix = options.log_prefix or 'luatest'
-        local log_cfg = string.format("%s.log", log_prefix)
-
-        fio.mktree(Server.vardir)
-        log_cfg = fio.pathjoin(Server.vardir, log_cfg)
-
-        if options.log_file then
-            -- Save the file descriptor as a global variable to use it
-            -- in the `output_beautifier` module: this module is connected to the
-            -- the `server` module. We cannot link the `server` module to the `runner`
-            -- module to explicitly give this parameter.
-            local fh = fio.open(options.log_file, {'O_CREAT', 'O_WRONLY', 'O_TRUNC'},
-                                tonumber('640', 8))
-            rawset(_G, 'log_file', {fh = fh})
-
-            local output_beautifier = OutputBeautifier:new({prefix = log_prefix})
-            output_beautifier:enable()
-
-            -- `tee` copy logs to file and also to standard output, but we need
-            -- process all captured data through the OutputBeatifier object.
-            -- So we redirect stdout to the pipe created by OutputBeautifier.
-            log_cfg = string.format("| tee %s > /dev/fd/%d",
-                                    log_cfg, output_beautifier.pipes.stdout[1])
-        end
-        -- Logging cannot be initialized without configuring the `box` engine
-        -- on a version less than 2.5.1 (see more details at [1]). Otherwise,
-        -- this causes the `attempt to call field 'cfg' (a nil value)` error,
-        -- so there are the following limitations:
-        --     1. There is no `luatest.log` file (but logs are still available
-        --        in stdout and in the `run.log` file);
-        --     2. All logs from luatest are non-formatted and look like:
-        --
-        --        luatest | My log message
-        --
-        -- [1]: https://github.com/tarantool/tarantool/issues/689
-        if utils.version_current_ge_than(2, 5, 1) then
-            -- Initialize logging for luatest runner.
-            -- The log format will be as follows:
-            --     YYYY-MM-DD HH:MM:SS.ZZZ [ID] main/.../luatest I> ...
-            require('log').cfg{log = log_cfg}
-        end
+        log.initialize({
+            vardir = Server.vardir,
+            log_file = options.log_file,
+            log_prefix = options.log_prefix,
+        })
 
         if options.help then
             print(Runner.USAGE)

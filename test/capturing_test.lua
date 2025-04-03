@@ -5,6 +5,9 @@ local helper = require('test.helpers.general')
 local Capture = require('luatest.capture')
 local capture = Capture:new()
 
+-- Disable luatest logging to avoid capturing it.
+require('luatest.log').info = function() end
+
 g.setup = function() capture:enable() end
 g.teardown = function()
     capture:flush()
