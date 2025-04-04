@@ -42,7 +42,12 @@ function log.initialize(options)
     output_beautifier:enable()
 
     -- Redirect all logs to the pipe created by OutputBeautifier.
-    local log_cfg = string.format('/dev/fd/%d', output_beautifier.pipes.stdout[1])
+    --
+    -- Write through a pipe to enable non-blocking mode. Required to prevent
+    -- a deadlock in case a test performs a lot of checks without yielding
+    -- execution to the fiber processing logs (gh-416).
+    local log_cfg = string.format('| cat > /dev/fd/%d',
+                                  output_beautifier.pipes.stdout[1])
 
     -- Logging cannot be initialized without configuring the `box` engine
     -- on a version less than 2.5.1 (see more details at [1]). Otherwise,
@@ -59,7 +64,10 @@ function log.initialize(options)
         -- Initialize logging for luatest runner.
         -- The log format will be as follows:
         --     YYYY-MM-DD HH:MM:SS.ZZZ [ID] main/.../luatest I> ...
-        require('log').cfg{log = log_cfg}
+        require('log').cfg{
+            log = log_cfg,
+            nonblock = true,
+        }
     end
 
     is_initialized = true
