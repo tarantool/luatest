@@ -137,7 +137,7 @@ function Capture.mt:wrap(enabled, fn)
         return fn()
     end, function(err)
         -- Don't re-wrap error.
-        if err.type ~= self.class.CAPTURED_ERROR_TYPE then
+        if type(err) ~= 'table' or rawget(err, 'type') ~= self.class.CAPTURED_ERROR_TYPE then
             err = {
                 type = self.class.CAPTURED_ERROR_TYPE,
                 original = err,
