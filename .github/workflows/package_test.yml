@@ -19,7 +19,7 @@ jobs:
           - dist: fedora
             version: 36
 
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
 
     steps:
       - name: Check out repo
