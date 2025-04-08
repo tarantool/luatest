@@ -28,9 +28,9 @@ jobs:
     steps:
       - uses: actions/checkout@master
 
-      - uses: tarantool/setup-tarantool@v1
+      - uses: tarantool/setup-tarantool@v3
         with:
-          tarantool-version: '2.5'
+          tarantool-version: '2.11'
 
       # https://stackoverflow.com/questions/58177786/get-the-current-pushed-tag-in-github-actions
       - name: Set env
