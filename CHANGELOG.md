@@ -1,32 +1,32 @@
 # Changelog
 
-## Unreleased
+## 1.1.0
 
-- Add logging to unified file (gh-324).
-- Add memory leak detection during server process execution (gh-349).
+- Added logging to unified file (gh-324).
+- Added memory leak detection during server process execution (gh-349).
 - Added `assert_error_covers`.
-- Add more logs (gh-326).
-- Add `justrun` helper as a tarantool runner and output catcher (gh-365).
+- Added more logs (gh-326).
+- Added `justrun` helper as a tarantool runner and output catcher (gh-365).
 - Changed error message for too long Unix domain socket paths (gh-341).
-- Add `cbuilder` helper as a declarative configuration builder (gh-366).
-- Make `assert_error_*` additionally check error trace if required.
-- Add `--list-test-cases` and `--run-test-case` CLI options.
-- Introduce preloaded hooks (gh-380).
-- Add `treegen` helper as a tree generator (gh-364).
-- Add support for declarative configuration to `server.lua` (gh-367).
-- Make `assert_covers` recursive (gh-379).
-- Add alias `--no-capture` for the option `-c` (gh-391).
-- Fix reporting of an assertion failure in `Server:exec()` in case verbose
+- Added `cbuilder` helper as a declarative configuration builder (gh-366).
+- Made `assert_error_*` additionally check error trace if required.
+- Added `--list-test-cases` and `--run-test-case` CLI options.
+- Introduced preloaded hooks (gh-380).
+- Added `treegen` helper as a tree generator (gh-364).
+- Added support for declarative configuration to `server.lua` (gh-367).
+- Made `assert_covers` recursive (gh-379).
+- Added alias `--no-capture` for the option `-c` (gh-391).
+- Fixed reporting of an assertion failure in `Server:exec()` in case verbose
   error serialization is enabled in Tarantool (gh-376).
 - Added `assert_items_exclude`.
-- Strip useless `...` lines from error trace.
-- Fix error trace reporting for functions executed with `Server:exec()`
+- Stripped useless `...` lines from error trace.
+- Fixed error trace reporting for functions executed with `Server:exec()`
   (gh-396).
-- Remove pretty-printing of `luatest.log` arguments.
-- Add `cluster` helper as a tool for managing a Tarantool cluster (gh-368).
-- Fix `Server:grep_log()` to work with a server instance started using
+- Removed pretty-printing of `luatest.log` arguments.
+- Added `cluster` helper as a tool for managing a Tarantool cluster (gh-368).
+- Fixed `Server:grep_log()` to work with a server instance started using
   the `cluster` helper (gh-389).
-- Fix `Server:grep_log()` to work with a stopped server instance (gh-397).
+- Fixed `Server:grep_log()` to work with a stopped server instance (gh-397).
 
 ## 1.0.1
 
