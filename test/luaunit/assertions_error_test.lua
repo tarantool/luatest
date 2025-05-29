@@ -235,13 +235,13 @@ function g.test_assert_errorCovers()
     t.assert_error_covers({type = 'ClientError', code = 0}, box.error, 0)
     local err = box.error.new(box.error.UNKNOWN)
     if err.set_prev ~= nil then
-        err:set_prev(box.error.new(box.error.ILLEGAL_PARAMS, 'foo'))
+        err:set_prev(box.error.new(box.error.UNSUPPORTED, 'foo', 'bar'))
         expected = {
             type = 'ClientError',
             code = box.error.UNKNOWN,
-            prev = {code = box.error.ILLEGAL_PARAMS}
+            prev = {type = 'ClientError', code = box.error.UNSUPPORTED}
         }
-        t.assert_error_covers(expected, err.raise, err)
+        t.assert_error_covers(expected, box.error, err)
     end
 
     -- test assert failure due to unexpected error trace
