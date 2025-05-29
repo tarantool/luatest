@@ -896,8 +896,19 @@ function Server:grep_log(pattern, bytes_num, opts)
         fail('Failed to open log file')
     end
 
-    io.flush() -- attempt to flush stdout == log fd
+    -- Logs written by a test server go through a pipe and are processed
+    -- by a luatest fiber before they make it to the log file. Let's write
+    -- a unique marker string to the server log via server:exec() and retry
+    -- until we find the marker.
+    local marker
+    if self ~= nil and self.net_box ~= nil and self.net_box:ping() then
+        marker = ('LUATEST_GREP_LOG_MARKER:%d'):format(math.random(1e9))
+        self:exec(function(s) require('log').info(s) end, {marker})
+    end
 
+    local retries = 0
+
+    ::retry::
     local filesize = file:seek(0, 'SEEK_END')
     if filesize == nil then
         fail('Failed to get log file size')
@@ -938,10 +949,20 @@ function Server:grep_log(pattern, bytes_num, opts)
                 else
                     found = string.match(line, pattern) or found
                 end
+                if marker ~= nil and string.match(line, marker) then
+                    marker = nil
+                end
             end
             pos = endpos and endpos + 2 -- jump to char after \n
         until pos == nil
     until s == ''
+
+    if found == nil and marker ~= nil and retries < 10 then
+        log.info('Retrying grep because marker was not found')
+        retries = retries + 1
+        fiber.sleep(0.1)
+        goto retry
+    end
 
     file:close()
 
