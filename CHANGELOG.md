@@ -4,6 +4,10 @@
 
 - Fixed a bug when `server:grep_log()` failed to find a string logged in
   `server:exec()` called immediately before it (gh-421).
+- Fixed a bug when it wasn't possible to reload the cluster config with
+  `cluster:reload()` after removing an instance with `cluster:sync()`.
+  Also added an option to `cluster:sync()` to start/stop added/removed
+  instances (gh-423).
 
 ## 1.1.0
 

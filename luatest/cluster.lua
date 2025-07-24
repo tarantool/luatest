@@ -92,6 +92,46 @@ end
 
 -- {{{ Helpers
 
+-- Start all instances in the list.
+--
+-- @tab[opt] opts Options.
+-- @bool[opt] opts.wait_until_ready Wait until servers are ready
+--   (default: true).
+-- @bool[opt] opts.wait_until_running Wait until servers are running
+--   (default: wait_until_ready).
+local function start_instances(servers, opts)
+    for _, iserver in ipairs(servers) do
+        iserver:start({wait_until_ready = false})
+    end
+
+    -- wait_until_ready is true by default.
+    local wait_until_ready = true
+    if opts ~= nil and opts.wait_until_ready ~= nil then
+        wait_until_ready = opts.wait_until_ready
+    end
+
+    if wait_until_ready then
+        for _, iserver in ipairs(servers) do
+            iserver:wait_until_ready()
+        end
+    end
+
+    -- wait_until_running is equal to wait_until_ready by default.
+    local wait_until_running = wait_until_ready
+    if opts ~= nil and opts.wait_until_running ~= nil then
+        wait_until_running = opts.wait_until_running
+    end
+
+    if wait_until_running then
+        for _, iserver in ipairs(servers) do
+            helpers.retrying({timeout = 60}, function()
+                assertions.assert_equals(iserver:eval('return box.info.status'),
+                                         'running')
+            end)
+        end
+    end
+end
+
 -- Collect names of all the instances defined in the config
 -- in the alphabetical order.
 local function instance_names_from_config(config)
@@ -131,39 +171,11 @@ end
 --
 -- @tab[opt] opts Cluster startup options.
 -- @bool[opt] opts.wait_until_ready Wait until servers are ready
---   (default: false).
+--   (default: true).
+-- @bool[opt] opts.wait_until_running Wait until servers are running
+--   (default: wait_until_ready).
 function Cluster:start(opts)
-    self:each(function(iserver)
-        iserver:start({wait_until_ready = false})
-    end)
-
-    -- wait_until_ready is true by default.
-    local wait_until_ready = true
-    if opts ~= nil and opts.wait_until_ready ~= nil then
-        wait_until_ready = opts.wait_until_ready
-    end
-
-    if wait_until_ready then
-        self:each(function(iserver)
-            iserver:wait_until_ready()
-        end)
-    end
-
-    -- wait_until_running is equal to wait_until_ready by default.
-    local wait_until_running = wait_until_ready
-    if opts ~= nil and opts.wait_until_running ~= nil then
-        wait_until_running = opts.wait_until_running
-    end
-
-    if wait_until_running then
-        self:each(function(iserver)
-            helpers.retrying({timeout = 60}, function()
-                assertions.assert_equals(iserver:eval('return box.info.status'),
-                                         'running')
-            end)
-
-        end)
-    end
+    start_instances(self._servers, opts)
 end
 
 --- Start the given instance.
@@ -187,8 +199,12 @@ function Cluster:drop()
     for _, iserver in ipairs(self._servers or {}) do
         iserver:drop()
     end
+    for _, iserver in ipairs(self._expelled_servers or {}) do
+        iserver:drop()
+    end
     self._servers = nil
     self._server_map = nil
+    self._expelled_servers = nil
 end
 
 --- Sync the cluster object with the new config.
@@ -197,25 +213,67 @@ end
 --
 -- * Write the new config into the config file.
 -- * Update the internal list of instances.
+-- * Optionally starts instances added to the config and stops instances
+--   removed from the config.
 --
 -- @tab config New config.
-function Cluster:sync(config)
+-- @tab[opt] opts Options.
+-- @bool[opt] opts.start_stop Start/stop added/removed servers
+--   (default: false).
+-- @bool[opt] opts.wait_until_ready Wait until servers are ready
+--   (default: true; used only if start_stop is set).
+-- @bool[opt] opts.wait_until_running Wait until servers are running
+--   (default: wait_until_ready; used only if start_stop is set).
+function Cluster:sync(config, opts)
     assert(type(config) == 'table')
 
     local instance_names = instance_names_from_config(config)
 
     treegen.write_file(self._dir, self._config_file_rel, yaml.encode(config))
 
-    for i, name in ipairs(instance_names) do
-        if self._server_map[name] == nil then
-            local iserver = server:new(fun.chain(self._server_opts, {
+    local server_map = self._server_map
+    self._server_map = {}
+    self._servers = {}
+    local new_servers = {}
+
+    for _, name in ipairs(instance_names) do
+        local iserver = server_map[name]
+        if iserver == nil then
+            iserver = server:new(fun.chain(self._server_opts, {
                 alias = name,
             }):tomap())
-            table.insert(self._servers, i, iserver)
-            self._server_map[name] = iserver
+            table.insert(new_servers, iserver)
+        else
+            server_map[name] = nil
         end
+        self._server_map[name] = iserver
+        table.insert(self._servers, iserver)
     end
 
+    local expelled_servers = {}
+    for _, iserver in pairs(server_map) do
+        table.insert(expelled_servers, iserver)
+    end
+
+    -- Sort expelled servers by name for reproducibility.
+    table.sort(expelled_servers, function(a, b) return a.alias < b.alias end)
+
+    -- Add expelled servers to the list to be dropped with the cluster.
+    for _, iserver in pairs(expelled_servers) do
+        table.insert(self._expelled_servers, iserver)
+    end
+
+    local start_stop = false
+    if opts ~= nil and opts.start_stop ~= nil then
+        start_stop = opts.start_stop
+    end
+
+    if start_stop then
+        start_instances(new_servers, opts)
+        for _, iserver in ipairs(expelled_servers) do
+            iserver:stop()
+        end
+    end
 end
 
 --- Reload configuration on all the instances.
@@ -297,6 +355,7 @@ function Cluster:new(config, server_opts, opts)
     -- Store a cluster object in 'g'.
     self._servers = servers
     self._server_map = server_map
+    self._expelled_servers = {}
     self._dir = dir
     self._config_file_rel = config_file_rel
     self._server_opts = server_opts
