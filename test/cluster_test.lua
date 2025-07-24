@@ -142,8 +142,68 @@ g.test_sync = function()
     c:start()
     assert_instance_running(c, 'i-001')
 
+    local config2 = cbuilder:new()
+        :use_group('g-001')
+        :use_replicaset('r-001')
+        :add_instance('i-002', {})
+
+        :use_group('g-002')
+        :use_replicaset('r-002')
+        :add_instance('i-003', {})
+
+        :config()
+
+    local server1 = c['i-001']
+
+    c:sync(config2)
+
+    -- Check that the server that was removed from the config is expelled
+    -- from the cluster but not stopped.
+    t.assert_equals(c:size(), 2)
+    t.assert_is(c['i-001'], nil)
+    t.assert_is_not(server1.process, nil)
+
+    -- Check that the new servers are not started.
+    assert_instance_stopped(c, 'i-002')
+    assert_instance_stopped(c, 'i-003')
+
+    c:start()
+    assert_instance_running(c, 'i-002')
+    assert_instance_running(c, 'i-003')
+
+    -- Check config reload works after sync.
+    c:reload()
+
     c:stop()
-    assert_instance_stopped(c, 'i-001')
+    assert_instance_stopped(c, 'i-002')
+    assert_instance_stopped(c, 'i-003')
+
+    -- Starting/stopping the cluster shouldn't affect the expelled server.
+    -- However, dropping the cluster should also drop the expelled server.
+    t.assert_is_not(server1.process, nil)
+    c:drop()
+    t.assert_is(server1.process, nil)
+end
+
+g.test_sync_start_stop = function()
+    t.run_only_if(utils.version_current_ge_than(3, 0, 0),
+                  [[Declarative configuration works on Tarantool 3.0.0+.
+                    See tarantool/tarantool@13149d65bc9d for details]])
+
+    t.assert_equals(g._cluster, nil)
+
+    local config = cbuilder:new()
+        :use_group('g-001')
+        :use_replicaset('r-001')
+        :add_instance('i-001', {})
+        :config()
+
+    local c = cluster:new(config, server_opts)
+
+    t.assert_equals(c:size(), 1)
+
+    c:start()
+    assert_instance_running(c, 'i-001')
 
     local config2 = cbuilder:new()
         :use_group('g-001')
@@ -156,18 +216,22 @@ g.test_sync = function()
 
         :config()
 
-    c:sync(config2)
+    local server1 = c['i-001']
 
-    t.assert_equals(c:size(), 3)
+    c:sync(config2, {start_stop = true})
 
-    c:start_instance('i-002')
-    c:start_instance('i-003')
+    -- Check that the server that was removed from the config is expelled
+    -- from the cluster and stopped.
+    t.assert_equals(c:size(), 2)
+    t.assert_is(c['i-001'], nil)
+    t.assert_is(server1.process, nil)
+
+    -- Check that the new servers are started.
     assert_instance_running(c, 'i-002')
     assert_instance_running(c, 'i-003')
 
-    c:stop()
-    assert_instance_stopped(c, 'i-002')
-    assert_instance_stopped(c, 'i-003')
+    -- Check config reload works after sync.
+    c:reload()
 end
 
 g.test_reload = function()
