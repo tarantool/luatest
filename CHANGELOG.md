@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.2.0
 
 - Fixed a bug when `server:grep_log()` failed to find a string logged in
   `server:exec()` called immediately before it (gh-421).
