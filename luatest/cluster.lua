@@ -13,25 +13,24 @@
 --     server:exec(<...>)
 -- end)
 --
--- After setting up a cluster object the following methods could
--- be used to interact with it:
+-- -- After setting up a cluster object the following methods
+-- -- could be used to interact with it:
+-- -- * :start() Startup the cluster.
+-- -- * :start_instance() Startup a specific instance.
+-- -- * :stop() Stop the cluster.
+-- -- * :each() Execute a function on each instance.
+-- -- * :size() get an amount of instances
+-- -- * :drop() Drop the cluster.
+-- -- * :sync() Sync the configuration and collect a new set of
+-- -- instances
+-- -- * :reload() Reload the configuration.
 --
--- * :start() Startup the cluster.
--- * :start_instance() Startup a specific instance.
--- * :stop() Stop the cluster.
--- * :each() Execute a function on each instance.
--- * :size() get an amount of instances
--- * :drop() Drop the cluster.
--- * :sync() Sync the configuration and collect a new set of
---   instances
--- * :reload() Reload the configuration.
+-- -- The module can also be used for testing failure startup
+-- -- cases:
 --
--- The module can also be used for testing failure startup
--- cases:
+-- Cluster.startup_error(config, "something went wrong")
 --
--- Cluster:startup_error(config, error_message)
---
--- @module luatest.cluster
+-- @classmod luatest.cluster
 
 local fun = require('fun')
 local yaml = require('yaml')
