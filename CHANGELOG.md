@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.2.1
 
 - Fixed a bug when `Server:grep_log()` didn't consider the `reset` option.
 
