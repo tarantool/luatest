@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Fixed a bug when `Server:grep_log()` didn't consider the `reset` option.
+
 ## 1.2.0
 
 - Fixed a bug when `server:grep_log()` failed to find a string logged in
