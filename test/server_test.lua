@@ -564,6 +564,9 @@ g.test_grep_log = function()
     server:connect_net_box()
     t.assert_not(server:grep_log('test grep_log'))
 
+    -- Test that opts.reset = false works.
+    t.assert(server:grep_log('test grep_log', nil, {reset = false}))
+
     server.net_box:close()
     server.net_box = nil
 end

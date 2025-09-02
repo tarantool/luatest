@@ -878,7 +878,10 @@ end
 -- @return string|nil
 function Server:grep_log(pattern, bytes_num, opts)
     local options = opts or {}
-    local reset = options.reset or true
+    local reset = options.reset
+    if reset == nil then
+        reset = true
+    end
     local filename = options.filename or self.log_file
     local file = fio.open(filename, {'O_RDONLY', 'O_NONBLOCK'})
 
