@@ -376,7 +376,7 @@ function Runner.mt:update_status(node, err)
         return
     elseif err.status == 'fail' or err.status == 'error' or err.status == 'skip'
         or err.status == 'xfail' or err.status == 'xsuccess' then
-        node:update_status(err.status, err.message, err.trace)
+        node:update_status(err.status, err.message, err.trace, err.locals)
         if utils.table_len(node.servers) > 0 then
             for _, server in pairs(node.servers) do
                 server:save_artifacts()
@@ -434,10 +434,11 @@ function Runner.mt:protected_call(instance, method, pretty_name)
                     trace:sub(string.len('stack traceback:\n') + 1)
             e = e.error
         end
+        local locals = utils.locals()
         if utils.is_luatest_error(e) then
-            return {status = e.status, message = e.message, trace = trace}
+            return {status = e.status, message = e.message, trace = trace, locals = locals}
         else
-            return {status = 'error', message = e, trace = trace}
+            return {status = 'error', message = e, trace = trace, locals = locals}
         end
     end)
 

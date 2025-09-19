@@ -61,6 +61,14 @@ function Output.mt:display_one_failed_test(index, fail) -- luacheck: no unused
     print(index..") " .. fail.name .. self.class.ERROR_COLOR_CODE)
     print(fail.message .. self.class.RESET_TERM)
     print(fail.trace)
+
+    if fail.locals ~= nil then
+        print(self.class.WARN_COLOR_CODE)
+        print('locals:')
+        print(fail.locals)
+        print(self.class.RESET_TERM)
+    end
+
     if utils.table_len(fail.servers) > 0 then
         print('artifacts:')
         for _, server in pairs(fail.servers) do

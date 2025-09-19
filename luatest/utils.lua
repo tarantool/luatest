@@ -1,7 +1,10 @@
 local digest = require('digest')
 local fio = require('fio')
 local fun = require('fun')
-local yaml = require('yaml')
+local yaml = require('yaml').new()
+
+-- yaml.encode() fails on a function value otherwise.
+yaml.cfg({encode_use_tostring = true})
 
 local utils = {}
 
@@ -166,6 +169,68 @@ function utils.upvalues(fn)
     end
 
     return ret
+end
+
+-- Get local variables from a first call frame outside luatest.
+--
+-- Returns nil if nothing found due to any reason.
+function utils.locals()
+    -- Determine a first frame with the user code (outside of
+    -- luatest).
+    local level = 3
+    while true do
+        local info = debug.getinfo(level, 'S')
+
+        -- If nothing found, exit earlier.
+        if info == nil then
+            return nil
+        end
+
+        -- Stop on first non-luatest frame.
+        if type(info.source) == 'string' and
+           info.what ~= 'C' and
+           not is_luatest_internal_line(info.source) then
+            break
+        end
+
+        level = level + 1
+    end
+
+    -- Don't try to show more then 100 variables.
+    local LIMIT = 100
+
+    local res = setmetatable({}, {__serialize = 'mapping'})
+    for i = 1, LIMIT do
+        local name, value = debug.getlocal(level, i)
+
+        -- Stop if there are no more local variables.
+        if name == nil then
+            break
+        end
+
+        -- > Variable names starting with '(' (open parentheses)
+        -- > represent internal variables (loop control variables,
+        -- > temporaries, and C function locals).
+        --
+        -- https://www.lua.org/manual/5.1/manual.html#pdf-debug.getlocal
+        if not name:startswith('(') then
+            res[name] = value
+        end
+    end
+
+    -- If no local variables found, return just nil to don't
+    -- show a garbage output like the following.
+    --
+    -- | locals:
+    -- | --- {}
+    -- | ...
+    if next(res) == nil then
+        return nil
+    end
+
+    -- Encode right here to hold the state of the locals and
+    -- ignore all the future changes.
+    return yaml.encode(res):rstrip()
 end
 
 function utils.get_fn_location(fn)
