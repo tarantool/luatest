@@ -29,6 +29,10 @@ function Output.mt:update_status(node)
     end
     if (node:is('fail') or node:is('error')) and self.verbosity >= self.class.VERBOSITY.VERBOSE then
         print(prefix .. node.trace:gsub('\n', '\n' .. prefix))
+        if node.locals ~= nil then
+            print(prefix .. 'locals:')
+            print(prefix .. node.locals:gsub('\n', '\n' .. prefix))
+        end
         if utils.table_len(node.servers) > 0 then
             print(prefix .. 'artifacts:')
             for _, server in pairs(node.servers) do

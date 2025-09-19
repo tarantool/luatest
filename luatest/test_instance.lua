@@ -19,10 +19,11 @@ function TestInstance.mt:initialize()
     self.servers = {}
 end
 
-function TestInstance.mt:update_status(status, message, trace)
+function TestInstance.mt:update_status(status, message, trace, locals)
     self.status = status
     self.message = message
     self.trace = trace
+    self.locals = locals
 end
 
 function TestInstance.mt:is(status)
