@@ -17,8 +17,8 @@
 --     :add_instance('instance-003', {})
 --     :config()
 --
--- By default, all instances are added to replicaset-001 in group-001,
--- but it's possible to select a different replicaset and/or group:
+-- -- By default, all instances are added to replicaset-001 in group-001,
+-- -- but it's possible to select a different replicaset and/or group:
 --
 -- local config = Builder:new()
 --     :use_group('group-001')
@@ -35,14 +35,13 @@
 --
 --     :config()
 --
--- The default credentials and iproto options are added to
--- setup replication and to allow a test to connect to the
--- instances.
+-- -- The default credentials and iproto options are added to
+-- -- setup replication and to allow a test to connect to the
+-- -- instances.
 --
--- There is a few other methods:
---
--- * :set_replicaset_option('foo.bar', value)
--- * :set_instance_option('instance-001', 'foo.bar', value)
+-- -- There is a few other methods:
+-- -- * :set_replicaset_option('foo.bar', value)
+-- -- * :set_instance_option('instance-001', 'foo.bar', value)
 --
 -- @classmod luatest.cbuilder
 
