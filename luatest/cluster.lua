@@ -47,11 +47,12 @@ local Cluster = require('luatest.class').new()
 -- Cluster uses custom __index implementation to support
 -- getting instances from it using `cluster['i-001']`.
 --
--- Thus, we need to change the metatable of the class
--- with a custom __index method.
-local mt = getmetatable(Cluster)
+-- The metamethod is set on the instance metatable so that multiple
+-- cluster objects can co-exist without clobbering shared state on the
+-- class table.
+local mt = Cluster.mt
 mt.__index = function(self, k)
-    local method = rawget(mt, k)
+    local method = Cluster[k]
     if method ~= nil then
         return method
     end
@@ -310,17 +311,31 @@ end
 -- @tab[opt] server_opts Extra options passed to server:new().
 -- @tab[opt] opts Cluster options.
 -- @string[opt] opts.dir Specific directory for the cluster.
+-- @bool[opt] opts.auto_cleanup Register the cluster in a test group and
+--   automatically drop it using hooks (default: true).
 -- @return table
 function Cluster:new(config, server_opts, opts)
-    local g = cluster._group
-
     assert(type(config) == 'table')
     assert(config._config == nil, "Please provide cbuilder:new():config()")
-    assert(g._cluster == nil)
+
+    opts = opts or {}
+    local auto_cleanup = opts.auto_cleanup
+
+    if auto_cleanup == nil then
+        auto_cleanup = true
+    end
+
+    assert(type(auto_cleanup) == 'boolean')
+
+    local g
+    if auto_cleanup then
+        g = cluster._group
+        assert(g._cluster == nil)
+    end
 
     -- Prepare a temporary directory and write a configuration
     -- file.
-    local dir = opts and opts.dir or treegen.prepare_directory({}, {})
+    local dir = opts.dir or treegen.prepare_directory({}, {})
     local config_file_rel = 'config.yaml'
     local config_file = treegen.write_file(dir, config_file_rel,
                                            yaml.encode(config))
@@ -352,17 +367,20 @@ function Cluster:new(config, server_opts, opts)
         server_map[name] = iserver
     end
 
-    -- Store a cluster object in 'g'.
-    self._servers = servers
-    self._server_map = server_map
-    self._expelled_servers = {}
-    self._dir = dir
-    self._config_file_rel = config_file_rel
-    self._server_opts = server_opts
+    local object = self:from({
+        _servers = servers,
+        _server_map = server_map,
+        _expelled_servers = {},
+        _dir = dir,
+        _config_file_rel = config_file_rel,
+        _server_opts = server_opts,
+    })
 
-    g._cluster = self
+    if auto_cleanup then
+        g._cluster = object
+    end
 
-    return self
+    return object
 end
 
 -- }}} Replicaset management

@@ -122,6 +122,34 @@ g.test_start_instance = function()
     assert_instance_stopped(c, 'i-002')
 end
 
+g.test_manual_lifecycle = function()
+    t.run_only_if(utils.version_current_ge_than(3, 0, 0),
+                  [[Declarative configuration works on Tarantool 3.0.0+.
+                    See tarantool/tarantool@13149d65bc9d for details]])
+
+    local config = cbuilder:new()
+        :use_group('cluster')
+        :use_replicaset('cluster-rs')
+        :add_instance('cluster-1', {})
+        :config()
+
+    local c1 = cluster:new(config, server_opts, {auto_cleanup = false})
+
+    t.assert_equals(g._cluster, nil)
+
+    c1:start()
+    assert_instance_running(c1, 'cluster-1')
+    c1:drop()
+
+    local c2 = cluster:new(config, server_opts, {auto_cleanup = false})
+
+    t.assert_equals(g._cluster, nil)
+
+    c2:start()
+    assert_instance_running(c2, 'cluster-1')
+    c2:drop()
+end
+
 g.test_sync = function()
     t.run_only_if(utils.version_current_ge_than(3, 0, 0),
                   [[Declarative configuration works on Tarantool 3.0.0+.
@@ -317,4 +345,54 @@ g.test_startup_error = function()
         :config()
 
     cluster:startup_error(config, 'No such file')
+end
+
+local g_persistent_clusters = t.group('persistent_clusters')
+
+g_persistent_clusters.before_all(function()
+    t.run_only_if(utils.version_current_ge_than(3, 0, 0),
+                  [[Declarative configuration works on Tarantool 3.0.0+.
+                    See tarantool/tarantool@13149d65bc9d for details]])
+
+    g_persistent_clusters.instances = {}
+    g_persistent_clusters.pids = {}
+
+    for i = 1, 3 do
+        local index = tostring(i)
+        local instance = 'persistent-' .. index .. '-1'
+        local config = cbuilder:new()
+            :use_group('persistent-group-' .. index)
+            :use_replicaset('persistent-rs-' .. index)
+            :add_instance(instance, {})
+            :config()
+
+        local c = cluster:new(config, server_opts, {auto_cleanup = false})
+        c:start()
+        assert_instance_running(c, instance)
+
+        g_persistent_clusters.instances[i] = {cluster = c, instance = instance}
+        g_persistent_clusters.pids[i] = c[instance].process.pid
+    end
+end)
+
+g_persistent_clusters.after_all(function()
+    for _, cdata in ipairs(g_persistent_clusters.instances or {}) do
+        cdata.cluster:drop()
+    end
+end)
+
+g_persistent_clusters.test_clusters_survive_between_tests = function()
+    for _, cdata in ipairs(g_persistent_clusters.instances) do
+        assert_instance_running(cdata.cluster, cdata.instance)
+    end
+end
+
+g_persistent_clusters.test_clusters_keep_same_process = function()
+    for i, cdata in ipairs(g_persistent_clusters.instances) do
+        local server = cdata.cluster[cdata.instance]
+
+        t.assert_is_not(server.process, nil)
+        t.assert_equals(server.process.pid, g_persistent_clusters.pids[i])
+        assert_instance_running(cdata.cluster, cdata.instance)
+    end
 end
