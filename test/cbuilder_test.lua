@@ -147,6 +147,62 @@ g.test_set_instance_option = function()
         builder.set_instance_option, builder, 'foo', 'replication.anon', 'bar')
 end
 
+g.test_set_instance_option_uses_existing_instance = function()
+    t.run_only_if(utils.version_current_ge_than(3, 0, 0),
+                  [[Declarative configuration works on Tarantool 3.0.0+.
+                    See tarantool/tarantool@13149d65bc9d for details]])
+
+    local config_1 = config_builder:new()
+        :use_replicaset('r-001')
+        :add_instance('i-001', {})
+        :set_instance_option('i-001', 'replication.timeout', 0.1)
+        :config()
+
+    local config_2 = config_builder:new(config_1)
+        :set_instance_option('i-001', 'replication.timeout', 1000)
+        :config()
+
+    t.assert_equals(config_2, merge_config(config_1, {
+        groups = {
+            ['group-001'] = {
+                replicasets = {
+                    ['r-001'] = {
+                        instances = {
+                            ['i-001'] = {replication = {timeout = 1000}},
+                        },
+                    },
+                },
+            },
+        },
+    }))
+
+    local builder = config_builder:new()
+    t.assert_error_msg_contains(
+        'Instance "missing" is not found in the configuration',
+        builder.set_instance_option, builder, 'missing',
+        'replication.timeout', 0.1)
+end
+
+g.test_instance_names_are_unique = function()
+    t.run_only_if(utils.version_current_ge_than(3, 0, 0),
+                  [[Declarative configuration works on Tarantool 3.0.0+.
+                    See tarantool/tarantool@13149d65bc9d for details]])
+
+    local builder = config_builder:new()
+        :use_group('g-001')
+        :use_replicaset('r-001')
+        :add_instance('duplicate', {})
+        :use_group('g-002')
+        :use_replicaset('r-002')
+
+
+    t.assert_error_msg_contains(
+        'Found instance with the same name "duplicate" in the ' ..
+        'replicaset "r-001" in the group "g-001"',
+        builder.add_instance, builder, 'duplicate', {}
+    )
+end
+
 g.test_set_replicaset_option = function()
     t.run_only_if(utils.version_current_ge_than(3, 0, 0),
                   [[Declarative configuration works on Tarantool 3.0.0+.

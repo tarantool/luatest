@@ -194,6 +194,28 @@ function Builder:set_replicaset_option(path, value)
     return self
 end
 
+local function find_instance(config, instance_name)
+    local groups = config.groups
+    if type(groups) ~= 'table' then
+        return nil
+    end
+
+    for group_name, group in pairs(groups) do
+        local replicasets = group.replicasets
+        if type(replicasets) == 'table' then
+            for replicaset_name, replicaset in pairs(replicasets) do
+                local instances = replicaset.instances
+                if type(instances) == 'table' and
+                        instances[instance_name] ~= nil then
+                    return group_name, replicaset_name
+                end
+            end
+        end
+    end
+
+    return nil
+end
+
 -- Set an option of a particular instance in the selected replicaset.
 --
 -- @string instance_name Instance where the option will be saved.
@@ -201,9 +223,18 @@ end
 -- @param value Option value (int, string, table).
 function Builder:set_instance_option(instance_name, path, value)
     checks('table', 'string', 'string', '?')
+
+    local group_name, replicaset_name = find_instance(self._config,
+                                                      instance_name)
+    if group_name == nil then
+        error(('Instance %q is not found in the configuration. ' ..
+              'Use :add_instance() to create it first.')
+              :format(instance_name))
+    end
+
     path = fun.chain({
-        'groups', self._group,
-        'replicasets', self._replicaset,
+        'groups', group_name,
+        'replicasets', replicaset_name,
         'instances', instance_name,
     }, path:split('.')):totable()
 
@@ -217,6 +248,16 @@ end
 -- @tab iconfig Declarative config for the instance.
 function Builder:add_instance(instance_name, iconfig)
     checks('table', 'string', '?')
+
+    local group_name, replicaset_name = find_instance(self._config,
+                                                      instance_name)
+    if group_name ~= nil then
+        error(
+            ('Found instance with the same name %q in ' ..
+            'the replicaset %q in the group %q')
+            :format(instance_name, replicaset_name, group_name))
+    end
+
     local path = {
         'groups', self._group,
         'replicasets', self._replicaset,
