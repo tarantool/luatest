@@ -471,6 +471,39 @@ to server process.
 
 ``luatest.Process:start(path, args, env)`` provides low-level interface to run any other application.
 
+``luatest.cluster`` runs a declarative configuration as a set of Tarantool instances.
+By default clusters are registered inside the current test group and cleaned up with
+preloaded hooks (``auto_cleanup = true``). When you need to reuse the same cluster across
+multiple tests or keep several clusters running at once, pass ``auto_cleanup = false`` and
+manage the lifecycle manually:
+
+.. code-block:: Lua
+
+    local t = require('luatest')
+    local cluster = require('luatest.cluster')
+    local cbuilder = require('luatest.cbuilder')
+
+    local g = t.group('shared')
+
+    g.before_all(function()
+        local config = cbuilder:new()
+            :use_group('g-1')
+            :use_replicaset('rs-1')
+            :add_instance('instance-1', {})
+            :config()
+
+        g.cluster = cluster:new(config, {}, {auto_cleanup = false})
+        g.cluster:start()
+    end)
+
+    g.after_all(function()
+        g.cluster:drop()
+    end)
+
+    g.test_reuses_cluster_between_cases = function()
+        t.assert_not_equals(g.cluster['instance-1'].process, nil)
+    end
+
 There are several small helpers for common actions:
 
 .. code-block:: Lua

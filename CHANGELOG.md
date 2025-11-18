@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Added an option to create `Cluster` objects without global hook management,
+  allowing tests to keep clusters alive between test runs (gh-414).
+
 ## 1.2.1
 
 - Fixed a bug when `Server:grep_log()` didn't consider the `reset` option.
