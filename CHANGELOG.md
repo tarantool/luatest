@@ -10,6 +10,10 @@
   allowing tests to keep clusters alive between test runs (gh-414).
 - Fixed a bug where URI search would terminate prematurely when multiple
   replicasets existed (gh-427).
+- Fixed `cbuilder:set_instance_option()` to reuse existing instances found in a
+  provided configuration and error when a target instance is missing. Also,
+  `cbuilder:add_instance()` now rejects duplicate instance names across groups
+  and replicasets (gh-404).
 
 ## 1.2.1
 
