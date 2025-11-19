@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Added the ability to keep and adjust cluster declarative configuration
+  with `cluster:modify_config()` and apply it later via
+  `cluster:apply_config_changes()` without passing an explicit
+  configuration (gh-426).
 - Added an option to create `Cluster` objects without global hook management,
   allowing tests to keep clusters alive between test runs (gh-414).
 - Fixed a bug where URI search would terminate prematurely when multiple

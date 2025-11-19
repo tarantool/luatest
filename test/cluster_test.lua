@@ -306,6 +306,67 @@ g.test_reload = function()
     assert_instance_failover_mode(c, 'i-003', 'off')
 end
 
+g.test_modify_config = function()
+    t.run_only_if(utils.version_current_ge_than(3, 0, 0),
+                  [[Declarative configuration works on Tarantool 3.0.0+.
+                    See tarantool/tarantool@13149d65bc9d for details]])
+
+    local config = cbuilder:new()
+        :use_group('group-001')
+        :use_replicaset('replicaset-001')
+        :set_replicaset_option('replication.failover', 'manual')
+        :set_replicaset_option('leader', 'i-001')
+        :add_instance('i-001', {})
+        :config()
+
+    local c = cluster:new(config, server_opts)
+
+    c:start()
+
+    c:modify_config()
+        :use_group('group-001')
+        :use_replicaset('replicaset-001')
+        :add_instance('i-002', {})
+    c:apply_config_changes({start_stop = true})
+
+    assert_instance_running(c, 'i-001', 'replicaset-001')
+    assert_instance_running(c, 'i-002', 'replicaset-001')
+
+    c:modify_config()
+        :use_group('group-001')
+        :use_replicaset('replicaset-001')
+        :set_replicaset_option('leader', 'i-002')
+
+    local expected_msg =
+        ':modify_config() was called; apply configuration changes with ' ..
+        ':apply_config_changes() before calling :reload()'
+    t.assert_error_msg_contains(expected_msg, c.reload, c)
+
+    expected_msg =
+        ':modify_config() was called; apply configuration changes with ' ..
+        ':apply_config_changes() before calling :sync()'
+    t.assert_error_msg_contains(expected_msg, c.sync, c, config)
+
+    expected_msg =
+        ':modify_config() was called; apply configuration changes with ' ..
+        ':apply_config_changes() before calling :config()'
+    t.assert_error_msg_contains(expected_msg, c.config, c)
+
+    c:apply_config_changes()
+
+    local updated_config = c:config()
+    local replicaset =
+        updated_config.groups['group-001'].replicasets['replicaset-001']
+    t.assert_equals(replicaset.leader, 'i-002')
+    t.assert_not_equals(replicaset.instances['i-002'], nil)
+
+    t.assert_equals(c:size(), 2)
+
+    c:stop()
+    assert_instance_stopped(c, 'i-001')
+    assert_instance_stopped(c, 'i-002')
+end
+
 g.test_each = function()
     t.run_only_if(utils.version_current_ge_than(3, 0, 0),
                   [[Declarative configuration works on Tarantool 3.0.0+.
