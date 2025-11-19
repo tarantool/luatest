@@ -25,6 +25,11 @@
 -- * :sync() Sync the configuration and collect a new set of
 --   instances
 -- * :reload() Reload the configuration.
+-- * :config() Return the last applied configuration.
+-- * :modify_config() Initialize a configuration builder based on
+--   the current config and store it inside the cluster object.
+-- * :apply_config_changes() Apply the configuration built via
+--   :modify_config() by passing it to :sync().
 --
 -- The module can also be used for testing failure startup
 -- cases:
@@ -36,6 +41,7 @@
 local fun = require('fun')
 local yaml = require('yaml')
 local assertions = require('luatest.assertions')
+local cbuilder = require('luatest.cbuilder')
 local helpers = require('luatest.helpers')
 local hooks = require('luatest.hooks')
 local treegen = require('luatest.treegen')
@@ -148,6 +154,13 @@ local function instance_names_from_config(config)
     return instance_names
 end
 
+
+local function assert_no_pending_config_builder(self, method_name)
+    assert(self._config_builder == nil,
+        (':modify_config() was called; apply configuration changes with ' ..
+        ':apply_config_changes() before calling :%s'):format(method_name))
+end
+
 -- }}} Helpers
 
 -- {{{ Cluster management
@@ -226,12 +239,14 @@ end
 -- @bool[opt] opts.wait_until_running Wait until servers are running
 --   (default: wait_until_ready; used only if start_stop is set).
 function Cluster:sync(config, opts)
+    assert_no_pending_config_builder(self, 'sync()')
     assert(type(config) == 'table')
 
     local instance_names = instance_names_from_config(config)
 
     treegen.write_file(self._dir, self._config_file_rel, yaml.encode(config))
 
+    self._config = config
     local server_map = self._server_map
     self._server_map = {}
     self._servers = {}
@@ -277,10 +292,34 @@ function Cluster:sync(config, opts)
     end
 end
 
+--- Apply configuration changes built via :modify_config().
+--
+-- Uses the internal configuration builder created by :modify_config(),
+-- converts it to a config table and calls :sync() with it.
+-- After the call the stored builder is cleared.
+--
+-- @tab[opt] opts Options.
+-- @bool[opt] opts.start_stop Start/stop added/removed servers
+--   (default: false).
+-- @bool[opt] opts.wait_until_ready Wait until servers are ready
+--   (default: true; used only if start_stop is set).
+-- @bool[opt] opts.wait_until_running Wait until servers are running
+--   (default: wait_until_ready; used only if start_stop is set).
+function Cluster:apply_config_changes(opts)
+    assert(self._config_builder ~= nil,
+        ':modify_config() must be called before :apply_config_changes()')
+
+    local config = self._config_builder:config()
+    self._config_builder = nil
+
+    return self:sync(config, opts)
+end
+
 --- Reload configuration on all the instances.
 --
 -- @tab[opt] config New config.
 function Cluster:reload(config)
+    assert_no_pending_config_builder(self, 'reload()')
     assert(config == nil or type(config) == 'table')
 
     -- Rewrite the configuration file if a new config is provided.
@@ -333,12 +372,15 @@ function Cluster:new(config, server_opts, opts)
         assert(g._cluster == nil)
     end
 
+    self._config = table.deepcopy(config)
+    self._config_builder = nil
+
     -- Prepare a temporary directory and write a configuration
     -- file.
     local dir = opts.dir or treegen.prepare_directory({}, {})
     local config_file_rel = 'config.yaml'
     local config_file = treegen.write_file(dir, config_file_rel,
-                                           yaml.encode(config))
+                                           yaml.encode(self._config))
 
     -- Collect names of all the instances defined in the config
     -- in the alphabetical order.
@@ -381,6 +423,26 @@ function Cluster:new(config, server_opts, opts)
     end
 
     return object
+end
+
+--- Return the last applied configuration.
+function Cluster:config()
+    assert_no_pending_config_builder(self, 'config()')
+
+    return table.deepcopy(self._config)
+end
+
+--- Initialize a configuration builder based on the current config.
+--
+-- The returned builder is stored inside the cluster object and later
+-- consumed by :apply_config_changes(), which turns it into a config
+-- table and passes it to :sync().
+function Cluster:modify_config()
+    assert(self._config_builder == nil,
+           ':modify_config() already called and changes were not applied')
+
+    self._config_builder = cbuilder:new(self:config())
+    return self._config_builder
 end
 
 -- }}} Replicaset management
