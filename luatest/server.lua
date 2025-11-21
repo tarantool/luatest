@@ -153,7 +153,7 @@ local function find_advertise_uri(config, instance_name, dir)
         for _, replicaset in pairs(group.replicasets or {}) do
             local instance = (replicaset.instances or {})[instance_name]
             if instance == nil then
-                break
+                goto continue
             end
             if instance.iproto ~= nil then
                 if instance.iproto.advertise ~= nil then
@@ -173,6 +173,7 @@ local function find_advertise_uri(config, instance_name, dir)
                 end
                 listen = listen or group.iproto.listen
             end
+            ::continue::
         end
     end
 
