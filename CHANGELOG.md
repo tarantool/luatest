@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Fixed a bug when `assert_covers` treats arrays as maps (gh-405).
 - Added the ability to keep and adjust cluster declarative configuration
   with `cluster:modify_config()` and apply it later via
   `cluster:apply_config_changes()` without passing an explicit
