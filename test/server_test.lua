@@ -1,6 +1,7 @@
 local fio = require('fio')
 local json = require('json')
 local urilib = require('uri')
+local yaml = require('yaml')
 
 local t = require('luatest')
 local g = t.group()
@@ -491,6 +492,61 @@ g.after_test('test_no_socket_collision_with_duplicate_alias', function()
     g.s1:drop()
     g.s2:drop()
 end)
+
+g.test_net_box_uri_is_taken_from_matching_replicaset = function()
+    local tempdir = fio.tempdir()
+    local config_path = fio.pathjoin(tempdir, 'config.yaml')
+
+    local config = {
+        groups = {
+            ['group-001'] = {
+                replicasets = {
+                    ['rs-1'] = {
+                        iproto = {
+                            listen = {{
+                                uri = 'unix/:./{{ instance_name }}.iproto'
+                            }},
+                        },
+                        instances = {
+                            ['router-1'] = {},
+                        },
+                    },
+                    ['rs-2'] = {
+                        iproto = {
+                            listen = {{
+                                uri = 'unix/:./{{ instance_name }}.iproto'
+                            }},
+                        },
+                        instances = {
+                            ['storage-1'] = {},
+                        },
+                    },
+                },
+            },
+        },
+    }
+
+    local fh = fio.open(config_path, {'O_CREAT', 'O_WRONLY', 'O_TRUNC'},
+                        tonumber('644', 8))
+    fh:write(yaml.encode(config))
+    fh:close()
+
+    local s1 = Server:new({
+        alias = 'storage-1',
+        config_file = config_path,
+    })
+    local s2 = Server:new({
+        alias = 'router-1',
+        config_file = config_path,
+    })
+
+    t.assert_equals(s1.net_box_uri, 'unix/:nil/storage-1.iproto')
+    t.assert_equals(s2.net_box_uri, 'unix/:nil/router-1.iproto')
+    s1:drop()
+    s2:drop()
+
+    fio.rmtree(tempdir)
+end
 
 g.test_netbox_uri_is_not_overridden = function()
     local socket = ('%s/my-custom.sock'):format(Server.vardir)

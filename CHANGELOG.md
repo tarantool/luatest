@@ -4,6 +4,8 @@
 
 - Added an option to create `Cluster` objects without global hook management,
   allowing tests to keep clusters alive between test runs (gh-414).
+- Fixed a bug where URI search would terminate prematurely when multiple
+  replicasets existed (gh-427).
 
 ## 1.2.1
 
