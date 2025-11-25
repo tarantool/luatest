@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added support for unified diff output in `t.assert_equals()` failure messages
+  when expected and actual values are YAML-serializable (gh-412).
 - Fixed a bug when the JUnit reporter generated invalid XML for parameterized
   tests with string arguments (gh-407).
 - Group and suite hooks must now be registered using the call-style

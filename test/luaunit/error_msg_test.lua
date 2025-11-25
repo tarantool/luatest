@@ -1,4 +1,5 @@
 local t = require('luatest')
+local utils = require('luatest.utils')
 local g = t.group()
 
 local helper = require('test.helpers.general')
@@ -7,15 +8,15 @@ local assert_failure_contains = helper.assert_failure_contains
 local assert_failure_equals = helper.assert_failure_equals
 
 function g.test_assert_equalsMsg()
-    assert_failure_equals('expected: 2, actual: 1', t.assert_equals, 1, 2 )
-    assert_failure_equals('expected: "exp"\nactual: "act"', t.assert_equals, 'act', 'exp')
-    assert_failure_equals('expected: \n"exp\\\npxe"\nactual: \n"act\\\ntca"', t.assert_equals, 'act\ntca', 'exp\npxe')
-    assert_failure_equals('expected: true, actual: false', t.assert_equals, false, true)
-    assert_failure_equals('expected: 1.2, actual: 1', t.assert_equals, 1.0, 1.2)
-    assert_failure_matches('expected: {1, 2}\nactual: {2, 1}', t.assert_equals, {2,1}, {1,2})
-    assert_failure_matches('expected: {one = 1, two = 2}\nactual: {3, 2, 1}', t.assert_equals, {3,2,1}, {one=1,two=2})
-    assert_failure_equals('expected: 2, actual: nil', t.assert_equals, nil, 2)
-    assert_failure_equals('toto\nexpected: 2, actual: nil', t.assert_equals, nil, 2, 'toto')
+    assert_failure_contains('expected: 2, actual: 1', t.assert_equals, 1, 2 )
+    assert_failure_contains('expected: "exp"\nactual: "act"', t.assert_equals, 'act', 'exp')
+    assert_failure_contains('expected: \n"exp\\\npxe"\nactual: \n"act\\\ntca"', t.assert_equals, 'act\ntca', 'exp\npxe')
+    assert_failure_contains('expected: true, actual: false', t.assert_equals, false, true)
+    assert_failure_contains('expected: 1.2, actual: 1', t.assert_equals, 1.0, 1.2)
+    assert_failure_contains('expected: {1, 2}\nactual: {2, 1}', t.assert_equals, {2,1}, {1,2})
+    assert_failure_contains('expected: {one = 1, two = 2}\nactual: {3, 2, 1}', t.assert_equals, {3,2,1}, {one=1,two=2})
+    assert_failure_contains('expected: 2, actual: nil', t.assert_equals, nil, 2)
+    assert_failure_contains('toto\nexpected: 2, actual: nil', t.assert_equals, nil, 2, 'toto')
 end
 
 function g.test_assert_almost_equalsMsg()
@@ -340,12 +341,294 @@ function g.test_printTableWithRef()
 Expected table: <table: 0?x?[%x]+> {one = 2, two = 3}
 Actual table: <table: 0?x?[%x]+> {1, 2}]], t.assert_items_equals, {1,2}, {one=2, two=3})
     assert_failure_matches([[expected: <table: 0?x?[%x]+> {1, 2}
-actual: <table: 0?x?[%x]+> {2, 1}]], t.assert_equals, {2,1}, {1,2})
+actual: <table: 0?x?[%x]+> {2, 1}[%s%S]*]],
+        t.assert_equals,
+        {2,1}, {1,2}
+    )
     -- trigger multiline prettystr
     assert_failure_matches([[expected: <table: 0?x?[%x]+> {one = 1, two = 2}
-actual: <table: 0?x?[%x]+> {3, 2, 1}]], t.assert_equals, {3,2,1}, {one=1,two=2})
+actual: <table: 0?x?[%x]+> {3, 2, 1}[%s%S]*]],
+        t.assert_equals,
+        {3,2,1}, {one=1,two=2}
+    )
     -- trigger mismatch formatting
     assert_failure_contains([[lists <table: ]] , t.assert_equals, {3,2,1,4,1,1,1,1,1,1,1}, {1,2,3,4,1,1,1,1,1,1,1})
     assert_failure_contains([[and <table: ]] , t.assert_equals, {3,2,1,4,1,1,1,1,1,1,1}, {1,2,3,4,1,1,1,1,1,1,1})
     pp.TABLE_REF_IN_ERROR_MSG = false
+end
+
+local g_diff = t.group('diff')
+
+local mp = require('msgpack')
+local decimal = require('decimal')
+local datetime = require('datetime')
+local uuid = require('uuid')
+local ffi = require('ffi')
+
+local compat = require('compat')
+
+g_diff.before_all(function()
+    if not utils.version_current_ge_than(3, 0, 0) then
+        compat.yaml_pretty_multiline = 'new'
+    end
+end)
+
+g_diff.after_all(function()
+    if not utils.version_current_ge_than(3, 0, 0) then
+        compat.yaml_pretty_multiline = 'default'
+    end
+end)
+
+function g_diff.test_table_nested_numbers()
+    local actual = {a = {a = 1, b = 2, c = 3}}
+    local expected = {a = {a = 1, b = 5, c = 8}}
+
+    assert_failure_contains([[
+ a:
+-  b: 5
+  a: 1
+  c: 8
++  b: 2
+  a: 1
+  c: 3
+ ...]], t.assert_equals, actual, expected)
+end
+
+function g_diff.test_multiline_string()
+    local actual = "aaaa\nbbbbb\nccccc\n"
+    local expected = "aaaa\nddddd\nccccc\n"
+
+    assert_failure_contains([[
+ aaaa
+-ddddd
++bbbbb
+ ccccc]], t.assert_equals, actual, expected)
+end
+
+function g_diff.test_boolean()
+    local actual = true
+    local expected = false
+
+    local failure = helper.assert_failure(t.assert_equals, actual, expected)
+    t.assert_equals(failure.message:find('diff:'), nil)
+end
+
+function g_diff.test_number()
+    local actual = 2
+    local expected = 1
+
+    local failure = helper.assert_failure(t.assert_equals, actual, expected)
+    t.assert_equals(failure.message:find('diff:'), nil)
+end
+
+function g_diff.test_msgpack_array()
+    local actual = mp.encode({1, 2, 3})
+    local expected = mp.encode({1, 4, 3})
+
+    assert_failure_contains('diff', t.assert_equals, actual, expected)
+end
+
+function g_diff.test_msgpack_table()
+    local actual = mp.encode({a = 1, b = 2})
+    local expected = mp.encode({a = 1, b = 5})
+
+    assert_failure_contains('diff', t.assert_equals, actual, expected)
+end
+
+function g_diff.test_decimal()
+    local actual_top = decimal.new('3.21')
+    local expected_top = decimal.new('1.23')
+
+    local failure_top = helper.assert_failure(t.assert_equals, actual_top, expected_top)
+    t.assert_equals(failure_top.message:find('diff:'), nil)
+
+    local actual_nested = {value = decimal.new('3.21')}
+    local expected_nested = {value = decimal.new('1.23')}
+
+    assert_failure_contains([[
+-value: '1.23'
++value: '3.21'
+ ...]], t.assert_equals, actual_nested, expected_nested)
+
+    local actual_mp = mp.encode(decimal.new('3.21'))
+    local expected_mp = mp.encode(decimal.new('1.23'))
+
+    local ok, err = pcall(t.assert_equals, actual_mp, expected_mp)
+
+    t.assert_not(ok)
+    t.assert_not_nan(err)
+
+    local err_msg = err.message
+
+    t.assert_str_contains(err_msg, "diff:")
+
+    local minus_line = err_msg:match("\n%-[^\n]*")
+    t.assert_not_nan(minus_line)
+    t.assert_str_contains(minus_line, "\3\1\2\18<")
+
+    local plus_line = err_msg:match("\n%+[^\n]*")
+    t.assert_not_nan(plus_line)
+    t.assert_str_contains(plus_line, "\3\1\0022\28")
+end
+
+function g_diff.test_datetime()
+    local actual_top = datetime.new{year = 2000, month = 1, day = 2}
+    local expected_top = datetime.new{year = 2000, month = 1, day = 1}
+
+    local failure_top = helper.assert_failure(t.assert_equals, actual_top, expected_top)
+    t.assert_equals(failure_top.message:find('diff:'), nil)
+
+    local actual_nested = {ts = datetime.new{year = 2000, month = 1, day = 2}}
+    local expected_nested = {ts = datetime.new{year = 2000, month = 1, day = 1}}
+
+    assert_failure_contains([[
+-ts: 2000-01-01T00:00:00Z
++ts: 2000-01-02T00:00:00Z
+ ...]], t.assert_equals, actual_nested, expected_nested)
+
+    local actual_mp = mp.encode(datetime.new{year = 2000, month = 1, day = 2})
+    local expected_mp = mp.encode(datetime.new{year = 2000, month = 1, day = 1})
+
+    assert_failure_contains([[diff:]], t.assert_equals, actual_mp, expected_mp)
+end
+
+function g_diff.test_uuid()
+    local expected_uuid = uuid.fromstr('11111111-1111-1111-1111-111111111111')
+    local actual_uuid   = uuid.fromstr('22222222-2222-2222-2222-222222222222')
+
+    local actual_top = actual_uuid
+    local expected_top = expected_uuid
+
+    local failure_top = helper.assert_failure(t.assert_equals, actual_top, expected_top)
+    t.assert_equals(failure_top.message:find('diff:'), nil)
+
+    local actual_nested = {id = actual_uuid}
+    local expected_nested = {id = expected_uuid}
+
+    assert_failure_contains([[
+-id: 11111111-1111-1111-1111-111111111111
++id: 22222222-2222-2222-2222-222222222222
+ ...]], t.assert_equals, actual_nested, expected_nested)
+
+    local actual_mp = mp.encode(actual_uuid)
+    local expected_mp = mp.encode(expected_uuid)
+
+    assert_failure_contains([[diff:]], t.assert_equals, actual_mp, expected_mp)
+end
+
+function g_diff.test_varbinary()
+    t.skip_if(not utils.version_current_ge_than(3, 0, 0),
+            "varbinary module is available since Tarantool 3.0.0.")
+
+    local varbinary = require('varbinary')
+
+    local actual_top = varbinary.new('deadbeef')
+    local expected_top = varbinary.new('deadbe00')
+
+    local failure_top = helper.assert_failure(t.assert_equals, actual_top, expected_top)
+    t.assert_equals(failure_top.message:find('diff:'), nil)
+
+    local actual_nested = {vb = varbinary.new('deadbeef')}
+    local expected_nested = {vb = varbinary.new('deadbe00')}
+
+    assert_failure_contains([[
+-vb: deadbe00
++vb: deadbeef
+ ...]], t.assert_equals, actual_nested, expected_nested)
+
+    local actual_mp = mp.encode(varbinary.new('deadbeef'))
+    local expected_mp = mp.encode(varbinary.new('deadbe00'))
+
+    assert_failure_contains([[diff:]], t.assert_equals, actual_mp, expected_mp)
+end
+
+function g_diff.test_unknown_cdata_no_diff()
+    local c1 = ffi.new('struct {int x;}')
+    local c2 = ffi.new('struct {int x;}')
+
+    local failure = helper.assert_failure(t.assert_equals, c1, c2)
+    t.assert_equals(failure.message:find('diff:'), nil)
+end
+
+function g_diff.test_mixed_nested_table()
+    t.skip_if(not utils.version_current_ge_than(3, 0, 0),
+            "varbinary module is available since Tarantool 3.0.0.")
+
+    local varbinary = require('varbinary')
+
+    local actual = {
+        num   = 2,
+        flag  = false,
+        text  = "baz",
+        same  = "shared",
+        dec   = decimal.new('3.21'),
+        ts    = datetime.new{year = 2001, month = 2, day = 2},
+        vb    = varbinary.new('deadbe00'),
+        nested = {
+            n    = 20,
+            s    = "qux",
+            same = "nested-shared",
+        },
+    }
+
+    local expected = {
+        num   = 1,
+        flag  = false,
+        text  = "baz",
+        same  = "shared",
+        dec   = decimal.new('1.23'),
+        ts    = datetime.new{year = 2000, month = 1, day = 1},
+        vb    = varbinary.new('deadbe00'),
+        nested = {
+            n    = 10,
+            s    = "qux",
+            same = "nested-shared",
+        },
+    }
+
+    assert_failure_contains([[
+-dec: '1.23'
+-same: shared
+-num: 1
++dec: '3.21'
++same: shared
++num: 2
+ flag: false
+ nested:
+  same: nested-shared
+  s: qux
+-  n: 10
+-ts: 2000-01-01T00:00:00Z
++  n: 20
++ts: 2001-02-02T00:00:00Z
+ vb: deadbe00
+ text: baz
+ ...]], t.assert_equals, actual, expected)
+end
+
+function g_diff.test_assert_covers_diff()
+    local actual, expected
+
+    actual = {a = 1, b = 2, c = 3}
+    expected = {a = 2}
+
+    assert_failure_contains([[
+-a: 2
++a: 1]], t.assert_covers, actual, expected)
+
+    actual = {a = box.tuple.new({1})}
+    expected =  {a = box.tuple.new({2})}
+
+    assert_failure_contains([[
+-a: '[2]'
++a: '[1]']], t.assert_covers, actual, expected)
+
+    actual = {a = {b = 1, c = 2}}
+    expected = {a = {b = 1, c = 2, d = 3}}
+
+    assert_failure_contains([[
+ a:
+  b: 1
+  c: 2
+-  d: 3]], t.assert_covers, actual, expected)
 end
