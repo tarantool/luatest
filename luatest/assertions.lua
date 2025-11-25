@@ -6,6 +6,7 @@
 local math = require('math')
 
 local comparator = require('luatest.comparator')
+local diff = require('luatest.diff')
 local mismatch_formatter = require('luatest.mismatch_formatter')
 local pp = require('luatest.pp')
 local log = require('luatest.log')
@@ -20,11 +21,16 @@ local prettystr_pairs = pp.tostring_pair
 local M = {}
 
 local xfail = false
+local diff_enabled = true
 
 local box_error_type = ffi.typeof(box.error.new(box.error.UNKNOWN))
 
 -- private exported functions (for testing)
 M.private = {}
+
+function M.private.set_diff_enabled(value)
+    diff_enabled = value and true or false
+end
 
 function M.private.is_xfail()
     local xfail_status = xfail
@@ -83,6 +89,14 @@ local function error_msg_equality(actual, expected, deep_analysis)
         if success then
             result = table.concat({result, mismatchResult}, '\n')
         end
+
+        if diff_enabled then
+            local diff_result = diff.build_unified_diff(expected, actual)
+            if diff_result then
+                result = table.concat({result, 'diff:', diff_result}, '\n')
+            end
+        end
+
         return result
     end
     return string.format("expected: %s, actual: %s",

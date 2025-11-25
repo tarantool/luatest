@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Added support for unified diff output in `t.assert_equals()` failure messages
+  when expected and actual values are YAML-serializable (gh-412).
+
 ## 1.3.1
 
 - Fixed a bug when `assert_covers` didn't check array items for coverage and
