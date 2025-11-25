@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.3.0
 
 - Fixed a bug when `assert_covers` treats arrays as maps (gh-405).
 - Added the ability to keep and adjust cluster declarative configuration
