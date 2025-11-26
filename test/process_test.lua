@@ -10,13 +10,16 @@ local Capture = require('luatest.capture')
 
 local process, kill_after_test
 
-g.setup = function() kill_after_test = true end
-g.teardown = function()
+g.before_each(function()
+    kill_after_test = true
+end)
+
+g.after_each(function()
     if process and kill_after_test then
         process:kill()
     end
     process = nil
-end
+end)
 
 g.test_start = function()
     process = Process:start('/bin/sleep', {'5'})

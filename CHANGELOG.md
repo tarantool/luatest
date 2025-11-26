@@ -1,5 +1,25 @@
 # Changelog
 
+## Unreleased
+
+- Group and suite hooks must now be registered using the call-style
+  API. Use:
+
+  - `before_each(function() ... end)`
+  - `after_each(function() ... end)`
+  - `before_all(function() ... end)`
+  - `after_all(function() ... end)`
+  - `before_suite(function() ... end)`
+  - `after_suite(function() ... end)`
+  - `before_test('name', function() ... end)`
+  - `after_test('name', function() ... end)`
+
+  Assigning hooks as fields (for example, `group.before_each = fn` or
+  `luatest.before_suite = fn`) is no longer allowed and results in an
+  error with a descriptive message.
+  Legacy `group.setup` and `group.teardown` are no longer supported; use
+  `before_each`/`after_each` instead (gh-390).
+
 ## 1.3.1
 
 - Fixed a bug when `assert_covers` didn't check array items for coverage and

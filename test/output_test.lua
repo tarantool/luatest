@@ -6,11 +6,14 @@ local capture = Capture:new()
 
 local helper = require('test.helpers.general')
 
-g.setup = function() capture:enable() end
-g.teardown = function()
+g.before_each(function()
+    capture:enable()
+end)
+
+g.after_each(function()
     capture:flush()
     capture:disable()
-end
+end)
 
 g.test_no_fails_summary_on_success = function()
     local result = helper.run_suite(function(lu2)
