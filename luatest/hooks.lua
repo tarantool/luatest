@@ -93,11 +93,56 @@ local function check_params(required, actual)
     return true
 end
 
+local function set_hook_assignment_guard(object, hooks_type, accessor)
+    local mt = getmetatable(object)
+    if not mt.__luatest_instance_mt then
+        local new_mt = table.copy(mt)
+        new_mt.__luatest_instance_mt = true
+        mt = new_mt
+        setmetatable(object, mt)
+    end
+    local guard = mt.__luatest_hook_guard
+    if not guard then
+        guard = {
+            previous_index = mt.__index,
+            previous_newindex = mt.__newindex,
+            keys = {},
+            values = {},
+        }
+        mt.__luatest_hook_guard = guard
+        mt.__index = function(tbl, key)
+            if guard.values[key] ~= nil then
+                return guard.values[key]
+            end
+
+            local previous_index = guard.previous_index
+            if type(previous_index) == 'function' then
+                return previous_index(tbl, key)
+            end
+            if type(previous_index) == 'table' then
+                return previous_index[key]
+            end
+        end
+        mt.__newindex = function(tbl, key, value)
+            if guard.keys[key] then
+                error(string.format('Hook \'%s\' should be registered ' ..
+                      'using %s(<function>)', key, key))
+            end
+            if guard.previous_newindex then
+                return guard.previous_newindex(tbl, key, value)
+            end
+            rawset(tbl, key, value)
+        end
+    end
+    guard.keys[hooks_type] = true
+    guard.values[hooks_type] = accessor
+end
+
 local function define_hooks(object, hooks_type, preloaded_hook)
     local hooks = {}
     object[hooks_type .. '_hooks'] = hooks
 
-    object[hooks_type] = function(...)
+    local register_hook = function(...)
         local params, fn = ...
         if fn == nil then
             fn = params
@@ -112,7 +157,7 @@ local function define_hooks(object, hooks_type, preloaded_hook)
         params = params or {}
         table.insert(hooks, {fn, params})
     end
-    object['_original_' .. hooks_type] = object[hooks_type] -- for leagacy hooks support
+    set_hook_assignment_guard(object, hooks_type, register_hook)
 
     local function run_preloaded_hooks()
         if preloaded_hook == nil then
@@ -160,7 +205,7 @@ local function define_named_hooks(object, hooks_type)
     local hooks = {}
     object[hooks_type .. '_hooks'] = hooks
 
-    object[hooks_type] = function(...)
+    local register_hook = function(...)
         local test_name, params, fn = ...
         if fn == nil then
             fn = params
@@ -181,6 +226,8 @@ local function define_named_hooks(object, hooks_type)
         end
         table.insert(hooks[test_name], {fn, params})
     end
+
+    set_hook_assignment_guard(object, hooks_type, register_hook)
 
     object['run_' .. hooks_type] = function(test)
         local active_hooks = object[hooks_type .. '_hooks']
@@ -228,12 +275,8 @@ end
 local function run_group_hooks(runner, group, hooks_type)
     local result
     local hook = group and group['run_' .. hooks_type]
-    -- If _original_%hook_name% is not equal to %hook_name%, it means
-    -- that this method was assigned by user (legacy API).
-    if hook and group[hooks_type] == group['_original_' .. hooks_type] then
+    if hook then
         result = runner:protected_call(group, hook, group.name .. '.run_before_all_hooks')
-    elseif group and group[hooks_type] then
-        result = runner:protected_call(group, group[hooks_type], group.name .. '.before_all')
     end
     if result and result.status ~= 'success' then
         return result

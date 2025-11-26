@@ -67,8 +67,8 @@ g.test_example_failed = function()
     -- Don't show captures from group hooks when test failed.
     assert_captured(function(lu2)
         local group = lu2.group('test')
-        group.before_all = write_to_io
-        group.after_all = write_to_io
+        group.before_all(write_to_io)
+        group.after_all(write_to_io)
         group.test = function() error('custom-error') end
     end)
 
@@ -129,13 +129,14 @@ end
 g.test_group_hook = function()
     assert_captured(function(lu2)
         local group = lu2.group('test')
-        group.before_all = write_to_io
-        group.after_all = group.before_all
+        local hook = write_to_io
+        group.before_all(hook)
+        group.after_all(hook)
         group.test = function() end
 
         local group2 = lu2.group('test2')
-        group2.before_all = write_to_io
-        group2.after_all = group2.before_all
+        group2.before_all(hook)
+        group2.after_all(hook)
         group2.test = function() end
     end)
 end
@@ -143,19 +144,19 @@ end
 g.test_group_hook_failed = function()
     assert_shown(function(lu2)
         local group = lu2.group('test')
-        group.before_all = function()
+        group.before_all(function()
             write_to_io()
             error('custom-error')
-        end
+        end)
         group.test = function() end
     end)
 
     assert_shown(function(lu2)
         local group = lu2.group('test')
-        group.after_all = function()
+        group.after_all(function()
             write_to_io()
             error('custom-error')
-        end
+        end)
         group.test = function() end
     end)
 end
