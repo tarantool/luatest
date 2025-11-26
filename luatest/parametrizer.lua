@@ -37,18 +37,19 @@ end
 
 local function redirect_index(group)
     local super_group_mt = getmetatable(group)
-    if super_group_mt.__newindex then
-        return
-    end
-
+    local origin_newindex = super_group_mt.__newindex
     super_group_mt.__newindex = function(_group, key, value)
         if _group.pgroups then
             for _, pgroup in ipairs(_group.pgroups) do
                 pgroup[key] = value
             end
-        else
-            rawset(_group, key, value)
         end
+
+        if origin_newindex then
+            return origin_newindex(_group, key, value)
+        end
+
+        rawset(_group, key, value)
     end
 end
 

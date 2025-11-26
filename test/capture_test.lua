@@ -8,11 +8,14 @@ local capture = Capture:new()
 -- Disable luatest logging to avoid capturing it.
 require('luatest.log').info = function() end
 
-g.setup = function() capture:enable() end
-g.teardown = function()
+g.before_each(function()
+    capture:enable()
+end)
+
+g.after_each(function()
     capture:flush()
     capture:disable()
-end
+end)
 
 g.before_all(function()
     local err

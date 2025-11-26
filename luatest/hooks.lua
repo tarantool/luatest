@@ -93,11 +93,56 @@ local function check_params(required, actual)
     return true
 end
 
+local function set_hook_assignment_guard(object, hooks_type, accessor, opts)
+    opts = opts or {}
+    local mt = getmetatable(object)
+    local guard = mt.__luatest_hook_guard
+
+    if not guard then
+        local new_mt = table.copy(mt)
+        guard = {
+            original_index = mt.__index,
+            original_newindex = mt.__newindex,
+            values = {},
+            error_messages = {},
+        }
+        new_mt.__luatest_hook_guard = guard
+        new_mt.__index = function(tbl, key)
+            if guard.values[key] ~= nil then
+                return guard.values[key]
+            end
+
+            local original_index = guard.original_index
+            if type(original_index) == 'function' then
+                return original_index(tbl, key)
+            end
+            if type(original_index) == 'table' then
+                return original_index[key]
+            end
+        end
+        new_mt.__newindex = function(tbl, key, value)
+            if guard.values[key] ~= nil then
+                local message = guard.error_messages[key] or
+                    string.format('Hook \'%s\' should be registered ' ..
+                                  'using %s(<function>)', key, key)
+                error(message)
+            end
+            if guard.original_newindex then
+                return guard.original_newindex(tbl, key, value)
+            end
+            rawset(tbl, key, value)
+        end
+        setmetatable(object, new_mt)
+    end
+    guard.values[hooks_type] = accessor
+    guard.error_messages[hooks_type] = opts.error_message
+end
+
 local function define_hooks(object, hooks_type, preloaded_hook)
     local hooks = {}
     object[hooks_type .. '_hooks'] = hooks
 
-    object[hooks_type] = function(...)
+    local register_hook = function(...)
         local params, fn = ...
         if fn == nil then
             fn = params
@@ -112,7 +157,7 @@ local function define_hooks(object, hooks_type, preloaded_hook)
         params = params or {}
         table.insert(hooks, {fn, params})
     end
-    object['_original_' .. hooks_type] = object[hooks_type] -- for leagacy hooks support
+    set_hook_assignment_guard(object, hooks_type, register_hook)
 
     local function run_preloaded_hooks()
         if preloaded_hook == nil then
@@ -160,7 +205,7 @@ local function define_named_hooks(object, hooks_type)
     local hooks = {}
     object[hooks_type .. '_hooks'] = hooks
 
-    object[hooks_type] = function(...)
+    local register_hook = function(...)
         local test_name, params, fn = ...
         if fn == nil then
             fn = params
@@ -181,6 +226,8 @@ local function define_named_hooks(object, hooks_type)
         end
         table.insert(hooks[test_name], {fn, params})
     end
+
+    set_hook_assignment_guard(object, hooks_type, register_hook)
 
     object['run_' .. hooks_type] = function(test)
         local active_hooks = object[hooks_type .. '_hooks']
@@ -214,6 +261,16 @@ function export._define_group_hooks(group)
     define_hooks(group, 'before_all',  preloaded_hooks.before_all)
     define_hooks(group, 'after_all',   preloaded_hooks.after_all)
 
+    local setup_error = 'Hook \'setup\' is removed. Use \'before_each\' instead'
+    set_hook_assignment_guard(group, 'setup', function()
+        error(setup_error)
+    end, {error_message = setup_error})
+
+    local teardown_error = 'Hook \'teardown\' is removed. Use \'after_each\' instead'
+    set_hook_assignment_guard(group, 'teardown', function()
+        error(teardown_error)
+    end, {error_message = teardown_error})
+
     define_named_hooks(group, 'before_test')
     define_named_hooks(group, 'after_test')
     return group
@@ -228,28 +285,18 @@ end
 local function run_group_hooks(runner, group, hooks_type)
     local result
     local hook = group and group['run_' .. hooks_type]
-    -- If _original_%hook_name% is not equal to %hook_name%, it means
-    -- that this method was assigned by user (legacy API).
-    if hook and group[hooks_type] == group['_original_' .. hooks_type] then
+    if hook then
         result = runner:protected_call(group, hook, group.name .. '.run_before_all_hooks')
-    elseif group and group[hooks_type] then
-        result = runner:protected_call(group, group[hooks_type], group.name .. '.before_all')
     end
     if result and result.status ~= 'success' then
         return result
     end
 end
 
-local function run_test_hooks(self, test, hooks_type, legacy_name)
+local function run_test_hooks(self, test, hooks_type)
     log.info('Run hook %s', hooks_type)
     local group = test.group
-    local hook
-    -- Support for group.setup/teardown methods (legacy API)
-    hook = group[legacy_name]
-    if hook and type(hook) == 'function' then
-        self:update_status(test, self:protected_call(group, hook, group.name .. '.' .. legacy_name))
-    end
-    hook = group['run_' .. hooks_type]
+    local hook = group['run_' .. hooks_type]
     if hook then
         self:update_status(test, self:protected_call(group, hook))
     end
@@ -282,7 +329,7 @@ function export._patch_runner(Runner)
                 break
             end
 
-            run_test_hooks(self, test, 'before_each', 'setup')
+            run_test_hooks(self, test, 'before_each')
             run_named_test_hooks(self, test, 'before_test')
 
             if test:is('success') then
@@ -292,7 +339,7 @@ function export._patch_runner(Runner)
             end
 
             run_named_test_hooks(self, test, 'after_test')
-            run_test_hooks(self, test, 'after_each', 'teardown')
+            run_test_hooks(self, test, 'after_each')
         end
     end end)
 
