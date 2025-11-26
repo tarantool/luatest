@@ -29,18 +29,18 @@ local server = Server:new({
     net_box_port = 3133,
 })
 
-g.before_all = function()
+g.before_all(function()
     fio.rmtree(datadir)
     fio.mktree(server.workdir)
     server:start()
     -- wait until booted
     t.helpers.retrying({timeout = 2}, function() server:http_request('get', '/ping') end)
-end
+end)
 
-g.after_all = function()
+g.after_all(function()
     server:stop()
     fio.rmtree(datadir)
-end
+end)
 
 g.test_start_stop = function()
     local workdir = fio.pathjoin(datadir, 'start_stop')
