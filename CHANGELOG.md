@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Fixed a bug when `assert_covers` didn't check array items for coverage and
+  instead treated arrays as scalars (gh-439).
+
 ## 1.3.0
 
 - Fixed a bug when `assert_covers` treats arrays as maps (gh-405).
