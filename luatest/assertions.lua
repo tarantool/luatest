@@ -443,12 +443,12 @@ local function table_slice(actual, expected)
     if type(expected) ~= 'table' or type(actual) ~= 'table' then
         return actual
     end
-
+    local sliced
     if utils.table_is_array(actual) or utils.table_is_array(expected) then
-        return actual
+        sliced = table.copy(actual)
+    else
+        sliced = {}
     end
-
-    local sliced = {}
     for k, _ in pairs(expected) do
         sliced[k] = table_slice(actual[k], expected[k])
     end
