@@ -2,6 +2,7 @@ local t = require('luatest')
 local g = t.group()
 
 local fun = require('fun')
+local fio = require('fio')
 local Runner = require('luatest.runner')
 local utils = require('luatest.utils')
 
@@ -785,6 +786,45 @@ function g.test_xml_c_data_escape()
     t.assert_equals(subject("a<b&c>"), 'a<b&c>')
     t.assert_equals(subject("a<b]]>--"), 'a<b]]&gt;--')
 end
+
+function g.test_junit_output_escape_for_attributes()
+    local tmpdir = fio.tempdir()
+    local output_path = fio.pathjoin(tmpdir, 'test_junit_escape')
+
+    t.assert_equals(helper.run_suite(function(lu2)
+        local g_positive_start_stages = lu2.group('touching_positive.start.stages', {
+            { stage = 'COMPLETED' },
+            { stage = 'CANCELLED' },
+        })
+
+        function g_positive_start_stages.test_start() end
+    end, {'-o', 'junit', '-n', output_path}), 0)
+
+    local file = assert(io.open(output_path .. '.xml'))
+    local xml = file:read('*a')
+    file:close()
+
+    t.assert_str_contains(
+        xml,
+        'group="touching_positive.start.stages.stage:&quot;COMPLETED&quot;"'
+    )
+    t.assert_str_contains(
+        xml,
+        'name="touching_positive.start.stages.stage:&quot;COMPLETED&quot;.test_start"'
+    )
+
+    t.assert_str_contains(
+        xml,
+        'group="touching_positive.start.stages.stage:&quot;CANCELLED&quot;"'
+    )
+    t.assert_str_contains(
+        xml,
+        'name="touching_positive.start.stages.stage:&quot;CANCELLED&quot;.test_start"'
+    )
+
+    fio.rmtree(tmpdir)
+end
+
 
 function g.test_stripStackTrace()
     local subject = utils.strip_luatest_trace
