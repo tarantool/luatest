@@ -99,7 +99,7 @@ function Output.mt:end_suite()
 
     for _, node in ipairs(self.result.tests.all) do
         self.fd:write(string.format('        <testcase group="%s" name="%s" time="%0.3f">\n',
-            node.group.name or '', node.name, node.duration))
+            Output.xml_escape(node.group.name or ''), Output.xml_escape(node.name or ''), node.duration))
         if not node:is('success') then
             self.fd:write(self.class.node_status_xml(node))
         end
