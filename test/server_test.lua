@@ -426,30 +426,51 @@ g.test_drop_server_if_process_is_dead = function()
     s:drop()
 end
 
+local deferred_artifact_checks = {}
+
 g.test_save_server_artifacts_when_test_failed = function()
-    local s1 = Server:new() -- empty config
-    local s2 = Server:new(
-        {workdir = ('%s/%s'):format(Server.vardir, os.tmpname())}
-    ) -- workdir passed
+    local artifact_paths
 
-    s1:start()
-    s2:start()
+    local result = helper.run_suite(function(lu2)
+        local cg = lu2.group()
+        local Server2 = lu2.Server
 
-    local s1_artifacts = ('%s/artifacts/%s'):format(s1.vardir, s1.id)
-    local s2_artifacts = ('%s/artifacts/%s'):format(s2.vardir, s2.id)
-    local test = rawget(_G, 'current_test')
+        cg.before_test('test_failure', function()
+            cg.s1 = Server2:new() -- empty config
+            cg.s2 = Server2:new(
+                {workdir = ('%s/%s'):format(Server2.vardir, os.tmpname())}
+            ) -- workdir passed
 
-    -- the test must be failed to save artifacts
-    test.status = 'fail'
-    s1:drop()
-    s2:drop()
-    test.status = 'success'
+            cg.s1:start()
+            cg.s2:start()
+        end)
 
-    t.assert_equals(fio.path.exists(s1_artifacts), true)
-    t.assert_equals(fio.path.is_dir(s1_artifacts), true)
+        cg.test_failure = function()
+            for _, s in ipairs({cg.s1, cg.s2}) do
+                s:exec(function() return true end)
+            end
 
-    t.assert_equals(fio.path.exists(s2_artifacts), true)
-    t.assert_equals(fio.path.is_dir(s2_artifacts), true)
+            artifact_paths = {
+                ('%s/artifacts/%s'):format(cg.s1.vardir, cg.s1.id),
+                ('%s/artifacts/%s'):format(cg.s2.vardir, cg.s2.id),
+            }
+
+            lu2.fail('trigger artifact saving')
+        end
+
+        cg.after_test('test_failure', function()
+            cg.s1:drop()
+            cg.s2:drop()
+        end)
+    end, {'--no-clean'})
+
+    t.assert_equals(result, 1)
+        table.insert(deferred_artifact_checks, function()
+        for _, path in ipairs(artifact_paths) do
+            t.assert_equals(fio.path.exists(path), true)
+            t.assert_equals(fio.path.is_dir(path), true)
+        end
+    end)
 end
 
 g.test_server_build_listen_uri = function()
@@ -644,4 +665,75 @@ end)
 g.test_assertion_failure = function()
     server:connect_net_box()
     helper.assert_failure(server.exec, server, function() t.assert(false) end)
+end
+
+g.test_save_artifacts_after_restart_when_test_failed = function()
+    local log_path
+
+    local result = helper.run_suite(function(lu2)
+        local cg = lu2.group()
+        local Server2 = lu2.Server
+
+        cg.before_test('test_failure', function()
+            cg.s = Server2:new()
+
+            cg.s:start()
+            cg.s:exec(function()
+                require('log').info('before_restart_artifacts_marker')
+            end)
+
+            cg.s:restart()
+            cg.s:exec(function()
+                require('log').info('after_restart_artifacts_marker')
+            end)
+
+            lu2.assert(cg.s:grep_log('after_restart_artifacts_marker'))
+
+            log_path = fio.pathjoin(
+                cg.s.artifacts, cg.s.alias .. '.log'
+            )
+        end)
+
+        cg.test_failure = function()
+            lu2.fail('trigger artifact saving')
+        end
+
+        cg.after_test('test_failure', function()
+            cg.s:drop()
+        end)
+    end, {'--no-clean'})
+
+    t.assert_equals(result, 1)
+
+    local log_file = fio.open(log_path)
+    local log_stat = log_file:stat()
+    local log_content = log_file:read(log_stat.size)
+    log_file:close()
+
+    t.assert_str_contains(log_content, 'before_restart_artifacts_marker')
+    t.assert_str_contains(log_content, 'after_restart_artifacts_marker')
+end
+
+g.test_do_not_save_server_artifacts_when_test_succeeded = function()
+    local log_path
+
+    local result = helper.run_suite(function(lu2)
+        local cg = lu2.group()
+        local Server2 = lu2.Server
+
+        cg.test_success = function()
+            cg.s = Server2:new()
+
+            log_path = fio.pathjoin(
+                cg.s.artifacts, cg.s.alias .. '.log'
+            )
+        end
+
+        cg.after_all(function()
+            cg.s:drop()
+        end)
+    end, {'--no-clean'})
+
+    t.assert_equals(result, 0)
+    t.assert_not(fio.path.exists(log_path))
 end

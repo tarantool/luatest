@@ -367,6 +367,26 @@ function Runner.mt:start_test(test)
     self.output:start_test(test)
 end
 
+local function save_failed_test_artifacts(node)
+    if node.artifacts_saved then
+        return
+    end
+
+    if not node.had_failure and node:is('success') then
+        return
+    end
+
+    if utils.table_len(node.servers) == 0 then
+        return
+    end
+
+    for _, server in pairs(node.servers) do
+        server:save_artifacts()
+    end
+
+    node.artifacts_saved = true
+end
+
 function Runner.mt:update_status(node, err)
     -- "err" is expected to be a table / result from protected_call()
     if err.status == 'success' then
@@ -377,11 +397,7 @@ function Runner.mt:update_status(node, err)
     elseif err.status == 'fail' or err.status == 'error' or err.status == 'skip'
         or err.status == 'xfail' or err.status == 'xsuccess' then
         node:update_status(err.status, err.message, err.trace)
-        if utils.table_len(node.servers) > 0 then
-            for _, server in pairs(node.servers) do
-                server:save_artifacts()
-            end
-        end
+        save_failed_test_artifacts(node)
     else
         error('No such status: ' .. pp.tostring(err.status))
     end
