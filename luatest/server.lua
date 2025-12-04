@@ -531,7 +531,6 @@ local function wait_for_condition(cond_desc, server, func, ...)
     local deadline = clock.time() + WAIT_TIMEOUT
     while true do
         if not server.process:is_alive() then
-            server:save_artifacts()
             error(('Process is terminated when waiting for "%s" condition for server (alias: %s, workdir: %s, pid: %d)')
                 :format(cond_desc, server.alias, fio.basename(server.workdir), server.process.pid))
         end
@@ -539,7 +538,6 @@ local function wait_for_condition(cond_desc, server, func, ...)
             return
         end
         if clock.time() > deadline then
-            server:save_artifacts()
             error(('Timed out to wait for "%s" condition for server (alias: %s, workdir: %s, pid: %d) within %ds')
                 :format(cond_desc, server.alias, fio.basename(server.workdir), server.process.pid, WAIT_TIMEOUT))
         end
@@ -585,15 +583,11 @@ function Server:stop()
     end
 end
 
---- Stop the server and save its artifacts if the test fails.
+-- Stop the server.
 -- This function should be used only at the end of the test (`after_test`,
 -- `after_each`, `after_all` hooks) to terminate the server process.
--- Besides process termination, it saves the contents of the server
--- working directory to the `<vardir>/artifacts` directory for further
--- analysis if the test fails.
 function Server:drop()
     self:stop()
-    self:save_artifacts()
 
     self.instance_id = nil
     self.instance_uuid = nil

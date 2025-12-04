@@ -1,93 +1,156 @@
 local fio = require('fio')
 local t = require('luatest')
+local helper = require('test.helpers.general')
 local ReplicaSet = require('luatest.replica_set')
 
 local g = t.group()
 local Server = t.Server
+local deferred_artifact_checks = {}
 
-g.before_each(function()
-    g.rs = ReplicaSet:new()
-    g.box_cfg = {
+local function build_box_cfg(rs)
+    return {
         replication_timeout = 0.1,
         replication_connect_timeout = 10,
         replication_sync_lag = 0.01,
         replication_connect_quorum = 3,
         replication = {
-            Server.build_listen_uri('replica1', g.rs.id),
-            Server.build_listen_uri('replica2', g.rs.id),
-            Server.build_listen_uri('replica3', g.rs.id),
+            Server.build_listen_uri('replica1', rs.id),
+            Server.build_listen_uri('replica2', rs.id),
+            Server.build_listen_uri('replica3', rs.id),
         }
     }
-end)
+end
 
-g.before_test('test_save_rs_artifacts_when_test_failed', function()
-    g.rs:build_and_add_server({alias = 'replica1', box_cfg = g.box_cfg})
-    g.rs:build_and_add_server({alias = 'replica2', box_cfg = g.box_cfg})
-    g.rs:build_and_add_server({alias = 'replica3', box_cfg = g.box_cfg})
-    g.rs:start()
-
-    g.rs_artifacts = ('%s/artifacts/%s'):format(Server.vardir, g.rs.id)
-    g.s1_artifacts = ('%s/%s'):format(g.rs_artifacts, g.rs:get_server('replica1').id)
-    g.s2_artifacts = ('%s/%s'):format(g.rs_artifacts, g.rs:get_server('replica2').id)
-    g.s3_artifacts = ('%s/%s'):format(g.rs_artifacts, g.rs:get_server('replica3').id)
+g.before_each(function()
+    g.rs = ReplicaSet:new()
+    g.box_cfg = build_box_cfg(g.rs)
 end)
 
 g.test_save_rs_artifacts_when_test_failed = function()
-    local test = rawget(_G, 'current_test')
-    -- the test must be failed to save artifacts
-    test.status = 'fail'
-    g.rs:drop()
-    test.status = 'success'
+    local artifact_paths
 
-    t.assert_equals(fio.path.exists(g.rs_artifacts), true)
-    t.assert_equals(fio.path.is_dir(g.rs_artifacts), true)
+    local status = helper.run_suite(function(luatest)
+        local cg = luatest.group()
 
-    t.assert_equals(fio.path.exists(g.s1_artifacts), true)
-    t.assert_equals(fio.path.is_dir(g.s1_artifacts), true)
+        cg.before_test('test_failure', function()
+            cg.rs = ReplicaSet:new()
+            local box_cfg = build_box_cfg(cg.rs)
 
-    t.assert_equals(fio.path.exists(g.s2_artifacts), true)
-    t.assert_equals(fio.path.is_dir(g.s2_artifacts), true)
+            cg.rs:build_and_add_server({alias = 'replica1', box_cfg = box_cfg})
+            cg.rs:build_and_add_server({alias = 'replica2', box_cfg = box_cfg})
+            cg.rs:build_and_add_server({alias = 'replica3', box_cfg = box_cfg})
+            cg.rs:start()
 
-    t.assert_equals(fio.path.exists(g.s3_artifacts), true)
-    t.assert_equals(fio.path.is_dir(g.s3_artifacts), true)
+            local rs_artifacts = ('%s/artifacts/%s'):format(Server.vardir, cg.rs.id)
+            artifact_paths = {
+                rs = rs_artifacts,
+                servers = {
+                    ('%s/%s'):format(rs_artifacts, cg.rs:get_server('replica1').id),
+                    ('%s/%s'):format(rs_artifacts, cg.rs:get_server('replica2').id),
+                    ('%s/%s'):format(rs_artifacts, cg.rs:get_server('replica3').id),
+                },
+            }
+        end)
+
+        cg.test_failure = function()
+            for _, server in pairs(cg.rs.servers) do
+                server:exec(function() return true end)
+            end
+
+            luatest.fail('trigger artifact saving')
+        end
+
+        cg.after_test('test_failure', function()
+            cg.rs:drop()
+        end)
+    end, {'--no-clean'})
+
+    t.assert_equals(status, 1)
+
+    table.insert(deferred_artifact_checks, function()
+        t.assert_equals(fio.path.exists(artifact_paths.rs), true)
+        t.assert_equals(fio.path.is_dir(artifact_paths.rs), true)
+
+        for _, path in ipairs(artifact_paths.servers) do
+            t.assert_equals(fio.path.exists(path), true)
+            t.assert_equals(fio.path.is_dir(path), true)
+        end
+    end)
 end
-
-g.before_test('test_save_rs_artifacts_when_server_workdir_passed', function()
-    local s1_workdir = ('%s/%s'):format(Server.vardir, os.tmpname())
-    local s2_workdir = ('%s/%s'):format(Server.vardir, os.tmpname())
-    local s3_workdir = ('%s/%s'):format(Server.vardir, os.tmpname())
-
-    g.rs:build_and_add_server({workdir = s1_workdir, alias = 'replica1', box_cfg = g.box_cfg})
-    g.rs:build_and_add_server({workdir = s2_workdir, alias = 'replica2', box_cfg = g.box_cfg})
-    g.rs:build_and_add_server({workdir = s3_workdir, alias = 'replica3', box_cfg = g.box_cfg})
-    g.rs:start()
-
-    g.rs_artifacts = ('%s/artifacts/%s'):format(Server.vardir, g.rs.id)
-    g.s1_artifacts = ('%s/%s'):format(g.rs_artifacts, g.rs:get_server('replica1').id)
-    g.s2_artifacts = ('%s/%s'):format(g.rs_artifacts, g.rs:get_server('replica2').id)
-    g.s3_artifacts = ('%s/%s'):format(g.rs_artifacts, g.rs:get_server('replica3').id)
-end)
 
 g.test_save_rs_artifacts_when_server_workdir_passed = function()
-    local test = rawget(_G, 'current_test')
-    -- the test must be failed to save artifacts
-    test.status = 'fail'
-    g.rs:drop()
-    test.status = 'success'
+    local artifact_paths
 
-    t.assert_equals(fio.path.exists(g.rs_artifacts), true)
-    t.assert_equals(fio.path.is_dir(g.rs_artifacts), true)
+    local status = helper.run_suite(function(luatest)
+        local cg = luatest.group()
 
-    t.assert_equals(fio.path.exists(g.s1_artifacts), true)
-    t.assert_equals(fio.path.is_dir(g.s1_artifacts), true)
+        cg.before_test('test_failure', function()
+            cg.rs = ReplicaSet:new()
+            local box_cfg = build_box_cfg(cg.rs)
 
-    t.assert_equals(fio.path.exists(g.s2_artifacts), true)
-    t.assert_equals(fio.path.is_dir(g.s2_artifacts), true)
+            cg.rs:build_and_add_server({
+                workdir = ('%s/%s'):format(Server.vardir, os.tmpname()),
+                alias = 'replica1',
+                box_cfg = box_cfg,
+            })
+            cg.rs:build_and_add_server({
+                workdir = ('%s/%s'):format(Server.vardir, os.tmpname()),
+                alias = 'replica2',
+                box_cfg = box_cfg,
+            })
+            cg.rs:build_and_add_server({
+                workdir = ('%s/%s'):format(Server.vardir, os.tmpname()),
+                alias = 'replica3',
+                box_cfg = box_cfg,
+            })
+            cg.rs:start()
 
-    t.assert_equals(fio.path.exists(g.s3_artifacts), true)
-    t.assert_equals(fio.path.is_dir(g.s3_artifacts), true)
+            local rs_artifacts = ('%s/artifacts/%s'):format(Server.vardir, cg.rs.id)
+            artifact_paths = {
+                rs = rs_artifacts,
+                servers = {
+                    ('%s/%s'):format(rs_artifacts, cg.rs:get_server('replica1').id),
+                    ('%s/%s'):format(rs_artifacts, cg.rs:get_server('replica2').id),
+                    ('%s/%s'):format(rs_artifacts, cg.rs:get_server('replica3').id),
+                },
+            }
+        end)
 
+        cg.test_failure = function()
+            for _, server in pairs(cg.rs.servers) do
+                server:exec(function() return true end)
+            end
+
+            luatest.fail('trigger artifact saving')
+        end
+
+        cg.after_test('test_failure', function()
+            cg.rs:drop()
+        end)
+    end, {'--no-clean'})
+
+    t.assert_equals(status, 1)
+
+    table.insert(deferred_artifact_checks, function()
+        t.assert_equals(fio.path.exists(artifact_paths.rs), true)
+        t.assert_equals(fio.path.is_dir(artifact_paths.rs), true)
+
+        for _, path in ipairs(artifact_paths.servers) do
+            t.assert_equals(fio.path.exists(path), true)
+            t.assert_equals(fio.path.is_dir(path), true)
+        end
+    end)
 end
+
+g.after_each(function()
+    g.rs:drop()
+end)
+
+g.after_all(function()
+    for _, check in ipairs(deferred_artifact_checks) do
+        check()
+    end
+end)
 
 g.test_rs_no_socket_collision_with_custom_alias = function()
     local s1 = g.rs:build_server({alias = 'foo'})

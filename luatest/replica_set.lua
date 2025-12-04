@@ -184,12 +184,10 @@ function ReplicaSet:stop()
     end
 end
 
---- Stop all servers in the replica set and save their artifacts if the test fails.
+--- Stop all servers in the replica set.
 -- This function should be used only at the end of the test (`after_test`,
 -- `after_each`, `after_all` hooks) to terminate all server processes in
--- the replica set. Besides process termination, it saves the contents of
--- each server working directory to the `<vardir>/artifacts` directory
--- for further analysis if the test fails.
+-- the replica set.
 function ReplicaSet:drop()
     for _, server in ipairs(self.servers) do
         server:drop()
