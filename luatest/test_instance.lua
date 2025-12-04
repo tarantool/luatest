@@ -17,9 +17,14 @@ end
 function TestInstance.mt:initialize()
     self.status = 'success'
     self.servers = {}
+    self.had_failure = false
+    self.artifacts_saved = false
 end
 
 function TestInstance.mt:update_status(status, message, trace)
+    if status ~= 'success' then
+        self.had_failure = true
+    end
     self.status = status
     self.message = message
     self.trace = trace

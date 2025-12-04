@@ -1,55 +1,82 @@
 local fio = require('fio')
 
 local t = require('luatest')
+local helper = require('test.helpers.general')
 local g = t.group()
 
-local Server = t.Server
-
 local function assert_artifacts_path(s)
-    t.assert_equals(fio.path.exists(s.artifacts), true)
-    t.assert_equals(fio.path.is_dir(s.artifacts), true)
+    t.assert(fio.path.exists(s))
+    t.assert(fio.path.is_dir(s))
 end
 
-g.before_all(function()
-    g.s_all  = Server:new({alias = 'all'})
-    g.s_all2 = Server:new({alias = 'all2'})
-
-    g.s_all:start()
-    g.s_all2:start()
-end)
-
-g.before_each(function()
-    g.s_each  = Server:new({alias = 'each'})
-    g.s_each2 = Server:new({alias = 'each2'})
-
-    g.s_each:start()
-    g.s_each2:start()
-end)
-
-g.before_test('test_foo', function()
-    g.s_test  = Server:new({alias = 'test'})
-    g.s_test2 = Server:new({alias = 'test2'})
-
-    g.s_test:start()
-    g.s_test2:start()
-end)
-
 g.test_foo = function()
-    local test = rawget(_G, 'current_test')
+    local artifacts_paths
 
-    test.status = 'fail'
-    g.s_test:drop()
-    g.s_test2:drop()
-    g.s_each:drop()
-    g.s_each2:drop()
-    g.s_all:drop()
-    g.s_all2:drop()
-    test.status = 'success'
+    local status = helper.run_suite(function(lu2)
+        local cg = lu2.group()
+        local Server = lu2.Server
 
-    assert_artifacts_path(g.s_test)
-    assert_artifacts_path(g.s_test2)
-    assert_artifacts_path(g.s_each)
-    assert_artifacts_path(g.s_each2)
-    assert_artifacts_path(g.s_all)
-    assert_artifacts_path(g.s_all2)
+        cg.before_all(function()
+            cg.s_all = Server:new({alias = 'all'})
+            cg.s_all2 = Server:new({alias = 'all2'})
+
+            cg.s_all:start()
+            cg.s_all2:start()
+        end)
+
+        cg.before_each(function()
+            cg.s_each  = Server:new({alias = 'each'})
+            cg.s_each2 = Server:new({alias = 'each2'})
+
+            cg.s_each:start()
+            cg.s_each2:start()
+        end)
+
+        cg.before_test('test_failure', function()
+            cg.s_test  = Server:new({alias = 'test'})
+            cg.s_test2 = Server:new({alias = 'test2'})
+
+            cg.s_test:start()
+            cg.s_test2:start()
+        end)
+
+        cg.test_failure = function()
+            for _, server in ipairs({cg.s_test, cg.s_test2, cg.s_each,
+                                       cg.s_each2, cg.s_all, cg.s_all2}) do
+                server:exec(function() return true end)
+            end
+
+            artifacts_paths = {
+                cg.s_test.artifacts,
+                cg.s_test2.artifacts,
+                cg.s_each.artifacts,
+                cg.s_each2.artifacts,
+                cg.s_all.artifacts,
+                cg.s_all2.artifacts,
+            }
+
+            lu2.fail('trigger artifact saving')
+        end
+
+        cg.after_test('test_failure', function()
+            cg.s_test:drop()
+            cg.s_test2:drop()
+        end)
+
+        cg.after_each(function()
+            cg.s_each:drop()
+            cg.s_each2:drop()
+        end)
+
+        cg.after_all(function()
+            cg.s_all:drop()
+            cg.s_all2:drop()
+        end)
+    end, {'--no-clean'})
+
+    t.assert_equals(status, 1)
+
+    for _, path in ipairs(artifacts_paths) do
+        assert_artifacts_path(path)
+    end
 end
