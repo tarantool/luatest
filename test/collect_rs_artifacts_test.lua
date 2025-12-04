@@ -4,6 +4,7 @@ local utils = require('luatest.utils')
 local ReplicaSet = require('luatest.replica_set')
 
 local g = t.group()
+local deferred_artifact_checks = {}
 local Server = t.Server
 
 local function build_specific_replica_set(alias_suffix)
@@ -87,15 +88,24 @@ g.before_test('test_foo', function()
 end)
 
 g.test_foo = function()
-    local test = rawget(_G, 'current_test')
+    local ctx = rawget(_G, 'current_test')
+    local test = ctx.value
 
-    test.status = 'fail'
     g.rs_test:drop()
     g.rs_each:drop()
     g.rs_all:drop()
-    test.status = 'success'
+    ctx.runner:update_status(test, {status = 'fail'})
+    test:update_status('success')
 
-    assert_artifacts_paths(g.rs_test, 'test')
-    assert_artifacts_paths(g.rs_each, 'each')
-    assert_artifacts_paths(g.rs_all, 'all')
+    table.insert(deferred_artifact_checks, function()
+        assert_artifacts_paths(g.rs_test, 'test')
+        assert_artifacts_paths(g.rs_each, 'each')
+        assert_artifacts_paths(g.rs_all, 'all')
+    end)
 end
+
+g.after_all(function()
+    for _, check in ipairs(deferred_artifact_checks) do
+        check()
+    end
+end)
