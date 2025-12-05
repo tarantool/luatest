@@ -2,6 +2,7 @@ local fio = require('fio')
 
 local t = require('luatest')
 local g = t.group()
+local deferred_artifact_checks = {}
 
 local Server = t.Server
 
@@ -35,21 +36,30 @@ g.before_test('test_foo', function()
 end)
 
 g.test_foo = function()
-    local test = rawget(_G, 'current_test')
+    local ctx = rawget(_G, 'current_test')
+    local test = ctx.value
 
-    test.status = 'fail'
     g.s_test:drop()
     g.s_test2:drop()
     g.s_each:drop()
     g.s_each2:drop()
     g.s_all:drop()
     g.s_all2:drop()
-    test.status = 'success'
+    ctx.runner:update_status(test, {status = 'fail'})
+    test:update_status('success')
 
-    assert_artifacts_path(g.s_test)
-    assert_artifacts_path(g.s_test2)
-    assert_artifacts_path(g.s_each)
-    assert_artifacts_path(g.s_each2)
-    assert_artifacts_path(g.s_all)
-    assert_artifacts_path(g.s_all2)
+    table.insert(deferred_artifact_checks, function()
+        assert_artifacts_path(g.s_test)
+        assert_artifacts_path(g.s_test2)
+        assert_artifacts_path(g.s_each)
+        assert_artifacts_path(g.s_each2)
+        assert_artifacts_path(g.s_all)
+        assert_artifacts_path(g.s_all2)
+    end)
 end
+
+g.after_all(function()
+    for _, check in ipairs(deferred_artifact_checks) do
+        check()
+    end
+end)

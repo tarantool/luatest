@@ -4,6 +4,7 @@ local ReplicaSet = require('luatest.replica_set')
 
 local g = t.group()
 local Server = t.Server
+local deferred_artifact_checks = {}
 
 g.before_each(function()
     g.rs = ReplicaSet:new()
@@ -33,23 +34,26 @@ g.before_test('test_save_rs_artifacts_when_test_failed', function()
 end)
 
 g.test_save_rs_artifacts_when_test_failed = function()
-    local test = rawget(_G, 'current_test')
+    local ctx = rawget(_G, 'current_test')
+    local test = ctx.value
     -- the test must be failed to save artifacts
-    test.status = 'fail'
+    ctx.runner:update_status(test, {status = 'fail'})
     g.rs:drop()
-    test.status = 'success'
+    test:update_status('success')
 
-    t.assert_equals(fio.path.exists(g.rs_artifacts), true)
-    t.assert_equals(fio.path.is_dir(g.rs_artifacts), true)
+    table.insert(deferred_artifact_checks, function()
+        t.assert_equals(fio.path.exists(g.rs_artifacts), true)
+        t.assert_equals(fio.path.is_dir(g.rs_artifacts), true)
 
-    t.assert_equals(fio.path.exists(g.s1_artifacts), true)
-    t.assert_equals(fio.path.is_dir(g.s1_artifacts), true)
+        t.assert_equals(fio.path.exists(g.s1_artifacts), true)
+        t.assert_equals(fio.path.is_dir(g.s1_artifacts), true)
 
-    t.assert_equals(fio.path.exists(g.s2_artifacts), true)
-    t.assert_equals(fio.path.is_dir(g.s2_artifacts), true)
+        t.assert_equals(fio.path.exists(g.s2_artifacts), true)
+        t.assert_equals(fio.path.is_dir(g.s2_artifacts), true)
 
-    t.assert_equals(fio.path.exists(g.s3_artifacts), true)
-    t.assert_equals(fio.path.is_dir(g.s3_artifacts), true)
+        t.assert_equals(fio.path.exists(g.s3_artifacts), true)
+        t.assert_equals(fio.path.is_dir(g.s3_artifacts), true)
+    end)
 end
 
 g.before_test('test_save_rs_artifacts_when_server_workdir_passed', function()
@@ -69,25 +73,34 @@ g.before_test('test_save_rs_artifacts_when_server_workdir_passed', function()
 end)
 
 g.test_save_rs_artifacts_when_server_workdir_passed = function()
-    local test = rawget(_G, 'current_test')
+    local ctx = rawget(_G, 'current_test')
+    local test = ctx.value
     -- the test must be failed to save artifacts
-    test.status = 'fail'
+    ctx.runner:update_status(test, {status = 'fail'})
     g.rs:drop()
-    test.status = 'success'
+    test:update_status('success')
 
-    t.assert_equals(fio.path.exists(g.rs_artifacts), true)
-    t.assert_equals(fio.path.is_dir(g.rs_artifacts), true)
+    table.insert(deferred_artifact_checks, function()
+        t.assert_equals(fio.path.exists(g.rs_artifacts), true)
+        t.assert_equals(fio.path.is_dir(g.rs_artifacts), true)
 
-    t.assert_equals(fio.path.exists(g.s1_artifacts), true)
-    t.assert_equals(fio.path.is_dir(g.s1_artifacts), true)
+        t.assert_equals(fio.path.exists(g.s1_artifacts), true)
+        t.assert_equals(fio.path.is_dir(g.s1_artifacts), true)
 
-    t.assert_equals(fio.path.exists(g.s2_artifacts), true)
-    t.assert_equals(fio.path.is_dir(g.s2_artifacts), true)
+        t.assert_equals(fio.path.exists(g.s2_artifacts), true)
+        t.assert_equals(fio.path.is_dir(g.s2_artifacts), true)
 
-    t.assert_equals(fio.path.exists(g.s3_artifacts), true)
-    t.assert_equals(fio.path.is_dir(g.s3_artifacts), true)
+        t.assert_equals(fio.path.exists(g.s3_artifacts), true)
+        t.assert_equals(fio.path.is_dir(g.s3_artifacts), true)
+    end)
 
 end
+
+g.after_all(function()
+    for _, check in ipairs(deferred_artifact_checks) do
+        check()
+    end
+end)
 
 g.test_rs_no_socket_collision_with_custom_alias = function()
     local s1 = g.rs:build_server({alias = 'foo'})

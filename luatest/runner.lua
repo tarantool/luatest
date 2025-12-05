@@ -377,11 +377,6 @@ function Runner.mt:update_status(node, err)
     elseif err.status == 'fail' or err.status == 'error' or err.status == 'skip'
         or err.status == 'xfail' or err.status == 'xsuccess' then
         node:update_status(err.status, err.message, err.trace)
-        if utils.table_len(node.servers) > 0 then
-            for _, server in pairs(node.servers) do
-                server:save_artifacts()
-            end
-        end
     else
         error('No such status: ' .. pp.tostring(err.status))
     end
@@ -391,6 +386,13 @@ end
 function Runner.mt:end_test(node)
     node.duration = clock.time() - node.start_time
     node.start_time = nil
+
+    if (node.had_failure or not node:is('success')) and utils.table_len(node.servers) > 0 then
+        for _, server in pairs(node.servers) do
+            server:save_artifacts()
+        end
+    end
+
     self.output:end_test(node)
 
     if node:is('error') or node:is('fail') or node:is('xsuccess') then
@@ -479,7 +481,7 @@ end
 function Runner.mt:run_tests(tests_list)
     -- Make seed for ordering not affect other random numbers.
     math.randomseed(os.time())
-    rawset(_G, 'current_test', {value = nil})
+    rawset(_G, 'current_test', {runner = self, value = nil})
     for _ = 1, self.exe_repeat_group or 1 do
         local last_group
         for _, test in ipairs(tests_list) do

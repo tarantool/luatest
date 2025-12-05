@@ -11,6 +11,7 @@ local helper = require('test.helpers.general')
 
 local Process = t.Process
 local Server = t.Server
+local deferred_artifact_checks = {}
 
 local root = fio.dirname(fio.abspath('test.helpers'))
 local datadir = fio.pathjoin(root, 'tmp', 'db_test')
@@ -437,20 +438,29 @@ g.test_save_server_artifacts_when_test_failed = function()
 
     local s1_artifacts = ('%s/artifacts/%s'):format(s1.vardir, s1.id)
     local s2_artifacts = ('%s/artifacts/%s'):format(s2.vardir, s2.id)
-    local test = rawget(_G, 'current_test')
+    local ctx = rawget(_G, 'current_test')
+    local test = ctx.value
 
     -- the test must be failed to save artifacts
-    test.status = 'fail'
+    ctx.runner:update_status(test, {status = 'fail'})
     s1:drop()
     s2:drop()
-    test.status = 'success'
+    test:update_status('success')
 
-    t.assert_equals(fio.path.exists(s1_artifacts), true)
-    t.assert_equals(fio.path.is_dir(s1_artifacts), true)
+    table.insert(deferred_artifact_checks, function()
+        t.assert_equals(fio.path.exists(s1_artifacts), true)
+        t.assert_equals(fio.path.is_dir(s1_artifacts), true)
 
-    t.assert_equals(fio.path.exists(s2_artifacts), true)
-    t.assert_equals(fio.path.is_dir(s2_artifacts), true)
+        t.assert_equals(fio.path.exists(s2_artifacts), true)
+        t.assert_equals(fio.path.is_dir(s2_artifacts), true)
+    end)
 end
+
+g.after_all(function()
+    for _, check in ipairs(deferred_artifact_checks) do
+        check()
+    end
+end)
 
 g.test_server_build_listen_uri = function()
     local uri = Server.build_listen_uri('foo')
@@ -644,4 +654,50 @@ end)
 g.test_assertion_failure = function()
     server:connect_net_box()
     helper.assert_failure(server.exec, server, function() t.assert(false) end)
+end
+
+g.test_save_artifacts_after_restart_when_test_failed = function()
+    local s = Server:new()
+
+    s:start()
+    s:exec(function()
+        require('log').info('before_restart_artifacts_marker')
+    end)
+
+    s:restart()
+    s:exec(function()
+        require('log').info('after_restart_artifacts_marker')
+    end)
+
+    local ctx = rawget(_G, 'current_test')
+    local test = ctx.value
+    ctx.runner:update_status(test, {status = 'fail'})
+    s:drop()
+    test:update_status('success')
+
+    table.insert(deferred_artifact_checks, function()
+        local log_path = fio.pathjoin(s.artifacts, s.alias .. '.log')
+        local log_file = fio.open(log_path)
+        local log_stat = log_file:stat()
+        local log_content = log_file:read(log_stat.size)
+        log_file:close()
+
+        t.assert_str_contains(log_content, 'before_restart_artifacts_marker')
+        t.assert_str_contains(log_content, 'after_restart_artifacts_marker')
+    end)
+end
+
+g.test_do_not_save_server_artifacts_when_test_succeeded = function()
+    local s = Server:new()
+    fio.rmtree(s.artifacts)
+
+    s:start()
+
+    local ctx = rawget(_G, 'current_test')
+    local test = ctx.value
+    test:update_status('success')
+
+    s:drop()
+
+    t.assert_equals(fio.path.exists(s.artifacts), false)
 end

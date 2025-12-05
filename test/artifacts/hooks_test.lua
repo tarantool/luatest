@@ -4,6 +4,7 @@ local fio = require('fio')
 
 local g = t.group()
 local Server = t.Server
+local deferred_artifact_checks = {}
 
 local function is_server_in_test(server, test)
     for _, s in pairs(test.servers) do
@@ -55,18 +56,31 @@ g.test_association_between_test_and_servers = function()
 end
 
 g.after_test('test_association_between_test_and_servers', function()
+    local ctx = rawget(_G, 'current_test')
+    local test = ctx.value
+    ctx.runner:update_status(test, {status = 'fail'})
     g.internal:drop()
     g.test:drop()
-    t.assert(fio.path.exists(g.test.artifacts))
+    test:update_status('success')
+    table.insert(deferred_artifact_checks, function()
+        t.assert(fio.path.exists(g.test.artifacts))
+    end)
 end)
 
 g.after_each(function()
     g.each:drop()
-    t.assert(fio.path.exists(g.each.artifacts))
+    table.insert(deferred_artifact_checks, function()
+        t.assert(fio.path.exists(g.each.artifacts))
+    end)
 end)
 
 g.after_all(function()
     g.all:drop()
-    t.assert(fio.path.exists(g.all.artifacts))
+    table.insert(deferred_artifact_checks, function()
+        t.assert(fio.path.exists(g.all.artifacts))
+    end)
     g.public:drop()
+    for _, check in ipairs(deferred_artifact_checks) do
+        check()
+    end
 end)
