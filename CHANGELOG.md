@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Fixed a bug when server initialization didn't reset artifact handling,
+  causing stale artifacts to persist after server restarts (gh-409).
 - Fixed a bug when the JUnit reporter generated invalid XML for parameterized
   tests with string arguments (gh-407).
 - Group and suite hooks must now be registered using the call-style
