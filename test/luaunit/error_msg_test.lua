@@ -7,15 +7,15 @@ local assert_failure_contains = helper.assert_failure_contains
 local assert_failure_equals = helper.assert_failure_equals
 
 function g.test_assert_equalsMsg()
-    assert_failure_equals('expected: 2, actual: 1', t.assert_equals, 1, 2 )
-    assert_failure_equals('expected: "exp"\nactual: "act"', t.assert_equals, 'act', 'exp')
-    assert_failure_equals('expected: \n"exp\\\npxe"\nactual: \n"act\\\ntca"', t.assert_equals, 'act\ntca', 'exp\npxe')
-    assert_failure_equals('expected: true, actual: false', t.assert_equals, false, true)
-    assert_failure_equals('expected: 1.2, actual: 1', t.assert_equals, 1.0, 1.2)
-    assert_failure_matches('expected: {1, 2}\nactual: {2, 1}', t.assert_equals, {2,1}, {1,2})
-    assert_failure_matches('expected: {one = 1, two = 2}\nactual: {3, 2, 1}', t.assert_equals, {3,2,1}, {one=1,two=2})
-    assert_failure_equals('expected: 2, actual: nil', t.assert_equals, nil, 2)
-    assert_failure_equals('toto\nexpected: 2, actual: nil', t.assert_equals, nil, 2, 'toto')
+    assert_failure_contains('expected: 2, actual: 1', t.assert_equals, 1, 2 )
+    assert_failure_contains('expected: "exp"\nactual: "act"', t.assert_equals, 'act', 'exp')
+    assert_failure_contains('expected: \n"exp\\\npxe"\nactual: \n"act\\\ntca"', t.assert_equals, 'act\ntca', 'exp\npxe')
+    assert_failure_contains('expected: true, actual: false', t.assert_equals, false, true)
+    assert_failure_contains('expected: 1.2, actual: 1', t.assert_equals, 1.0, 1.2)
+    assert_failure_contains('expected: {1, 2}\nactual: {2, 1}', t.assert_equals, {2,1}, {1,2})
+    assert_failure_contains('expected: {one = 1, two = 2}\nactual: {3, 2, 1}', t.assert_equals, {3,2,1}, {one=1,two=2})
+    assert_failure_contains('expected: 2, actual: nil', t.assert_equals, nil, 2)
+    assert_failure_contains('toto\nexpected: 2, actual: nil', t.assert_equals, nil, 2, 'toto')
 end
 
 function g.test_assert_almost_equalsMsg()
@@ -340,12 +340,94 @@ function g.test_printTableWithRef()
 Expected table: <table: 0?x?[%x]+> {one = 2, two = 3}
 Actual table: <table: 0?x?[%x]+> {1, 2}]], t.assert_items_equals, {1,2}, {one=2, two=3})
     assert_failure_matches([[expected: <table: 0?x?[%x]+> {1, 2}
-actual: <table: 0?x?[%x]+> {2, 1}]], t.assert_equals, {2,1}, {1,2})
+actual: <table: 0?x?[%x]+> {2, 1}[%s%S]*]],
+        t.assert_equals,
+        {2,1}, {1,2}
+    )
     -- trigger multiline prettystr
     assert_failure_matches([[expected: <table: 0?x?[%x]+> {one = 1, two = 2}
-actual: <table: 0?x?[%x]+> {3, 2, 1}]], t.assert_equals, {3,2,1}, {one=1,two=2})
+actual: <table: 0?x?[%x]+> {3, 2, 1}[%s%S]*]],
+        t.assert_equals,
+        {3,2,1}, {one=1,two=2}
+    )
     -- trigger mismatch formatting
     assert_failure_contains([[lists <table: ]] , t.assert_equals, {3,2,1,4,1,1,1,1,1,1,1}, {1,2,3,4,1,1,1,1,1,1,1})
     assert_failure_contains([[and <table: ]] , t.assert_equals, {3,2,1,4,1,1,1,1,1,1,1}, {1,2,3,4,1,1,1,1,1,1,1})
     pp.TABLE_REF_IN_ERROR_MSG = false
+end
+
+local g_diff = t.group('diff')
+
+function g_diff.test_nested_table_diff()
+    local actual = {a = {a = 1, b = 2, c = {a = 3, b = 4}}}
+    local expected = {a = {a = 1, b = 5, c = {a = 3, b = 5}}}
+
+    assert_failure_contains([[
+ {
+     a = {
+         a = 1,
+-        b = 5,
++        b = 2,
+         c = {
+             a = 3,
+-            b = 5,
++            b = 4,
+         },
+     },
+ }]], t.assert_equals, actual, expected)
+end
+
+function g_diff.test_multiline_string()
+    local actual = "aaaa\nbbbbb\nccccc\n"
+    local expected = "aaaa\nddddd\nccccc\n"
+
+    assert_failure_contains([[aaaa\
+-ddddd\
++bbbbb\
+ ccccc\]], t.assert_equals, actual, expected)
+end
+
+function g_diff.test_boolean()
+    local actual = true
+    local expected = false
+
+    local failure = helper.assert_failure(t.assert_equals, actual, expected)
+    t.assert_equals(failure.message:find('diff:'), nil)
+end
+
+function g_diff.test_number()
+    local actual = 2
+    local expected = 1
+
+    local failure = helper.assert_failure(t.assert_equals, actual, expected)
+    t.assert_equals(failure.message:find('diff:'), nil)
+end
+
+function g_diff.test_assert_covers_diff()
+    local actual, expected
+
+    actual = {a = 1, b = 2, c = 3}
+    expected = {a = 2}
+
+    assert_failure_contains([[
+-    a = 2,
++    a = 1,]], t.assert_covers, actual, expected)
+
+    actual = {a = box.tuple.new({1})}
+    expected =  {a = box.tuple.new({2})}
+
+    assert_failure_contains('-    a = [2],\n' .. '+    a = [1],',
+                            t.assert_covers, actual, expected)
+
+    actual = {a = {b = 1, c = 2}}
+    expected = {a = {b = 1, c = 2, d = 3}}
+
+    assert_failure_contains([[
+ {
+     a = {
+         b = 1,
+         c = 2,
+-        d = 3,
+     },
+ }]], t.assert_covers, actual, expected)
 end
