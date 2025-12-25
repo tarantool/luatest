@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added a simple line-by-line diff to `t.assert_equals()` and `t.assert_covers()`
+  failure messages (gh-412).
 - Fixed a bug when server initialization didn't reset artifact handling,
   causing stale artifacts to persist after server restarts (gh-409).
 - Fixed a bug when the JUnit reporter generated invalid XML for parameterized

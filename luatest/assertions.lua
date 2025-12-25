@@ -6,6 +6,7 @@
 local math = require('math')
 
 local comparator = require('luatest.comparator')
+local diff = require('luatest.diff')
 local mismatch_formatter = require('luatest.mismatch_formatter')
 local pp = require('luatest.pp')
 local log = require('luatest.log')
@@ -83,6 +84,12 @@ local function error_msg_equality(actual, expected, deep_analysis)
         if success then
             result = table.concat({result, mismatchResult}, '\n')
         end
+
+        local diff_result = diff.build_line_diff(expected, actual)
+        if diff_result then
+            result = table.concat({result, 'diff:', diff_result}, '\n')
+        end
+
         return result
     end
     return string.format("expected: %s, actual: %s",
@@ -470,7 +477,19 @@ end
 function M.assert_covers(actual, expected, message)
     if not table_covers(actual, expected) then
         local str_actual, str_expected = prettystr_pairs(actual, expected)
-        failure(string.format('expected %s to cover %s', str_actual, str_expected), message, 2)
+        local sliced_actual = table_slice(actual, expected)
+
+        local parts = {
+            string.format('expected %s to cover %s', str_actual, str_expected),
+        }
+
+        local diff_result = diff.build_line_diff(expected, sliced_actual)
+        if diff_result then
+            table.insert(parts, 'diff:')
+            table.insert(parts, diff_result)
+        end
+
+        failure(table.concat(parts, '\n'), message, 2)
     end
 end
 
