@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.4.0
 
 - Added a simple line-by-line diff to `t.assert_equals()` and `t.assert_covers()`
   failure messages (gh-412).
