@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Fixed a bug when an error thrown by a function executed with `server:exec()`
+  in a Tarantool application thread was lost (gh-447).
+
 ## 1.4.0
 
 - Added a simple line-by-line diff to `t.assert_equals()` and `t.assert_covers()`

@@ -845,7 +845,7 @@ function Server:exec(fn, args, options)
                 trace = debug.traceback('', 3):sub(2),
             }
         end)}
-        if not result[1] then
+        if not result[1] and box.rollback ~= nil then
             box.rollback()
         end
         return unpack(result, 1, table.maxn(result))

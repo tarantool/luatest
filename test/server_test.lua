@@ -737,3 +737,19 @@ g.test_do_not_save_server_artifacts_when_test_succeeded = function()
     t.assert_equals(result, 0)
     t.assert_not(fio.path.exists(log_path))
 end
+
+g.test_error_in_app_thread = function()
+    t.skip_if(not utils.version_current_ge_than(3, 7, 0),
+              'Application threads appeared in Tarantool 3.7.0.')
+
+    local s = Server:new({
+        box_cfg = {app_threads = 1},
+    })
+    s:start()
+
+    t.assert_error_msg_contains(
+        "My error", s.exec, s,
+        function() error("My error") end, {}, {_thread_id = 1})
+
+    s:drop()
+end
