@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.4.1
 
 - Fixed a bug when an error thrown by a function executed with `server:exec()`
   in a Tarantool application thread was lost (gh-447).
