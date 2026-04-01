@@ -1,20 +1,10 @@
-local fio = require('fio')
-
 local t = require('luatest')
 local server = require('luatest.server')
 
 local g = t.group('fixtures.trace')
 
-local root = fio.dirname(fio.abspath('test.helpers'))
-
 g.before_all(function(cg)
-    cg.server = server:new{
-        env = {
-            LUA_PATH = root .. '/?.lua;' ..
-                root .. '/?/init.lua;' ..
-                root .. '/.rocks/share/tarantool/?.lua'
-        }
-    }
+    cg.server = server:new()
     cg.server:start()
 end)
 

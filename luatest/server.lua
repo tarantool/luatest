@@ -51,6 +51,8 @@ local Server = {
         alias = '?string',
 
         coverage_report = '?boolean',
+
+        setsearchroot = '?boolean',
     },
 }
 
@@ -103,6 +105,8 @@ end
 --   (but still passes `--name <alias>`).
 -- @tab[opt] object.remote_config If `config_file` is not passed, this config
 --   value is used to deduce advertise URI to connect net.box to the instance.
+-- @tab[opt] object.setsearchroot Set `package.searchroot` to be the same as
+--   in the Tarantool that starts the server.
 -- @tab[opt] extra Table with extra properties for the server object.
 -- @return table
 function Server:new(object, extra)
@@ -422,6 +426,16 @@ function Server:start(opts)
         -- instead of just `/path/to/script.lua`.
         table.insert(args, 1, command)
         command = arg[-1]
+    end
+
+    -- To fix the issue with rock-modules missing from the created instances,
+    -- we need to set `package.searchroot`. Furthermore, this must be done
+    -- before loading `command`. This is done if the `setsearchroot` option
+    -- is true or missing.
+    if self.setsearchroot == nil or self.setsearchroot then
+        table.insert(args, 1, '-e')
+        table.insert(args, 2,
+            string.format("package.setsearchroot('%s')", package.searchroot()))
     end
 
     local log_cmd = {}

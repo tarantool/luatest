@@ -20,9 +20,6 @@ local server = Server:new({
     command = command,
     workdir = fio.pathjoin(datadir, 'common'),
     env = {
-        LUA_PATH = root .. '/?.lua;' ..
-            root .. '/?/init.lua;' ..
-            root .. '/.rocks/share/tarantool/?.lua',
         custom_env = 'test_value',
     },
     http_port = 8182,
