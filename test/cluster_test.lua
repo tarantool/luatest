@@ -2,22 +2,8 @@ local t = require('luatest')
 local cbuilder = require('luatest.cbuilder')
 local cluster = require('luatest.cluster')
 local utils = require('luatest.utils')
-local fio = require('fio')
 
 local g = t.group()
-
-local root = fio.dirname(fio.abspath('test.helpers'))
-
--- These are extra server opts passed to the cluster.
--- They are needed for the server to be able to access
--- luatest.coverage.
-local server_opts = {
-    env = {
-        LUA_PATH = root .. '/?.lua;' ..
-            root .. '/?/init.lua;' ..
-            root .. '/.rocks/share/tarantool/?.lua',
-    }
-}
 
 local function assert_instance_running(c, instance, replicaset)
     local server = c[instance]
@@ -66,7 +52,7 @@ g.test_start_stop = function()
 
         :config()
 
-    local c = cluster:new(config, server_opts)
+    local c = cluster:new(config)
     c:start()
 
     assert_instance_running(c, 'instance-x1', 'replicaset-x')
@@ -107,7 +93,7 @@ g.test_start_instance = function()
 
         :config()
 
-    local c = cluster:new(config, server_opts)
+    local c = cluster:new(config)
 
     t.assert_equals(c:size(), 3)
     c:start_instance('i-002')
@@ -133,7 +119,7 @@ g.test_manual_lifecycle = function()
         :add_instance('cluster-1', {})
         :config()
 
-    local c1 = cluster:new(config, server_opts, {auto_cleanup = false})
+    local c1 = cluster:new(config, nil, {auto_cleanup = false})
 
     t.assert_equals(g._cluster, nil)
 
@@ -141,7 +127,7 @@ g.test_manual_lifecycle = function()
     assert_instance_running(c1, 'cluster-1')
     c1:drop()
 
-    local c2 = cluster:new(config, server_opts, {auto_cleanup = false})
+    local c2 = cluster:new(config, nil, {auto_cleanup = false})
 
     t.assert_equals(g._cluster, nil)
 
@@ -163,7 +149,7 @@ g.test_sync = function()
         :add_instance('i-001', {})
         :config()
 
-    local c = cluster:new(config, server_opts)
+    local c = cluster:new(config)
 
     t.assert_equals(c:size(), 1)
 
@@ -226,7 +212,7 @@ g.test_sync_start_stop = function()
         :add_instance('i-001', {})
         :config()
 
-    local c = cluster:new(config, server_opts)
+    local c = cluster:new(config)
 
     t.assert_equals(c:size(), 1)
 
@@ -288,7 +274,7 @@ g.test_reload = function()
 
         :config()
 
-    local c = cluster:new(config, server_opts)
+    local c = cluster:new(config)
     c:start()
 
     assert_instance_failover_mode(c, 'i-001', 'election')
@@ -319,7 +305,7 @@ g.test_modify_config = function()
         :add_instance('i-001', {})
         :config()
 
-    local c = cluster:new(config, server_opts)
+    local c = cluster:new(config)
 
     c:start()
 
@@ -383,7 +369,7 @@ g.test_each = function()
 
         :config()
 
-    local c = cluster:new(config, server_opts)
+    local c = cluster:new(config)
 
     local res = {}
     c:each(function(server)
@@ -427,7 +413,7 @@ g_persistent_clusters.before_all(function()
             :add_instance(instance, {})
             :config()
 
-        local c = cluster:new(config, server_opts, {auto_cleanup = false})
+        local c = cluster:new(config, nil, {auto_cleanup = false})
         c:start()
         assert_instance_running(c, instance)
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Fixed a bug when a test Tarantool server could not find Lua modules installed
+  from rocks in the current test directory or its ascendants.
+  To avoid compatibility issues with the old behavior, the `setsearchroot`
+  server option was added (gh-450).
+
 ## 1.4.1
 
 - Fixed a bug when an error thrown by a function executed with `server:exec()`

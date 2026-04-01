@@ -14,11 +14,6 @@ g.before_all(function()
     g.server = Server:new({
         command = command,
         workdir = fio.pathjoin(datadir, 'common'),
-        env = {
-            LUA_PATH = root .. '/?.lua;' ..
-                root .. '/?/init.lua;' ..
-                root .. '/.rocks/share/tarantool/?.lua'
-        },
         http_port = 8182,
         net_box_port = 3133,
     })
@@ -84,6 +79,7 @@ g.before_test('test_exec_when_luatest_not_found', function()
         env = {
             LUA_PATH = '',
         },
+        setsearchroot = false,
     })
 
     fio.mktree(g.bad_env_server.workdir)

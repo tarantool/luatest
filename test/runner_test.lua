@@ -232,22 +232,22 @@ g.test_trace = function()
     t.assert_str_matches(
         output,
         ".*" ..
-        "[^\n]*trace%.lua:29: test error[^\n]*\n" ..
+        "[^\n]*trace%.lua:19: test error[^\n]*\n" ..
         "stack traceback:\n" ..
-        "[^\n]*trace%.lua:29: in function 'inner'\n" ..
-        "[^\n]*trace%.lua:31: in function <[^\n]*trace%.lua:27>\n" ..
-        "[^\n]*trace%.lua:27: in function 'outer'\n" ..
-        "[^\n]*trace%.lua:34: in function 'fixtures%.trace%.test_error'\n" ..
+        "[^\n]*trace%.lua:19: in function 'inner'\n" ..
+        "[^\n]*trace%.lua:21: in function <[^\n]*trace%.lua:17>\n" ..
+        "[^\n]*trace%.lua:17: in function 'outer'\n" ..
+        "[^\n]*trace%.lua:24: in function 'fixtures%.trace%.test_error'\n" ..
         ".*")
     t.assert_str_matches(
         output,
         ".*" ..
-        "[^\n]*trace%.lua:41: expected: a value evaluating to true, " ..
+        "[^\n]*trace%.lua:31: expected: a value evaluating to true, " ..
             "actual: false[^\n]*\n" ..
         "stack traceback:\n" ..
-        "[^\n]*trace%.lua:41: in function 'inner'\n" ..
-        "[^\n]*trace%.lua:43: in function <[^\n]*trace%.lua:39>\n" ..
-        "[^\n]*trace%.lua:39: in function 'outer'\n" ..
-        "[^\n]*trace%.lua:46: in function 'fixtures%.trace%.test_fail'\n" ..
+        "[^\n]*trace%.lua:31: in function 'inner'\n" ..
+        "[^\n]*trace%.lua:33: in function <[^\n]*trace%.lua:29>\n" ..
+        "[^\n]*trace%.lua:29: in function 'outer'\n" ..
+        "[^\n]*trace%.lua:36: in function 'fixtures%.trace%.test_fail'\n" ..
         ".*")
 end
