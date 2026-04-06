@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.4.2
 
 - Fixed a bug when a test Tarantool server could not find Lua modules installed
   from rocks in the current test directory or its ascendants.
