@@ -7,6 +7,8 @@
   the default server instance unless the specified user already existed.
   Now the specified user is created and granted the 'super' role at startup
   if it doesn't exist (gh-456).
+- The `justrun` module now also sets `searchroot` for the created
+  instance (gh-450).
 
 ## 1.4.2
 
