@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Explicitly forbid using Luatest with Tarantool < 2.2.1 (gh-453).
+
 ## 1.4.2
 
 - Fixed a bug when a test Tarantool server could not find Lua modules installed
