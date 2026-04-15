@@ -2,6 +2,11 @@
 -- @module luatest
 local luatest = setmetatable({}, {__index = require('luatest.assertions')})
 
+local utils = require('luatest.utils')
+if not utils.version_current_ge_than(2, 2, 1) then
+    error('Luatest supports only Tarantool >= 2.2.1')
+end
+
 luatest.Process = require('luatest.process')
 luatest.VERSION = require('luatest.VERSION')
 
