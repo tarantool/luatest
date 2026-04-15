@@ -101,6 +101,15 @@ function justrun.tarantool(dir, env, args, opts)
     -- influencing testing code.
     env['INPUTRC'] = '/dev/null'
 
+    -- To fix the issue with rock-modules missing from the created instances,
+    -- we need to set `package.searchroot`. Furthermore, this must be done
+    -- before all other args.
+    if opts.setsearchroot == nil or opts.setsearchroot then
+        table.insert(args, 1, '-e')
+        table.insert(args, 2,
+            string.format("package.setsearchroot('%s')", package.searchroot()))
+    end
+
     local tarantool_exe = arg[-1]
     -- Use popen.shell() instead of popen.new() due to lack of
     -- cwd option in popen (gh-5633).
