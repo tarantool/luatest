@@ -86,6 +86,11 @@ end
 --   Quote CLI arguments before concatenating them into a shell
 --   command.
 --
+-- - setsearchroot (boolean, default: true)
+--
+--   Set `package.searchroot` to be the same as in the Tarantool that starts
+--   the server.
+--
 -- @string dir Directory where the process will run.
 -- @tparam table env Environment variables for the process.
 -- @tparam table args Options that will be passed when the process starts.
@@ -101,6 +106,15 @@ function justrun.tarantool(dir, env, args, opts)
     -- influencing testing code.
     env['INPUTRC'] = '/dev/null'
 
+    -- To fix the issue with rock-modules missing from the created instances,
+    -- we need to set `package.searchroot`. Furthermore, this must be done
+    -- before all other args.
+    local setsearchroot_str = ''
+    if opts.setsearchroot == nil or opts.setsearchroot then
+        setsearchroot_str = string.format([[-e "package.setsearchroot('%s')"]],
+            package.searchroot())
+    end
+
     local tarantool_exe = arg[-1]
     -- Use popen.shell() instead of popen.new() due to lack of
     -- cwd option in popen (gh-5633).
@@ -110,8 +124,8 @@ function justrun.tarantool(dir, env, args, opts)
     local args_str = table.concat(fun.iter(args):map(function(v)
         return opts.quote_args and ('%q'):format(v) or v
     end):totable(), ' ')
-    local command = ('cd %s && %s %s %s'):format(dir, env_str, tarantool_exe,
-                                                 args_str)
+    local command = ('cd %s && %s %s %s %s'):format(dir, env_str, tarantool_exe,
+                                                    setsearchroot_str, args_str)
     log.info('Running a command: %s', command)
     local mode = opts.stderr and 'rR' or 'r'
     local ph = popen.shell(command, mode)
