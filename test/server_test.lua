@@ -750,3 +750,20 @@ g.test_error_in_app_thread = function()
 
     s:drop()
 end
+
+g.test_credentials = function()
+    local s = Server:new({
+        net_box_credentials = {user = 'admin'},
+    })
+    s:start()
+    s:exec(function()
+        t.assert_equals(box.session.user(), 'admin')
+    end)
+    s:restart({
+        net_box_credentials = {user = 'client', password = 'secret'},
+    })
+    s:exec(function()
+        t.assert_equals(box.session.user(), 'client')
+    end)
+    s:drop()
+end
