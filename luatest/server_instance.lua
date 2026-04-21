@@ -39,7 +39,31 @@ end
 
 box.cfg(box_cfg())
 
-box.schema.user.grant('guest', 'super', nil, nil, {if_not_exists = true})
+local credentials = os.getenv('TARANTOOL_CREDENTIALS')
+if credentials ~= nil then
+    credentials = json.decode(credentials)
+    assert(type(credentials) == 'table')
+    assert(type(credentials.user) == 'string')
+    assert(credentials.password == nil or
+           type(credentials.password) == 'string')
+else
+    credentials = {user = 'guest'}
+end
+-- Users 'admin' and 'guest' are predefined.
+if credentials.user ~= 'admin' and credentials.user ~= 'guest' then
+    box.schema.user.create(credentials.user, {if_not_exists = true})
+end
+-- User 'admin' has all privileges so it does not need role 'super'.
+if credentials.user ~= 'admin' then
+    box.schema.user.grant(credentials.user, 'super', nil, nil,
+                          {if_not_exists = true})
+end
+-- User 'guest' doesn't require authentication.
+if credentials.user ~= 'guest' then
+    if next(box.space._user.index.name:get(credentials.user).auth) == nil then
+        box.schema.user.passwd(credentials.user, credentials.password or '')
+    end
+end
 
 -- server:wait_until_ready() unblocks only when this variable becomes `true`.
 -- In this case, it is considered that the instance is fully operable.

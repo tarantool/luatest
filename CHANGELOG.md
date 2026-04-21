@@ -3,6 +3,10 @@
 ## Unreleased
 
 - Explicitly forbid using Luatest with Tarantool < 2.2.1 (gh-453).
+- Fixed a bug when `Server.net_box_credentials` could not be used with
+  the default server instance unless the specified user already existed.
+  Now the specified user is created and granted the 'super' role at startup
+  if it doesn't exist (gh-456).
 
 ## 1.4.2
 

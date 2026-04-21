@@ -96,7 +96,9 @@ end
 --   into the server process. If it is a Unix socket, the corresponding socket
 --   directory path will be created on the server start.
 -- @tab[opt] object.net_box_credentials Override the default credentials for the
---   `net.box` connection to the new server.
+--   `net.box` connection to the new server and the value of the
+--   `TARANTOOL_CREDENTIALS` env variable which is passed into the server
+--   process.
 -- @tab[opt] object.box_cfg Extra options for `box.cfg()` and the value of the
 --   `TARANTOOL_BOX_CFG` env variable which is passed into the server process.
 -- @string[opt] object.config_file Declarative YAML configuration for a server
@@ -355,6 +357,9 @@ function Server:build_env()
     }
     if self.box_cfg ~= nil then
         res.TARANTOOL_BOX_CFG = json.encode(self.box_cfg)
+    end
+    if self.net_box_credentials ~= nil then
+        res.TARANTOOL_CREDENTIALS = json.encode(self.net_box_credentials)
     end
     return res
 end
