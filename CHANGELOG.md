@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.4.3
 
 - Explicitly forbid using Luatest with Tarantool < 2.2.1 (gh-453).
 - Fixed a bug when `Server.net_box_credentials` could not be used with
