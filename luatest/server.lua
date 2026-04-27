@@ -586,15 +586,19 @@ function Server:stop()
         end
         local workdir = fio.basename(self.workdir)
         local pid = self.process.pid
-        -- Check the log file for crash and memory leak reports.
+        -- Check the log file for crash reports and sanitizer errors.
         if fio.path.exists(self.log_file) then
-            if self:grep_log('Segmentation fault$', math.huge) then
-                error(('Segmentation fault during process termination (alias: %s, workdir: %s, pid: %d)')
-                    :format(self.alias, workdir, pid))
-            end
-            if self:grep_log('LeakSanitizer: detected memory leaks$', math.huge) then
-                error(('Memory leak during process execution (alias: %s, workdir: %s, pid: %s)')
-                    :format(self.alias, workdir, pid))
+            for _, pattern in ipairs({
+                'Segmentation fault$',
+                'ERROR: AddressSanitizer: .*',
+                'ERROR: LeakSanitizer: .*',
+            }) do
+                local msg = self:grep_log(pattern, math.huge)
+                if msg then
+                    error(('Error during process termination ' ..
+                           '(alias: %s, workdir: %s, pid: %d)\n%s')
+                          :format(self.alias, workdir, pid, msg))
+                end
             end
         end
         log.info('Process of server %q (pid: %d) killed', self.alias, self.process.pid)
