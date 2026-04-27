@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Fixed a bug when errors reported by the address sanitizer during process
+  termination were ignored (gh-460).
+
 ## 1.4.3
 
 - Explicitly forbid using Luatest with Tarantool < 2.2.1 (gh-453).
