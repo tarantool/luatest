@@ -741,8 +741,13 @@ g.test_error_in_app_thread = function()
 
     local s = Server:new({
         box_cfg = {app_threads = 1},
+        net_box_credentials = {user = 'admin', password = 'secret'},
     })
     s:start()
+
+    if not utils.version_current_ge_than(3, 7, 1) then
+        s:call('box.iproto.internal.enable_thread_requests')
+    end
 
     t.assert_error_msg_contains(
         "My error", s.exec, s,
