@@ -11,7 +11,7 @@ jobs:
       github.event_name == 'pull_request' && github.event.pull_request.head.repo.owner.login != 'tarantool'
     strategy:
       matrix:
-        tarantool: ["2.11", "3.0", "3.1", "3.2", "3.3", "3.4"]
+        tarantool: ["2.11", "3.2", "3.3", "3.5", "3.6", "3.7"]
       fail-fast: false
     runs-on: [ubuntu-latest]
     steps:
