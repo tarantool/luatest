@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Implemented verbose serialization of uncaught box errors thrown in tests
+  (gh-445).
 - Fixed a bug when errors reported by the address sanitizer during process
   termination were ignored (gh-460).
 

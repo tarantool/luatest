@@ -31,3 +31,11 @@ g.test_tostring_huge_table = function()
     t.assert_equals(result, 0)
     t.assert_almost_equals(clock.time() - start, 0, 0.5)
 end
+
+g.test_tostring_box_error = function()
+    local s = pp.tostring(box.error.new({
+        type = 'MyError', reason = 'FOOBAR',
+    }))
+    t.assert_str_contains(s, 'type = "MyError"')
+    t.assert_str_contains(s, 'message = "FOOBAR"')
+end

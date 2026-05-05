@@ -1,5 +1,6 @@
 local Class = require('luatest.class')
 local sorted_pairs = require('luatest.sorted_pairs')
+local utils = require('luatest.utils')
 
 -- Pretty printer.
 local pp = {
@@ -160,6 +161,8 @@ function Formatter.mt:format(v, indentLevel)
                 return tostring(i)
             end
         end
+    elseif utils.is_box_error(v) then
+        return self:format_table(utils.error_unpack(v), indentLevel)
     end
 
     return tostring(v)

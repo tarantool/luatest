@@ -30,3 +30,16 @@ g.test_table_pack = function()
     t.assert_equals(utils.table_pack(1, 2, nil), {n = 3, 1, 2})
     t.assert_equals(utils.table_pack(1, 2, nil, 3), {n = 4, 1, 2, nil, 3})
 end
+
+g.test_box_error = function()
+    local err = 'FOOBAR'
+    t.assert_not(utils.is_box_error(err))
+    t.assert_equals(utils.error_unpack(err), err)
+    err = box.error.new({type = 'MyError', reason = 'FOOBAR'})
+    err:set_prev(box.error.new({type = 'MyError2', reason = 'FUZZ'}))
+    t.assert(utils.is_box_error(err))
+    t.assert_covers(utils.error_unpack(err), {
+        type = 'MyError', message = 'FOOBAR',
+        prev = {type = 'MyError2', message = 'FUZZ'}
+    })
+end
