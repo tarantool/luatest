@@ -13,7 +13,6 @@ local log = require('luatest.log')
 local utils = require('luatest.utils')
 local tarantool = require('tarantool')
 local fio = require('fio')
-local ffi = require('ffi')
 
 local prettystr = pp.tostring
 local prettystr_pairs = pp.tostring_pair
@@ -21,8 +20,6 @@ local prettystr_pairs = pp.tostring_pair
 local M = {}
 
 local xfail = false
-
-local box_error_type = ffi.typeof(box.error.new(box.error.UNKNOWN))
 
 -- private exported functions (for testing)
 M.private = {}
@@ -159,7 +156,7 @@ local function pcall_check_trace(level, fn, ...)
     if ok then
         return ok, err
     end
-    if type(err) ~= 'cdata' or ffi.typeof(err) ~= box_error_type then
+    if not utils.is_box_error(err) then
         fail_fmt(level + 1, nil, 'Error raised is not a box.error: %s',
                  prettystr(err))
     end
@@ -704,21 +701,6 @@ function M.assert_error_msg_matches(pattern, fn, ...)
     end
 end
 
--- If it is box.error that unpack it recursively. If it is not then
--- return argument unchanged.
-local function error_unpack(err)
-    if type(err) ~= 'cdata' or ffi.typeof(err) ~= box_error_type then
-        return err
-    end
-    local unpacked = err:unpack()
-    local tmp = unpacked
-    while tmp.prev ~= nil do
-        tmp.prev = tmp.prev:unpack()
-        tmp = tmp.prev
-    end
-    return unpacked
-end
-
 --- Checks that error raised by function is table that includes expected one.
 --- box.error is unpacked to convert to table. Stacked errors are supported.
 --- That is if there is prev field in expected then it should cover prev field
@@ -734,7 +716,7 @@ function M.assert_error_covers(expected, fn, ...)
                  'Function successfully returned: %s\nExpected error: %s',
                   prettystr(actual), prettystr(expected))
     end
-    local unpacked = error_unpack(actual)
+    local unpacked = utils.error_unpack(actual)
     if not comparator.equals(table_slice(unpacked, expected), expected) then
         actual, expected = prettystr_pairs(unpacked, expected)
         fail_fmt(2, nil, 'Error expected: %s\nError received: %s',

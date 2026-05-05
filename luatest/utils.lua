@@ -1,9 +1,12 @@
 local digest = require('digest')
+local ffi = require('ffi')
 local fio = require('fio')
 local fun = require('fun')
 local yaml = require('yaml')
 
 local utils = {}
+
+local box_error_type = ffi.typeof(box.error.new(box.error.UNKNOWN))
 
 -- Helper to override methods.
 --
@@ -249,6 +252,25 @@ function utils.table_is_array(t)
         if t[i] == nil then return false end
     end
     return true
+end
+
+function utils.is_box_error(err)
+    return type(err) == 'cdata' and ffi.typeof(err) == box_error_type
+end
+
+-- If it is box.error that unpack it recursively. If it is not then
+-- return argument unchanged.
+function utils.error_unpack(err)
+    if not utils.is_box_error(err) then
+        return err
+    end
+    local unpacked = err:unpack()
+    local tmp = unpacked
+    while tmp.prev ~= nil do
+        tmp.prev = tmp.prev:unpack()
+        tmp = tmp.prev
+    end
+    return unpacked
 end
 
 return utils
