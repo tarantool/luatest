@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.4.4
 
 - Implemented verbose serialization of uncaught box errors thrown in tests
   (gh-445).
