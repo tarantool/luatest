@@ -97,6 +97,16 @@ local base_config = {
         -- by half for my test.
         timeout = 0.1,
     },
+    -- Disable system checks by default in tests to avoid
+    -- environment-dependent alerts (THP, readahead, etc.).
+    conditional = {
+        {
+            ['if'] = 'tarantool_version >= 3.8.0',
+            config = {
+                checks = 'off',
+            },
+        },
+    },
 }
 
 function Builder:inherit(object)
