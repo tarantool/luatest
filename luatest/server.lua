@@ -592,6 +592,7 @@ function Server:stop()
                 'Segmentation fault$',
                 'ERROR: AddressSanitizer: .*',
                 'ERROR: LeakSanitizer: .*',
+                'tarantool: .*: Assertion `.*\' failed.$',
             }) do
                 local msg = self:grep_log(pattern, math.huge)
                 if msg then
