@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Fixed a bug when assertion failures occurred during process termination
+  were ignored (gh-465).
+
 ## 1.4.4
 
 - Implemented verbose serialization of uncaught box errors thrown in tests
