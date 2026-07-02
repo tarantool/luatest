@@ -251,3 +251,13 @@ g.test_trace = function()
         "[^\n]*trace%.lua:36: in function 'fixtures%.trace%.test_fail'\n" ..
         ".*")
 end
+
+g.test_log = function()
+    local VARDIR = os.getenv('VARDIR') or '/tmp/t'
+    local LOG_PATH = fio.pathjoin(VARDIR, 'luatest.log')
+    t.assert_equals(run_file('log.lua'), 0)
+    local f = assert(io.open(LOG_PATH))
+    local s = f:read('*a')
+    f:close()
+    t.assert_str_contains(s, 'LUATEST LOG TEST')
+end

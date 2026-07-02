@@ -57,12 +57,6 @@ function Runner.run(args, options)
         end
         options = utils.merge(options.luatest.configure(), Runner.parse_cmd_line(args), options)
 
-        log.initialize({
-            vardir = Server.vardir,
-            log_file = options.log_file,
-            log_prefix = options.log_prefix,
-        })
-
         if options.help then
             print(Runner.USAGE)
             return 0
@@ -306,14 +300,18 @@ function Runner.mt:bootstrap()
     log.info('Bootstrap finished: %d test(s), %d group(s)', #self.paths, #self.groups)
 end
 
-function Runner.mt:cleanup()
+function Runner.mt:run()
     if not self.no_clean then
         fio.rmtree(Server.vardir)
-        log.info('Directory %s removed via cleanup procedure', Server.vardir)
     end
-end
+    fio.mktree(Server.vardir)
 
-function Runner.mt:run()
+    log.initialize({
+        vardir = Server.vardir,
+        log_file = self.log_file,
+        log_prefix = self.log_prefix,
+    })
+
     self:bootstrap()
     local filtered_list = self.class.filter_tests(self:find_tests(),
         self.tests_pattern, self.run_test_case)
@@ -327,7 +325,6 @@ function Runner.mt:run()
     end
 
     self:start_suite(#filtered_list[true], #filtered_list[false])
-    self:cleanup()
     self:run_tests(filtered_list[true])
     self:end_suite()
     if self.result.aborted then

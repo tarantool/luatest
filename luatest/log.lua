@@ -25,8 +25,6 @@ function log.initialize(options)
     local luatest_log_file = fio.pathjoin(vardir, luatest_log_prefix .. '.log')
     local unified_log_file = options.log_file
 
-    fio.mktree(vardir)
-
     if unified_log_file then
         -- Save the file descriptor as a global variable to use it in
         -- the `output_beautifier` module.

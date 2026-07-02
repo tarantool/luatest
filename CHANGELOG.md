@@ -4,6 +4,8 @@
 
 - Fixed a bug when assertion failures occurred during process termination
   were ignored (gh-465).
+- Fixed a bug when the luatest log file was removed if the command line
+  option `--no-cleanup` was not used (gh-471).
 
 ## 1.4.4
 
