@@ -306,6 +306,10 @@ function Runner.mt:run()
     end
     fio.mktree(Server.vardir)
 
+    -- Set TMPDIR to make fio.tempdir() create temporary files in
+    -- the test directory so as not to pollute global /tmp.
+    os.setenv('TMPDIR', Server.vardir)
+
     log.initialize({
         vardir = Server.vardir,
         log_file = self.log_file,

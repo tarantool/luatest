@@ -798,7 +798,7 @@ function g.test_junit_output_escape_for_attributes()
         })
 
         function g_positive_start_stages.test_start() end
-    end, {'-o', 'junit', '-n', output_path}), 0)
+    end, {'-o', 'junit', '-n', output_path, '--no-clean'}), 0)
 
     local file = assert(io.open(output_path .. '.xml'))
     local xml = file:read('*a')

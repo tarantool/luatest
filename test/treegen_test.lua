@@ -15,6 +15,9 @@ g.test_prepare_directory = function()
     treegen.add_template('^.*$', 'test_script')
     local dir = treegen.prepare_directory({'foo/bar.lua', 'baz.lua'})
 
+    local VARDIR = os.getenv('VARDIR') or '/tmp/t'
+    t.assert_equals(fio.dirname(dir), VARDIR)
+
     t.assert(fio.path.is_dir(dir))
     t.assert(fio.path.exists(dir))
 

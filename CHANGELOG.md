@@ -6,6 +6,8 @@
   were ignored (gh-465).
 - Fixed a bug when the luatest log file was removed if the command line
   option `--no-cleanup` was not used (gh-471).
+- Now the `treegen` helper creates temporary files in `VARDIR`, which is
+  `/tmp/t` by default, so as not to pollute the system tmp directory.
 
 ## 1.4.4
 
