@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.4.5
 
 - Fixed a bug when assertion failures occurred during process termination
   were ignored (gh-465).
