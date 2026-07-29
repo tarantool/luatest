@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Fixed a bug when the proxy could forward data arriving right after
+  `pause()` if a connection fiber was already waiting for the socket to
+  become readable.
+
 ## 1.4.5
 
 - Fixed a bug when assertion failures occurred during process termination

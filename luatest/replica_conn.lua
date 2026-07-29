@@ -74,7 +74,7 @@ function Connection:process_socket(sock, process)
         while sock:peer() or not self.running do
             if not self.running then
                 fiber.sleep(TIMEOUT)
-            elseif sock:readable(TIMEOUT) then
+            elseif sock:readable(TIMEOUT) and self.running then
                 local request = sock:recv()
                 if request == nil or #request == 0 then break end
                 if process.func ~= nil then process.func(self, request) end
