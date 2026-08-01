@@ -15,6 +15,14 @@ local DEFAULT_CONFIG = {
         listen = {{uri = 'unix/:./{{ instance_name }}.iproto'}},
     },
     replication = {timeout = 0.1},
+    conditional = {
+        {
+            ['if'] = 'tarantool_version >= 3.8.0',
+            config = {
+                checks = 'off',
+            },
+        },
+    },
 }
 
 local function merge_config(base, diff)
