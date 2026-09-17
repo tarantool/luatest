@@ -4,6 +4,7 @@ local g = t.group('fixtures.log')
 local fiber = require('fiber')
 
 g.test_log = function()
+    ---@diagnostic disable-next-line: call-non-callable
     t.log('LUATEST LOG TEST')
     -- XXX: workaround for #418 (logs are lost if tests don't yield)
     fiber.sleep(0.5)

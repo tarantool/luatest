@@ -193,6 +193,7 @@ end
 
 function utils.get_tarantool_version()
     local version = require('tarantool').version
+    ---@diagnostic disable-next-line: call-non-callable
     version = version:split('.')
     local major = tonumber(version[1]:match('%d+'))
     local minor = tonumber(version[2]:match('%d+'))
