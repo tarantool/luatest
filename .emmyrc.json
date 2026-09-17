@@ -18,7 +18,6 @@
     ],
     "disable": [
       "access-invisible",
-      "duplicate-require",
       "need-check-nil",
       "preferred-local-alias",
       "redefined-local",
