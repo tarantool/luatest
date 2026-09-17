@@ -484,7 +484,7 @@ function Runner.mt:protected_call(instance, method, pretty_name)
 
     -- reformat / improve the stack trace
     if pretty_name then -- we do have the real method name
-        ---@diagnostic disable-next-line: call-non-callable
+        --[[@diagnostic disable-next-line: call-non-callable]]
         err.trace = err.trace:gsub("in (%a+) 'method'", "in %1 '" .. pretty_name .. "'")
     end
     if not self.full_backtrace then

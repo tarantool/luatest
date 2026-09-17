@@ -134,8 +134,7 @@ function treegen.remove_template(pattern)
     checks('string')
     local is_found, position, _ = pcall(find_template, treegen._group, pattern)
     if is_found then
-        ---@diagnostic disable-next-line: param-type-mismatch
-        table.remove(treegen._group._treegen.templates, position)
+        table.remove(treegen._group._treegen.templates, position --[[@as integer]])
     end
 end
 
