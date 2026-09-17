@@ -128,7 +128,7 @@ g.test_start_with_debug_hook = function()
     local original_hook = {debug.gethook()}
     -- Hook is extracted from luacov. This is minimal implementation which makes fork-execve fail.
     ---@diagnostic disable-next-line: param-type-mismatch
-    debug.sethook(function(_, _, level) debug.getinfo(level or 2, 'S') end, 'l')
+    debug.sethook(function(_, _, level) local _ = debug.getinfo(level or 2, 'S') end, 'l')
     local n = 100
     local env = table.copy(os.environ())
     local processes = fun.range(n):map(function()
