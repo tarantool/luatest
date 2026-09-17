@@ -26,7 +26,6 @@
       "redefined-local",
       "unbalanced-assignments",
       "undefined-field",
-      "unnecessary-assert",
       "unnecessary-if",
       "unresolved-require"
     ]
