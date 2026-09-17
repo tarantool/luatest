@@ -15,6 +15,7 @@ local function is_server_in_test(server, test)
 end
 
 g.test_association_between_test_and_servers = function()
+    ---@type table
     local artifacts_paths
 
     local status = helper.run_suite(function(lu2)
