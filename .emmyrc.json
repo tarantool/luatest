@@ -13,6 +13,9 @@
     ]
   },
   "diagnostics": {
+    "globals": [
+      "box"
+    ],
     "disable": [
       "access-invisible",
       "assign-type-mismatch",
@@ -29,7 +32,6 @@
       "redundant-parameter",
       "unbalanced-assignments",
       "undefined-field",
-      "undefined-global",
       "unnecessary-assert",
       "unnecessary-if",
       "unresolved-require",
