@@ -1,0 +1,21 @@
+name: Setup emmylua_check on Linux
+description: Install emmylua_check from GitHub releases
+inputs:
+  version:
+    description: emmylua_check version to install
+    required: false
+    default: "0.25.1"
+runs:
+  using: composite
+  steps:
+    - name: Install emmylua_check
+      shell: bash
+      run: |
+        version="${{ inputs.version }}"
+        mkdir -p "$HOME/.local/bin"
+        curl -sSL -o /tmp/emmylua_check.tar.gz \
+          "https://github.com/EmmyLuaLs/emmylua-analyzer-rust/releases/download/${version}/emmylua_check-linux-x64.tar.gz"
+        tar -xzf /tmp/emmylua_check.tar.gz -C "$HOME/.local/bin"
+        chmod +x "$HOME/.local/bin/emmylua_check"
+        echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+        "$HOME/.local/bin/emmylua_check" --version
