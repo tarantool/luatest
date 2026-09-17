@@ -14,9 +14,9 @@ local function cross_type_sort(a, b)
         local func = crossTypeComparison[type_a] or crossTypeComparison.other
         return func(a, b)
     end
-    type_a = crossTypeOrdering[type_a] or crossTypeOrdering.other
-    type_b = crossTypeOrdering[type_b] or crossTypeOrdering.other
-    return type_a < type_b
+    local order_a = crossTypeOrdering[type_a] or crossTypeOrdering.other
+    local order_b = crossTypeOrdering[type_b] or crossTypeOrdering.other
+    return order_a < order_b
 end
 
 -- Returns a sequence consisting of t's keys, sorted.

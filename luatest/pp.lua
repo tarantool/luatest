@@ -98,12 +98,11 @@ function Formatter.mt:format_table(tbl, indentLevel)
     if mt and mt.__tostring then
         -- if table has a __tostring() function in its metatable, use it to display the table
         -- else, compute a regular table
-        result = tostring(tbl)
-        if type(result) ~= 'string' then
-            return string.format('<invalid tostring() result: "%s" >', pp.tostring(result))
+        local str = tostring(tbl)
+        if type(str) ~= 'string' then
+            return string.format('<invalid tostring() result: "%s" >', pp.tostring(str))
         end
-        result = result:split('\n')
-        return _table_tostring_format_multiline_string(result, indentLevel)
+        return _table_tostring_format_multiline_string(str:split('\n'), indentLevel)
     else
         -- no metatable, compute the table representation
         local count, seq_index = 0, 1
