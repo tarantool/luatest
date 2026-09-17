@@ -18,7 +18,6 @@
     ],
     "disable": [
       "access-invisible",
-      "call-non-callable",
       "discard-returns",
       "duplicate-index",
       "duplicate-require",
