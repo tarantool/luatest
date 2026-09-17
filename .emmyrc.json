@@ -23,7 +23,6 @@
       "duplicate-index",
       "duplicate-require",
       "inject-field",
-      "missing-parameter",
       "need-check-nil",
       "preferred-local-alias",
       "redefined-local",

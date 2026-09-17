@@ -160,6 +160,7 @@ local function pcall_check_trace(level, fn, ...)
         fail_fmt(level + 1, nil, 'Error raised is not a box.error: %s',
                  prettystr(err))
     end
+    ---@diagnostic disable-next-line: missing-parameter
     local unpacked = err:unpack()
     if not comparator.equals(unpacked.trace[1], wrapped_trace) then
         fail_fmt(level + 1, nil,
