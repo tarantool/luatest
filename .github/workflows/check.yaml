@@ -17,3 +17,24 @@ jobs:
 
       - name: Run emmylua_check
         run: emmylua_check --config .emmyrc.json .
+
+  luacheck:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: tarantool/setup-tarantool@v3
+        with:
+          tarantool-version: '2.11'
+
+      - name: Install tt utility
+        run: |
+          curl -L https://tarantool.io/release/2/installer.sh | bash
+          sudo apt-get -y install tt
+
+      - name: Install luacheck
+        run: tt rocks install luacheck 0.25.0
+
+      - name: Run luacheck
+        run: .rocks/bin/luacheck .
