@@ -17,7 +17,6 @@
       "box"
     ],
     "disable": [
-      "access-invisible",
       "need-check-nil",
       "preferred-local-alias",
       "redefined-local",
