@@ -20,7 +20,6 @@
       "need-check-nil",
       "preferred-local-alias",
       "redefined-local",
-      "unbalanced-assignments",
       "undefined-field",
       "unnecessary-if",
       "unresolved-require"

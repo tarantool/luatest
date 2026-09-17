@@ -432,6 +432,7 @@ end
 
 function g.test_prettystr_pairs()
     local subject = pp.tostring_pair
+    ---@diagnostic disable-next-line: unbalanced-assignments
     local foo, bar, str1, str2 = nil, nil
 
     -- test all combinations of: foo = nil, "foo", "fo\no" (embedded
