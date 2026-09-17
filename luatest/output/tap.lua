@@ -8,6 +8,7 @@ function Output.mt:start_suite()
     print('# Started on ' .. os.date(nil, self.result.start_time))
 end
 
+---@diagnostic disable-next-line: unused
 function Output.mt:start_group(group) -- luacheck: no unused
     print('# Starting group: ' .. group.name)
 end
@@ -38,6 +39,7 @@ function Output.mt:update_status(node)
     end
 end
 
+---@diagnostic disable-next-line: unused
 function Output.mt:end_test(node) -- luacheck: no unused
     if node:is('success') then
         io.stdout:write("ok     ", node.serial_number, "\t", node.name, "\n")
