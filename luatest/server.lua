@@ -942,7 +942,7 @@ function Server:grep_log(pattern, bytes_num, opts)
         fail('Failed to seek log file')
     end
 
-    ---@type boolean?
+    ---@type string?
     local found
     ---@type table?
     local buf
@@ -978,6 +978,7 @@ function Server:grep_log(pattern, bytes_num, opts)
                     marker = nil
                 end
             end
+            ---@diagnostic disable-next-line: assign-type-mismatch
             pos = endpos and endpos + 2 -- jump to char after \n
         until pos == nil
     until s == ''

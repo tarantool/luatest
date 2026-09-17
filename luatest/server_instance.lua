@@ -39,6 +39,7 @@ end
 
 box.cfg(box_cfg())
 
+---@type string|table|nil
 local credentials = os.getenv('TARANTOOL_CREDENTIALS')
 if credentials ~= nil then
     credentials = json.decode(credentials)
