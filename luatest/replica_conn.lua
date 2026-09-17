@@ -129,6 +129,7 @@ function Connection:close_server_socket()
         self.server_socket:shutdown(socket.SHUT_RW)
         self.server_socket:close()
         self.server_connected = false
+        ---@diagnostic disable-next-line: call-non-callable
         self.server_fiber:join()
     end
 end
@@ -138,6 +139,7 @@ function Connection:close_client_socket()
         self.client_socket:shutdown(socket.SHUT_RW)
         self.client_socket:close()
         self.client_connected = false
+        ---@diagnostic disable-next-line: call-non-callable
         self.client_fiber:join()
     end
 end

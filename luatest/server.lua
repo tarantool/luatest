@@ -631,6 +631,7 @@ function Server:wait_until_ready()
     wait_for_condition('server is ready', self, function()
         local ok, is_ready = pcall(function()
             self:connect_net_box()
+            ---@diagnostic disable-next-line: call-non-callable
             return self.net_box:eval(expr) == true
         end)
         return ok and is_ready
