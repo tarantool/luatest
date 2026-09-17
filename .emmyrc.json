@@ -26,7 +26,6 @@
       "need-check-nil",
       "preferred-local-alias",
       "redefined-local",
-      "redundant-parameter",
       "unbalanced-assignments",
       "undefined-field",
       "unnecessary-assert",

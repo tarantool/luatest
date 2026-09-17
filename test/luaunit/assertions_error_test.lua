@@ -46,10 +46,12 @@ function g.test_assert_error()
     local x = 1
 
     -- f_with_error generates an error
+    ---@diagnostic disable-next-line: redundant-parameter
     local has_error = not pcall(f_with_error, x)
     t.assert_equals(has_error, true)
 
     -- f does not generate an error
+    ---@diagnostic disable-next-line: redundant-parameter
     has_error = not pcall(f, x)
     t.assert_equals(has_error, false)
 

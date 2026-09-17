@@ -419,7 +419,7 @@ function g.test_prettystrTableRecursion()
     local t9 = {"t9", {}}
     t9[{t9}] = 1
 
-    t.assert_str_matches(pp.tostring(t9, true), [[(<table: 0?x?[%x]+>) {
+    t.assert_str_matches(pp.tostring(t9), [[(<table: 0?x?[%x]+>) {
 ?%s*"t9",
 ?%s*(<table: 0?x?[%x]+>) {},
 ?%s*%[%s*(<table: 0?x?[%x]+>) {%1}%] = 1,?
