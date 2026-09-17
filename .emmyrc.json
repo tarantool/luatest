@@ -18,7 +18,6 @@
     ],
     "disable": [
       "access-invisible",
-      "duplicate-index",
       "duplicate-require",
       "inject-field",
       "need-check-nil",
