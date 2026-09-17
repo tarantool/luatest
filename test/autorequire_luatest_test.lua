@@ -45,6 +45,7 @@ g.test_exec_with_upvalue = function()
     end)
     t.assert_equals(1, 1)
 
+    ---@diagnostic disable-next-line: duplicate-require
     local lt = require('luatest')
     g.server:exec(function()
         lt.assert_equals(1, 1)
@@ -54,6 +55,7 @@ end
 
 g.test_exec_with_local_variable = function()
     g.server:exec(function()
+        ---@diagnostic disable-next-line: duplicate-require, redefined-local
         local t = require('luatest')  -- luacheck: ignore 431
         t.assert_equals(1, 1)
     end)
@@ -62,6 +64,7 @@ end
 
 g.test_exec_with_upvalue_and_local_variable = function()
     g.server:exec(function()
+        ---@diagnostic disable-next-line: duplicate-require
         local tt = require('luatest')
         t.assert_equals(1, 1)
         tt.assert_equals(1, 1)

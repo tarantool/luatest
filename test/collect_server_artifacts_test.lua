@@ -10,6 +10,7 @@ local function assert_artifacts_path(s)
 end
 
 g.test_foo = function()
+    ---@type table
     local artifacts_paths
 
     local status = helper.run_suite(function(lu2)

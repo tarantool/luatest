@@ -1,0 +1,27 @@
+{
+  "$schema": "https://raw.githubusercontent.com/EmmyLuaLs/emmylua-analyzer-rust/refs/heads/main/crates/emmylua_code_analysis/resources/schema.json",
+  "runtime": {
+    "version": "LuaJIT"
+  },
+  "workspace": {
+    "ignoreDir": [
+      ".rocks",
+      "build.luarocks",
+      "lua_modules",
+      "tmp",
+      ".luarocks"
+    ]
+  },
+  "diagnostics": {
+    "globals": [
+      "box"
+    ],
+    "disable": [
+      "need-check-nil",
+      "preferred-local-alias",
+      "undefined-field",
+      "unnecessary-if",
+      "unresolved-require"
+    ]
+  }
+}

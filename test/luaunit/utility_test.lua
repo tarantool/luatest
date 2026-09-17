@@ -404,6 +404,7 @@ function g.test_prettystrTableRecursion()
 
     local t4 = {1,2}
     local t5 = {3,4,t4}
+    ---@diagnostic disable-next-line: inject-field
     t4[3] = t5
     t.assert_str_matches(pp.tostring(t5), "(<table: 0?x?[%x]+>) {3, 4, (<table: 0?x?[%x]+>) {1, 2, %1}}")
 
@@ -412,14 +413,17 @@ function g.test_prettystrTableRecursion()
     t.assert_str_matches(pp.tostring(t6), "(<table: 0?x?[%x]+>) {%1=1}")
 
     local t7, t8 = {"t7"}, {"t8"}
+    ---@diagnostic disable-next-line: inject-field
     t7[t8] = 1
+    ---@diagnostic disable-next-line: inject-field
     t8[t7] = 2
     t.assert_str_matches(pp.tostring(t7), '(<table: 0?x?[%x]+>) {"t7", %[(<table: 0?x?[%x]+>) {"t8", %1=2}%] = 1}')
 
     local t9 = {"t9", {}}
+    ---@diagnostic disable-next-line: inject-field
     t9[{t9}] = 1
 
-    t.assert_str_matches(pp.tostring(t9, true), [[(<table: 0?x?[%x]+>) {
+    t.assert_str_matches(pp.tostring(t9), [[(<table: 0?x?[%x]+>) {
 ?%s*"t9",
 ?%s*(<table: 0?x?[%x]+>) {},
 ?%s*%[%s*(<table: 0?x?[%x]+>) {%1}%] = 1,?
@@ -428,6 +432,7 @@ end
 
 function g.test_prettystr_pairs()
     local subject = pp.tostring_pair
+    ---@diagnostic disable-next-line: unbalanced-assignments
     local foo, bar, str1, str2 = nil, nil
 
     -- test all combinations of: foo = nil, "foo", "fo\no" (embedded

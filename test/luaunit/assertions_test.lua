@@ -21,8 +21,10 @@ function g.test_assert_equals()
     t.assert_equals({nil}, {nil})
     t.assert_equals({[{}] = 1}, {[{}] = 1})
     t.assert_equals({[{one=1, two=2}] = 1}, {[{two=2, one=1}] = 1})
+    ---@diagnostic disable-next-line: duplicate-index
     t.assert_equals({[{1}]=2, [{1}]=3}, {[{1}]=3, [{1}]=2})
     -- try the other order as well, in case pairs() returns items reversed in the test above
+    ---@diagnostic disable-next-line: duplicate-index
     t.assert_equals({[{1}]=2, [{1}]=3}, {[{1}]=2, [{1}]=3})
 
     -- check assertions for which # operator returns two different length depending
@@ -51,8 +53,10 @@ function g.test_assert_equals()
     assert_failure(t.assert_equals, {[{}] = 1}, {[{}] = 2})
     assert_failure(t.assert_equals, {[{}] = 1}, {[{one=1}] = 2})
     assert_failure(t.assert_equals, {[{}] = 1}, {[{}] = 1, 2})
+    ---@diagnostic disable-next-line: duplicate-index
     assert_failure(t.assert_equals, {[{}] = 1}, {[{}] = 1, [{}] = 1})
     assert_failure(t.assert_equals, {[{"one"}]=1}, {[{"one", 1}]=2})
+    ---@diagnostic disable-next-line: duplicate-index
     assert_failure(t.assert_equals, {[{"one"}]=1,[{"one"}]=1}, {[{"one"}]=1})
 end
 

@@ -52,7 +52,9 @@ end
 
 g.test_flush_large_strings = function()
     local buffer_size = 65536
+    ---@diagnostic disable-next-line: param-type-mismatch
     local out = ('out'):rep(buffer_size / 3)
+    ---@diagnostic disable-next-line: param-type-mismatch
     local err = ('error'):rep(buffer_size / 5 + 1)
     stdout_write(out)
     stderr_write(err)
@@ -69,6 +71,7 @@ g.test_wrap = function()
     local test_capture = Capture:new()
     assert(not test_capture.enabled)
     local result = {test_capture:wrap(true, function()
+        ---@diagnostic disable-next-line: unnecessary-assert
         assert(test_capture.enabled)
         io.stdout:write('test-out')
         io.stderr:write('test-err')
@@ -100,6 +103,7 @@ g.test_wrap_with_error = function()
     local test_capture = Capture:new()
     assert(not test_capture.enabled)
     local ok, err = pcall(function() test_capture:wrap(true, function()
+        ---@diagnostic disable-next-line: unnecessary-assert
         assert(test_capture.enabled)
         io.stdout:write('test-out')
         io.stderr:write('test-err')
@@ -143,6 +147,7 @@ g.test_wrap_with_error_table = function()
     assert(not test_capture.enabled)
     local err_table = {type = 'err-class', message = 'hey'}
     local ok, err = pcall(function() test_capture:wrap(true, function()
+        ---@diagnostic disable-next-line: unnecessary-assert
         assert(test_capture.enabled)
         io.stdout:write('test-out')
         io.stderr:write('test-err')
@@ -164,6 +169,7 @@ g.test_wrap_nested = function()
     local test_capture = Capture:new()
     assert(not test_capture.enabled)
     test_capture:wrap(true, function()
+        ---@diagnostic disable-next-line: unnecessary-assert
         assert(test_capture.enabled)
         io.stdout:write('test-out')
         io.stderr:write('test-err')
@@ -172,6 +178,7 @@ g.test_wrap_nested = function()
             io.stdout:write('test-out-2')
             io.stderr:write('test-err-2')
         end)
+        ---@diagnostic disable-next-line: unnecessary-assert
         assert(test_capture.enabled)
     end)
     assert(not test_capture.enabled)

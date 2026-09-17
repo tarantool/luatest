@@ -17,33 +17,40 @@ end
 
 -- luacheck: push no unused
 -- abstract ("empty") methods
+---@diagnostic disable-next-line: unused
 function Output.mt:start_suite()
     -- Called once, when the suite is started
 end
 
+---@diagnostic disable-next-line: unused
 function Output.mt:start_group(group)
     -- Called each time a new test group is started
 end
 
+---@diagnostic disable-next-line: unused
 function Output.mt:start_test(test)
     -- called each time a new test is started, right before the setUp()
 end
 
+---@diagnostic disable-next-line: unused
 function Output.mt:update_status(node)
     -- called with status failed or error as soon as the error/failure is encountered
     -- this method is NOT called for a successful test because a test is marked as successful by default
     -- and does not need to be updated
 end
 
+---@diagnostic disable-next-line: unused
 function Output.mt:end_test(node)
     -- called when the test is finished, after the tearDown() method
 end
 
+---@diagnostic disable-next-line: unused
 function Output.mt:end_group(group)
     -- called when executing the group is finished, before moving on to the next group
     -- of at the end of the test execution
 end
 
+---@diagnostic disable-next-line: unused
 function Output.mt:end_suite()
     -- called at the end of the test suite execution
 end

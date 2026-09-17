@@ -426,6 +426,7 @@ end
 local deferred_artifact_checks = {}
 
 g.test_save_server_artifacts_when_test_failed = function()
+    ---@type table
     local artifact_paths
 
     local result = helper.run_suite(function(lu2)

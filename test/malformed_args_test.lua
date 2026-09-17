@@ -37,6 +37,7 @@ g.after_all(function()
 end)
 
 g.test_exec_correct_args = function()
+    ---@diagnostic disable-next-line: redefined-local
     local a = g.server:exec(function(a, b) return a + b end, {1, 1})
     t.assert_equals(a, 2)
 end
@@ -48,15 +49,18 @@ end
 
 g.test_exec_specific_args = function()
     -- nil
+    ---@diagnostic disable-next-line: redefined-local
     local a = g.server:exec(function(a) return a end)
     t.assert_equals(a, nil)
 
     -- too few args
+    ---@diagnostic disable-next-line: redefined-local
     local b, c = g.server:exec(function(b, c) return b, c end, {1})
     t.assert_equals(b, 1)
     t.assert_equals(c, nil)
 
     -- too many args
+    ---@diagnostic disable-next-line: redefined-local
     local d = g.server:exec(function(d) return d end, {1, 2})
     t.assert_equals(d, 1)
 end
@@ -74,7 +78,7 @@ g.test_exec_non_array_args = function()
         g.server:exec(function(a, b, c) return a, b, c end, {1, 2, a="a"})
     end
 
-    t.assert_error_msg_contains("bad argument #3 for exec at malformed_args_test.lua:66:", f1)
-    t.assert_error_msg_contains("bad argument #3 for exec at malformed_args_test.lua:70:", f2)
-    t.assert_error_msg_contains("bad argument #3 for exec at malformed_args_test.lua:74:", f3)
+    t.assert_error_msg_contains("bad argument #3 for exec at malformed_args_test.lua:70:", f1)
+    t.assert_error_msg_contains("bad argument #3 for exec at malformed_args_test.lua:74:", f2)
+    t.assert_error_msg_contains("bad argument #3 for exec at malformed_args_test.lua:78:", f3)
 end
