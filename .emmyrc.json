@@ -19,7 +19,6 @@
     "disable": [
       "access-invisible",
       "duplicate-require",
-      "inject-field",
       "need-check-nil",
       "preferred-local-alias",
       "redefined-local",
