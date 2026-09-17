@@ -942,7 +942,10 @@ function Server:grep_log(pattern, bytes_num, opts)
         fail('Failed to seek log file')
     end
 
-    local found, buf
+    ---@type boolean?
+    local found
+    ---@type table?
+    local buf
     repeat -- read file in chunks
         local s = file:read(2048)
         if s == nil then

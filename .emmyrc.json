@@ -26,7 +26,6 @@
       "inject-field",
       "missing-parameter",
       "need-check-nil",
-      "param-type-mismatch",
       "preferred-local-alias",
       "redefined-local",
       "redundant-parameter",

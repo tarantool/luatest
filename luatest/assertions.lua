@@ -295,7 +295,7 @@ function M.almost_equals(actual, expected, margin, message)
     if margin < 0 then
         failure('almost_equals: margin must not be negative, current value is ' .. margin, nil, 2)
     end
-    return math.abs(tonumber(expected - actual)) <= margin
+    return math.abs(assert(tonumber(expected - actual))) <= margin
 end
 
 --- Check that two floats are close by margin.
@@ -307,7 +307,7 @@ end
 function M.assert_almost_equals(actual, expected, margin, message)
     margin = margin or M.EPS
     if not M.almost_equals(actual, expected, margin) then
-        local delta = math.abs(tonumber(actual - expected))
+        local delta = math.abs(assert(tonumber(actual - expected)))
         fail_fmt(2, message, 'Values are not almost equal\n' ..
                     'Actual: %s, expected: %s, delta %s above margin of %s',
                     actual, expected, delta, margin)

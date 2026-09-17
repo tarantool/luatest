@@ -27,6 +27,7 @@ g.before_each(function()
 end)
 
 g.test_save_rs_artifacts_when_test_failed = function()
+    ---@type table
     local artifact_paths
 
     local status = helper.run_suite(function(luatest)
@@ -79,6 +80,7 @@ g.test_save_rs_artifacts_when_test_failed = function()
 end
 
 g.test_save_rs_artifacts_when_server_workdir_passed = function()
+    ---@type table
     local artifact_paths
 
     local status = helper.run_suite(function(luatest)

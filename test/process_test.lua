@@ -127,6 +127,7 @@ end
 g.test_start_with_debug_hook = function()
     local original_hook = {debug.gethook()}
     -- Hook is extracted from luacov. This is minimal implementation which makes fork-execve fail.
+    ---@diagnostic disable-next-line: param-type-mismatch
     debug.sethook(function(_, _, level) debug.getinfo(level or 2, 'S') end, 'l')
     local n = 100
     local env = table.copy(os.environ())
@@ -134,6 +135,7 @@ g.test_start_with_debug_hook = function()
         return t.Process:start('/bin/sleep', {'10'}, env)
     end):totable()
     fiber.sleep(0.5) -- wait until all processes called execve
+    ---@diagnostic disable-next-line: param-type-mismatch
     debug.sethook(unpack(original_hook))
     local running = fun.iter(processes):filter(function(x) return x:is_alive() end):totable()
     t.assert_equals(#running, n)

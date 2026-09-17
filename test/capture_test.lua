@@ -52,7 +52,9 @@ end
 
 g.test_flush_large_strings = function()
     local buffer_size = 65536
+    ---@diagnostic disable-next-line: param-type-mismatch
     local out = ('out'):rep(buffer_size / 3)
+    ---@diagnostic disable-next-line: param-type-mismatch
     local err = ('error'):rep(buffer_size / 5 + 1)
     stdout_write(out)
     stderr_write(err)
