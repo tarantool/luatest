@@ -60,14 +60,17 @@ function Output.mt:start_suite()
     print('# Started on ' .. os.date(nil, self.result.start_time))
 end
 
+---@diagnostic disable-next-line: unused
 function Output.mt:start_group(group) -- luacheck: no unused
     print('# Starting group: ' .. group.name)
 end
 
+---@diagnostic disable-next-line: unused
 function Output.mt:start_test(test) -- luacheck: no unused
     print('# Starting test: ' .. test.name)
 end
 
+---@diagnostic disable-next-line: unused
 function Output.mt:update_status(node) -- luacheck: no unused
     if node:is('fail') or node:is('xsuccess') then
         print('#   Failure: ' .. node.message:gsub('\n', '\n#   '))
