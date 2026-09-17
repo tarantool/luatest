@@ -29,7 +29,7 @@ local f_check_trace_wrapper = function()
 end
 
 local _, wrapper_err = pcall(f_check_trace_wrapper)
----@diagnostic disable-next-line: param-type-mismatch
+---@diagnostic disable-next-line: param-type-mismatch, missing-parameter
 local box_error_has_level = wrapper_err:unpack().trace[1].line == wrapper_line
 
 local f_check_success = function()
