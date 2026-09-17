@@ -631,8 +631,7 @@ function Server:wait_until_ready()
     wait_for_condition('server is ready', self, function()
         local ok, is_ready = pcall(function()
             self:connect_net_box()
-            ---@diagnostic disable-next-line: call-non-callable
-            return self.net_box:eval(expr) == true
+            return self:eval(expr) == true
         end)
         return ok and is_ready
     end)
@@ -943,16 +942,15 @@ function Server:grep_log(pattern, bytes_num, opts)
         fail('Failed to seek log file')
     end
 
-    ---@type string?
     local found
-    ---@type table?
-    local buf
+    local buf = nil --[[@as table?]]
     repeat -- read file in chunks
         local s = file:read(2048)
         if s == nil then
             fail('Failed to read log file')
         end
         local pos = 1
+        local done = false
         repeat -- split read string in lines
             local endpos = string.find(s, '\n', pos)
             endpos = endpos and endpos - 1 -- strip terminating \n
@@ -973,15 +971,21 @@ function Server:grep_log(pattern, bytes_num, opts)
                 if string.match(line, '> ' .. package .. ' %d+.%d+.%d+-.*%d+-g.*$') and reset then
                     found = nil -- server was restarted, reset the result
                 else
-                    found = string.match(line, pattern) or found
+                    local matched = string.match(line, pattern)
+                    if matched ~= nil then
+                        found = matched
+                    end
                 end
                 if marker ~= nil and string.match(line, marker) then
                     marker = nil
                 end
             end
-            ---@diagnostic disable-next-line: assign-type-mismatch
-            pos = endpos and endpos + 2 -- jump to char after \n
-        until pos == nil
+            if endpos == nil then
+                done = true
+            else
+                pos = endpos + 2 -- jump to char after \n
+            end
+        until done
     until s == ''
 
     if found == nil and marker ~= nil and retries < 10 then
