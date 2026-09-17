@@ -55,7 +55,7 @@ end
 
 g.test_exec_with_local_variable = function()
     g.server:exec(function()
-        ---@diagnostic disable-next-line: duplicate-require
+        ---@diagnostic disable-next-line: duplicate-require, redefined-local
         local t = require('luatest')  -- luacheck: ignore 431
         t.assert_equals(1, 1)
     end)
