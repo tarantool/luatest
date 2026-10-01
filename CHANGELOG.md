@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added `t.helper()` to mark the calling function as a helper, so assertion
+  errors point to its caller instead of the helper itself.
 - Fixed a bug when the proxy could forward data arriving right after
   `pause()` if a connection fiber was already waiting for the socket to
   become readable.

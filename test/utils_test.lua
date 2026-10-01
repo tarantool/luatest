@@ -43,3 +43,62 @@ g.test_box_error = function()
         prev = {type = 'MyError2', message = 'FUZZ'}
     })
 end
+
+-- Helper to extract line number from luatest error message ("path:line: msg").
+local function error_line(err)
+    if type(err) == 'table' and err.message then
+        return tonumber(err.message:match(':(%d+):'))
+    end
+end
+
+-- Helper to get current line number (for expected line in assertions).
+local function current_line()
+    return debug.getinfo(2, 'l').currentline
+end
+
+-- A helper function that calls t.assert internally.
+local function assert_true_helper(value)
+    t.helper()
+
+    t.assert(value, 'assertion failed in helper')
+end
+
+-- A helper that calls another helper.
+local function nested_helper(value)
+    t.helper()
+
+    assert_true_helper(value)
+end
+
+-- A function without t.helper().
+local function not_a_helper(value)
+    t.assert(value, 'assertion failed')
+end
+
+g.test_helper_points_to_caller = function()
+    local expected_line = current_line() + 2
+    local err = t.assert_error(function()
+        assert_true_helper(false) -- error should point HERE
+    end)
+    t.assert(utils.is_luatest_error(err), err)
+    t.assert_equals(error_line(err), expected_line)
+end
+
+g.test_helper_nested = function()
+    local expected_line = current_line() + 2
+    local err = t.assert_error(function()
+        nested_helper(false) -- error should point HERE, skipping both helpers
+    end)
+    t.assert(utils.is_luatest_error(err), err)
+    t.assert_equals(error_line(err), expected_line)
+end
+
+g.test_no_helper_points_to_function = function()
+    -- Without t.helper(), error points to t.assert inside not_a_helper.
+    local helper_line = debug.getinfo(not_a_helper, 'Sl').linedefined + 1
+    local err = t.assert_error(function()
+        not_a_helper(false)
+    end)
+    t.assert(utils.is_luatest_error(err), err)
+    t.assert_equals(error_line(err), helper_line)
+end

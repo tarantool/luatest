@@ -52,9 +52,40 @@ end
 
 local error_class_name = 'LuatestError'
 
+-- Set of functions marked as helpers via utils.helper().
+-- Weak keys so Lua functions can be garbage collected.
+local helpers = setmetatable({}, {__mode = 'k'})
+
+--- Mark the calling function as a helper, so assertion errors point to its
+-- caller instead of the helper itself.
+function utils.helper()
+    local info = debug.getinfo(2, 'f')
+    if info and info.func then
+        helpers[info.func] = true
+    end
+end
+
+-- Walk up the stack, skipping frames whose function is a helper.
+-- Returns the level of the first non-helper frame.
+local function skip_helpers(level)
+    -- Fast path: no helpers registered, skip stack walking.
+    if not next(helpers) then
+        return level
+    end
+
+    while true do
+        local info = debug.getinfo(level, 'f')
+        if not info or not helpers[info.func] then
+            return level
+        end
+        level = level + 1
+    end
+end
+
 function utils.luatest_error(status, message, level)
     local _
-    _, message = pcall(error, message, (level or 1) + 2)
+    level = skip_helpers((level or 1) + 2)
+    _, message = pcall(error, message, level)
     error({class = error_class_name, status = status, message = message})
 end
 

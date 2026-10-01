@@ -7,6 +7,11 @@ if not utils.version_current_ge_than(2, 2, 1) then
     error('Luatest supports only Tarantool >= 2.2.1')
 end
 
+--- Mark the calling function as a helper; assertion errors point to its caller.
+--
+-- @see luatest.utils.helper
+luatest.helper = utils.helper
+
 luatest.Process = require('luatest.process')
 luatest.VERSION = require('luatest.VERSION')
 
