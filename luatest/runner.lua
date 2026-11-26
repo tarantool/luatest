@@ -11,6 +11,7 @@ local Class = require('luatest.class')
 local GenericOutput = require('luatest.output.generic')
 local hooks = require('luatest.hooks')
 local log = require('luatest.log')
+local languages = require('luatest.languages')
 local loader = require('luatest.loader')
 local pp = require('luatest.pp')
 local Server = require('luatest.server')
@@ -46,16 +47,29 @@ Runner.mt.tests_path = 'test'
 -- @string[opt='none'] options.shuffle Shuffle method (none, all, group)
 -- @int[opt] options.seed Random seed for shuffle
 -- @string[opt='text'] options.output Output formatter (text, tap, junit, nil)
+-- @tab[opt] options.languages Language modules to activate, see @{luatest.languages}.
+--   The languages of `options`, `--language` and `luatest.configure()` are
+--   all activated. The ones of `options` and `--language` are activated before
+--   `test.helper` is looked up, so the helper may be written in such a language.
 function Runner.run(args, options)
     args = args or rawget(_G, 'arg')
     options = options or {}
     options.luatest = options.luatest or require('luatest')
 
     local _, code = xpcall(function()
-        if package.search(Runner.HELPER_MODULE) then
+        local cli_options = Runner.parse_cmd_line(args)
+        -- Languages known before the helper is looked up, so that the helper
+        -- may be written in one of them. The ones set by `configure()` in the
+        -- helper work for the tests only.
+        languages:use(cli_options.languages)
+        languages:use(options.languages)
+        if languages:search(Runner.HELPER_MODULE) then
             require(Runner.HELPER_MODULE)
         end
-        options = utils.merge(options.luatest.configure(), Runner.parse_cmd_line(args), options)
+        local config = options.luatest.configure()
+        languages:use(config.languages)
+        options = utils.merge(config, cli_options, options)
+        options.languages = languages:modules()
 
         if options.help then
             print(Runner.USAGE)
@@ -111,6 +125,11 @@ Options:
   -x, --exclude PATTERN:  Exclude all test names matching the Lua PATTERN
                           May be repeated to exclude several patterns
                           Make sure you escape magic chars like +? with %
+  --language MODULE:      Activate a language compiled to Lua: require the
+                          language module MODULE before test.helper is looked
+                          up, discover `*_test.<ext>` files for its extensions
+                          and load it in started servers with `-l MODULE`.
+                          May be repeated to activate several languages
   --coverage:             Use luacov to collect code coverage.
   --no-clean:             Disable the var directory (default: /tmp/t) deletion before
                           running tests.
@@ -182,6 +201,9 @@ function Runner.parse_cmd_line(args)
             result.full_backtrace = true
         elseif arg == '--no-capture' or arg == '-c' then
             result.enable_capture = false
+        elseif arg == '--language' then
+            result.languages = result.languages or {}
+            table.insert(result.languages, next_arg())
         elseif arg == '--coverage' then
             result.coverage_report = true
         elseif arg == '--no-clean' then

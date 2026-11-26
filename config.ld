@@ -4,6 +4,7 @@ file = {
     'luatest/group.lua',
     'luatest/helpers.lua',
     'luatest/http_response.lua',
+    'luatest/languages.lua',
     'luatest/runner.lua',
     'luatest/server.lua',
     'luatest/replica_set.lua',

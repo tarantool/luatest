@@ -18,6 +18,7 @@ local _, luacov_runner = pcall(require, 'luacov.runner') -- luacov may not be in
 
 local assertions = require('luatest.assertions')
 local HTTPResponse = require('luatest.http_response')
+local languages = require('luatest.languages')
 local Process = require('luatest.process')
 local log = require('luatest.log')
 local utils = require('luatest.utils')
@@ -53,6 +54,8 @@ local Server = {
         coverage_report = '?boolean',
 
         setsearchroot = '?boolean',
+
+        languages = '?table',
     },
 }
 
@@ -109,6 +112,11 @@ end
 --   value is used to deduce advertise URI to connect net.box to the instance.
 -- @tab[opt] object.setsearchroot Set `package.searchroot` to be the same as
 --   in the Tarantool that starts the server.
+-- @tab[opt] object.languages List of language modules (see
+--   @{luatest.languages}) to load in the server process with `-l <module>`,
+--   after `package.searchroot` is set and before the command runs. Defaults to
+--   the languages active in luatest when the server starts; `{}` loads none.
+--   The command itself must be a Lua script or a Tarantool binary.
 -- @tab[opt] extra Table with extra properties for the server object.
 -- @return table
 function Server:new(object, extra)
@@ -295,6 +303,12 @@ function Server:initialize()
     self.env = utils.merge(self.env or {}, self:build_env())
     self.args = self.args or {}
 
+    for _, module in pairs(self.languages or {}) do
+        if type(module) ~= 'string' then
+            error('Server languages must be a list of module names, got: ' .. json.encode(self.languages))
+        end
+    end
+
     -- Enable coverage_report if it's enabled when server is instantiated
     -- and it's not disabled explicitly.
     if self.coverage_report == nil and luacov_runner and luacov_runner.initialized then
@@ -433,6 +447,17 @@ function Server:start(opts)
         command = arg[-1]
     end
 
+    -- Load the language modules with `-l` before the command runs, so that it
+    -- can require modules written in these languages (`server:exec()` too).
+    -- `command` is a Tarantool binary here whatever the server command is.
+    -- They go after the `-e` below: Tarantool runs `-e` and `-l` in the
+    -- command line order, and the modules may need the search root.
+    local server_languages = self.languages or languages:modules()
+    for i = #server_languages, 1, -1 do
+        table.insert(args, 1, '-l')
+        table.insert(args, 2, server_languages[i])
+    end
+
     -- To fix the issue with rock-modules missing from the created instances,
     -- we need to set `package.searchroot`. Furthermore, this must be done
     -- before loading `command`. This is done if the `setsearchroot` option
@@ -507,6 +532,8 @@ function Server:restart(params, opts)
         alias = '?string',
 
         coverage_report = '?boolean',
+
+        languages = '?table',
     }, {wait_until_ready = '?boolean'})
 
     if not self.process then

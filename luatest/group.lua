@@ -8,8 +8,11 @@
 local Group = require('luatest.class').new()
 
 local hooks = require('luatest.hooks')
+local languages = require('luatest.languages')
 
-local function find_closest_matching_frame(pattern)
+-- Returns the capture of the first pattern matching the source of the
+-- closest frame matched by any of the patterns.
+local function find_closest_matching_frame(patterns)
     local level = 2
     while true do
         local info = debug.getinfo(level, 'S')
@@ -17,8 +20,11 @@ local function find_closest_matching_frame(pattern)
             return
         end
         local source = info.source
-        if source:match(pattern) then
-            return info
+        for _, pattern in ipairs(patterns) do
+            local capture = source:match(pattern)
+            if capture then
+                return capture
+            end
         end
         level = level + 1
     end
@@ -45,16 +51,25 @@ end
 
 ---
 -- @string[opt] name Default name is inferred from caller filename when possible.
---  For `test/a/b/c_d_test.lua` it will be `a.b.c_d`.
+--  For `test/a/b/c_d_test.lua` it will be `a.b.c_d`. Files of active
+--  languages (see @{luatest.languages}) work the same way:
+--  `test/a/b/c_d_test.moon` gives `a.b.c_d` too.
 -- @return Group instance
 function Group.mt:initialize(name)
     if not name then
-        local pattern = '.*/test/(.+)_test%.lua'
-        local info = assert(
-            find_closest_matching_frame(pattern),
-            "Can't derive test name from file name (it should match '.*/test/.*_test.lua')"
+        local patterns = {'.*/test/(.+)_test%.lua'}
+        local expected = {"'.*/test/.*_test.lua'"}
+        for _, ext in ipairs(languages:extensions()) do
+            if ext ~= 'lua' then
+                table.insert(patterns, '.*/test/(.+)_test%.' .. ext:gsub('%-', '%%-') .. '$')
+                table.insert(expected, ("'.*/test/.*_test.%s'"):format(ext))
+            end
+        end
+        local test_filename = assert(
+            find_closest_matching_frame(patterns),
+            ("Can't derive test name from file name (it should match %s)"):format(
+                table.concat(expected, ' or '))
         )
-        local test_filename = assert(info.source:match(pattern))
         name = test_filename:gsub('/', '.')
     end
     if name:find('/') then

@@ -1,0 +1,11 @@
+#toy
+-- A module in the toy language: `fn` is `function`.
+local answer = {}
+
+answer.get = fn()
+    return 42
+end
+
+answer.value = answer.get()
+
+return answer
