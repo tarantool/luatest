@@ -3,6 +3,8 @@
 local fio = require('fio')
 local fun = require('fun')
 
+local languages = require('luatest.languages')
+
 -- Returns list of all nested files within given path.
 -- As fio.glob does not support `**/*` this method adds `/*` to path and glog it
 -- until result is empty.
@@ -19,20 +21,27 @@ local function glob_recursive(path)
     return result
 end
 
--- If directory is given then it's scanned recursievly for files ending with `_test.lua`.
--- If `.lua` file is given then it's used as is.
+local function is_test_file(path)
+    local base = languages:strip_extension(path)
+    return base ~= nil and base:endswith('_test')
+end
+
+-- If directory is given then it's scanned recursievly for files ending with
+-- `_test.<ext>` for every active extension (`lua` and the ones of active
+-- languages, see luatest.languages).
+-- If a file with an active extension is given then it's used as is.
 -- Resulting list of files is mapped to lua's module names.
 local function get_test_modules_list(path)
     local files
-    if path:endswith('.lua') then
+    if languages:strip_extension(path) then
         files = fun.iter({path})
     else
         local list = glob_recursive(path)
         table.sort(list)
-        files = fun.iter(list):filter(function(x) return x:endswith('_test.lua') end)
+        files = fun.iter(list):filter(is_test_file)
     end
     return files:
-        map(function(x) return x:gsub('%.lua$', '') end):
+        map(function(x) return (languages:strip_extension(x)) end):
         map(function(x) return x:gsub('/+', '.') end):
         totable()
 end

@@ -5,6 +5,13 @@
 - Fixed a bug when the proxy could forward data arriving right after
   `pause()` if a connection fiber was already waiting for the socket to
   become readable.
+- Added support for tests and helpers written in languages compiled to Lua
+  (MoonScript, Fennel, Teal, ...). A language module, activated with the new
+  `--language MODULE` option or `luatest.configure({languages = {...}})`,
+  installs its searcher and lists its file extensions: luatest then discovers
+  `*_test.<ext>` files, finds `test/helper.<ext>` and loads the module in
+  started servers with `-l MODULE`. The new `Server` option `languages`
+  overrides the list for a server.
 
 ## 1.4.5
 

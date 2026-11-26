@@ -514,6 +514,100 @@ There are several small helpers for common actions:
     -- wait until server is up
     luatest.helpers.retrying({}, function() server:http_request('get', '/status') end)
 
+.. _languages:
+
+---------------------------------
+Languages compiled to Lua
+---------------------------------
+
+Tests and helpers may be written in a language that compiles to Lua
+(MoonScript, Fennel, Teal, YueScript, ...). luatest knows no concrete
+language: support for one comes from a *language module*, any Lua module
+(usually a third-party rock) which, when required,
+
+- installs a searcher for its files into ``package.loaders``, once per process,
+  so that ``require`` loads them;
+- returns a table with ``extensions``, a non-empty list of file extensions
+  without the dot, e.g. ``{extensions = {'moon'}}``.
+
+Requiring the module is the whole activation, so ``tarantool -l <module>``
+activates the language in any Tarantool process.
+
+Activate languages with the ``--language MODULE`` option (may be repeated) or
+from ``test/helper.lua``:
+
+.. code-block:: Lua
+
+    require('luatest').configure({languages = {'luatest.lang.moonscript'}})
+
+An active language makes luatest:
+
+- discover ``*_test.<ext>`` files next to ``*_test.lua`` ones and accept a
+  ``.<ext>`` file given as a path; the group name is derived from the file name
+  as for Lua (``test/a/b_test.moon`` gives ``a.b``);
+- start every ``Server`` with ``-l <module>`` after its
+  ``package.setsearchroot()`` call, so the server process (and
+  ``server:exec()``) can require modules written in the language. The
+  ``languages`` option of ``Server:new()`` overrides the list; ``{}`` loads
+  none.
+
+Languages given with ``--language`` are active before ``test.helper`` is looked
+up, so the helper may be written in such a language (``test/helper.moon``).
+Languages set by ``configure()`` in the helper work for the tests, not for the
+helper itself. luatest finds ``test.helper`` with ``package.search`` and then,
+for every other active extension, along ``<root>/?.<ext>``,
+``<root>/?/init.<ext>`` and every ``package.path`` template with ``.lua``
+replaced by ``.<ext>``, where ``<root>`` is ``package.searchroot()``.
+
+A language module should resolve files the same way: relative to
+``package.searchroot()`` (``'.'`` if it is missing), not the current directory.
+A server runs in its own working directory and gets the search root of luatest
+with ``-e "package.setsearchroot(...)"``, so a searcher using ``./?.moon``
+finds nothing there. Name the chunks after their files (``'@' .. path``) so
+that errors and tracebacks point at the source file.
+
+A minimal language module, for a "language" that is Lua spelling ``function``
+as ``fn``:
+
+.. code-block:: Lua
+
+    -- fn_lang.lua: luatest --language fn_lang
+    local function search(name)
+        local root = package.searchroot and package.searchroot() or '.'
+        local path = root .. '/?.fn;' .. root .. '/?/init.fn;' ..
+            package.path:gsub('%.lua', '.fn')
+        return package.searchpath(name, path)
+    end
+
+    local function searcher(name)
+        local path, err = search(name)
+        if path == nil then
+            return err
+        end
+        local file = assert(io.open(path))
+        local source = file:read('*a'):gsub('%f[%w_]fn%f[^%w_]', 'function')
+        file:close()
+        return assert(loadstring(source, '@' .. path))
+    end
+
+    local registry = debug.getregistry()
+    if registry.fn_lang_searcher == nil then
+        registry.fn_lang_searcher = searcher
+        table.insert(package.loaders, searcher)
+    end
+
+    return {extensions = {'fn'}}
+
+Limitations:
+
+- A server ``command`` must still be a Lua script or a Tarantool binary; a
+  script written in another language is not supported.
+- Languages with implicit return (MoonScript, Fennel, YueScript) compile the
+  last call of a test into a tail call (``return t.assert_equals(...)``). A tail
+  call drops the test's frame from the traceback, so a failure is reported
+  inside luatest with an empty trace instead of at the test line. End such tests
+  with an explicit ``return`` or ``nil``.
+
 .. _luacov-integration:
 
 ---------------------------------
